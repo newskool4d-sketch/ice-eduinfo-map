@@ -28,28 +28,41 @@ export default function IndicatorPicker({ value, onChange }: IndicatorPickerProp
             </legend>
             {items.map((def) => {
               const checked = value === def.id;
+              const descriptionId = `indicator-description-${def.id}`;
               return (
-                // Association is via wrapping only (no id/htmlFor pair) —
-                // combining both on the same input/label duplicates its
-                // accessible name (testing-library resolves it as
-                // "label label", confirmed empirically while writing
-                // IndicatorPicker.test.tsx).
-                <label
-                  key={def.id}
-                  className={`cursor-pointer rounded px-2 py-1 text-xs transition-colors ${
-                    checked ? "bg-white/15 text-[#e6e9f0]" : "text-[#e6e9f0]/70 hover:bg-white/5"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name={RADIO_GROUP_NAME}
-                    value={def.id}
-                    checked={checked}
-                    onChange={() => onChange(def.id)}
-                    className="mr-1 align-middle"
-                  />
-                  {def.label}
-                </label>
+                // Task 5, Section C — def.description renders small, just
+                // below the radio+label (Korean "옆에": visually adjacent,
+                // not literally same-line, given how many chips already
+                // wrap here). It's a SIBLING of the <label>, not nested
+                // inside it: text content inside a <label> becomes part of
+                // its wrapped <input>'s accessible NAME (confirmed against
+                // this file's own precedent below — combining id/htmlFor
+                // duplicates the name the same way), which would silently
+                // break every `getByRole("radio", { name: def.label })`
+                // query in IndicatorPicker.test.tsx/IndicatorMenu.test.tsx.
+                // `aria-describedby` links it as the accessible DESCRIPTION
+                // instead, leaving the NAME exactly `def.label`.
+                <div key={def.id} className="flex flex-col">
+                  <label
+                    className={`cursor-pointer rounded px-2 py-1 text-xs transition-colors ${
+                      checked ? "bg-white/15 text-[#e6e9f0]" : "text-[#e6e9f0]/70 hover:bg-white/5"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={RADIO_GROUP_NAME}
+                      value={def.id}
+                      checked={checked}
+                      onChange={() => onChange(def.id)}
+                      aria-describedby={descriptionId}
+                      className="mr-1 align-middle"
+                    />
+                    {def.label}
+                  </label>
+                  <span id={descriptionId} className="max-w-[220px] pl-2 text-[10px] leading-snug text-[#e6e9f0]/45">
+                    {def.description}
+                  </span>
+                </div>
               );
             })}
           </fieldset>

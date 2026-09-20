@@ -17,6 +17,7 @@ function baseDef(overrides: Partial<IndicatorDef> = {}): IndicatorDef {
     format: formatInt,
     source: { name: "KESS 테스트 출처", url: "https://example.com/kess", year: 2026 },
     aggregate: { kind: "sum", field: "students" },
+    description: "테스트용 설명입니다.",
     ...overrides,
   };
 }
@@ -29,6 +30,19 @@ describe("Legend", () => {
       <Legend def={baseDef()} ticks={TICKS} palette={paletteFor("neutral")} hasNull={false} referenceDate="2026-04-01" />,
     );
     expect(screen.getByTestId("legend-indicator-label")).toHaveTextContent("학생수");
+  });
+
+  it("shows the indicator's description (Task 5, Section C)", () => {
+    render(
+      <Legend
+        def={baseDef({ description: "테스트 설명 문구입니다." })}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+      />,
+    );
+    expect(screen.getByTestId("legend-description")).toHaveTextContent("테스트 설명 문구입니다.");
   });
 
   it("renders 5 color swatches", () => {

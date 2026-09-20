@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 
 import MapShell from "@/components/map/MapShell";
+import Footer from "@/components/panels/Footer";
 import Legend from "@/components/panels/Legend";
 import RegionList from "@/components/panels/RegionList";
 import RegionPanel from "@/components/panels/RegionPanel";
@@ -98,19 +99,19 @@ function DashboardInner({
         </aside>
       </div>
 
-      <footer className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-x-auto border-t border-white/10 px-4 py-2">
-        <Legend
-          def={legendDef}
-          ticks={ticks}
-          palette={palette}
-          hasNull={hasNull}
-          referenceDate={file.referenceDate}
-          schoolLevelsVisible={!!regionCode}
-        />
-        <span className="shrink-0 text-xs text-[#e6e9f0]/40">
-          {bundle.schools.source.location.name} · 학교 위치 기준 {bundle.schools.referenceDate.location}
-        </span>
-      </footer>
+      <div>
+        <footer className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-x-auto border-t border-white/10 px-4 py-2">
+          <Legend
+            def={legendDef}
+            ticks={ticks}
+            palette={palette}
+            hasNull={hasNull}
+            referenceDate={file.referenceDate}
+            schoolLevelsVisible={!!regionCode}
+          />
+        </footer>
+        <Footer manifest={bundle.manifest} />
+      </div>
     </div>
   );
 }

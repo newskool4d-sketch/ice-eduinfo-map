@@ -26,6 +26,17 @@ describe("IndicatorPicker", () => {
     expect(screen.getByRole("radio", { name: indicatorById("students_total")!.label })).not.toBeChecked();
   });
 
+  it("renders each indicator's description small, without changing the radio's accessible name (Task 5, Section C)", () => {
+    render(<IndicatorPicker value={DEFAULT_INDICATOR_ID} onChange={() => {}} />);
+    const def = indicatorById("students_per_class")!;
+    expect(screen.getByText(def.description)).toBeInTheDocument();
+    // The radio's accessible name is still exactly def.label — description
+    // text lives in a sibling <span> (aria-describedby), never inside the
+    // <label> itself (see IndicatorPicker.tsx's own comment on this).
+    const radio = screen.getByRole("radio", { name: def.label });
+    expect(radio).toHaveAccessibleDescription(def.description);
+  });
+
   it("calls onChange with the clicked indicator's id", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

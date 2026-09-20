@@ -82,6 +82,23 @@ export function vsProvince(map: Map<string, number | null>, code: string): numbe
   return value - province;
 }
 
+/**
+ * `value(code) / value(52000) * 100` — a 시군's share of the 전북 province
+ * total, on a 0-100 scale (Task 5, Section D — "전북 대비" 표기 수정). Only
+ * meaningful for count-kind indicators (where 52000 really is Σ of the 14
+ * 시군), unlike `vsProvince`'s subtraction, which is used for ratio-kind
+ * indicators instead. Returns null when either side is null/missing, or
+ * when the province total itself is 0 (share is undefined, not Infinity/NaN).
+ */
+export function shareOfProvince(map: Map<string, number | null>, code: string): number | null {
+  const value = map.get(code);
+  const province = map.get(PROVINCE_CODE);
+  if (value === null || value === undefined || province === null || province === undefined || province === 0) {
+    return null;
+  }
+  return (value / province) * 100;
+}
+
 /** A region's {year, value} rows from a series file, sorted by ascending year. */
 export function trend(series: SeriesFile, code: string): { year: number; value: number | null }[] {
   return series.rows

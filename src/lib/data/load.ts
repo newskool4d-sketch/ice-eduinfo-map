@@ -2,6 +2,7 @@
  * Fetches every file DataProvider needs and validates the result against
  * the indicator registry. No React import.
  */
+import type { ClosedSchoolsFile } from "../closedSchools/types";
 import { isRegionCode, PROVINCE_CODE, REGION_CODES } from "../geo/regions";
 import { INDICATORS } from "../indicators/registry";
 import type { IndicatorFile, Manifest, SeriesFile } from "../indicators/types";
@@ -35,12 +36,13 @@ async function fetchJson<T>(fetchImpl: FetchImpl, url: string): Promise<T> {
  * would just 404.
  */
 export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBundle> {
-  const [regions, neighbors, charset, manifest, schools] = await Promise.all([
+  const [regions, neighbors, charset, manifest, schools, closedSchools] = await Promise.all([
     fetchJson<RegionsFeatureCollection>(fetchImpl, "/data/regions.geojson"),
     fetchJson<NeighborsFeatureCollection>(fetchImpl, "/data/neighbors.geojson"),
     fetchJson<string>(fetchImpl, "/data/charset.json"),
     fetchJson<Manifest>(fetchImpl, "/data/manifest.json"),
     fetchJson<SchoolsFile>(fetchImpl, "/data/schools.json"),
+    fetchJson<ClosedSchoolsFile>(fetchImpl, "/data/closed-schools.json"),
   ]);
 
   const indicatorIds = INDICATORS.map((d) => d.id);
@@ -82,7 +84,7 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
     series[id] = seriesFiles[i];
   });
 
-  return { regions, neighbors, charset, manifest, schools, indicators, series };
+  return { regions, neighbors, charset, manifest, schools, closedSchools, indicators, series };
 }
 
 /**
@@ -135,6 +137,21 @@ export function assertBundle(bundle: DataBundle): void {
             .join(", "),
       );
     }
+  }
+
+  // Task 5 — closed-schools.json: every row must resolve to one of the 14
+  // 시군 (mirrors the schools.json regionCode check above). An empty row
+  // list is NOT flagged as a problem here (unlike schools.json) — an
+  // all-zero 폐교 dataset would be a legitimate, if surprising, real state.
+  const badRegionClosedSchools = bundle.closedSchools.rows.filter((r) => !isRegionCode(r.regionCode));
+  if (badRegionClosedSchools.length > 0) {
+    problems.push(
+      `closed-schools.json has ${badRegionClosedSchools.length} row(s) with a regionCode outside the 14 시군: ` +
+        badRegionClosedSchools
+          .slice(0, 5)
+          .map((r) => `${r.name}(${r.regionCode})`)
+          .join(", "),
+    );
   }
 
   if (problems.length > 0) {

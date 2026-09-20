@@ -6,6 +6,7 @@ import { INDICATORS, INDICATOR_IDS } from "@/lib/indicators/registry";
 import { PROVINCE_CODE, REGION_CODES } from "@/lib/geo/regions";
 import type { IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
 import type { SchoolsFile } from "@/lib/schools/types";
+import type { ClosedSchoolsFile } from "@/lib/closedSchools/types";
 
 function regionsFixture() {
   return {
@@ -48,7 +49,7 @@ function seriesFileFixture(id: string): SeriesFile {
 function manifestFixture(): Manifest {
   const indicators: Manifest["indicators"] = {};
   for (const id of INDICATOR_IDS) indicators[id] = { years: [2022, 2023, 2024, 2025, 2026] };
-  return { latestYear: 2026, indicators, builtAt: "2026-01-01T00:00:00.000Z" };
+  return { latestYear: 2026, indicators, builtAt: "2026-01-01T00:00:00.000Z", sources: [] };
 }
 
 function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 404) {
@@ -80,6 +81,24 @@ function schoolsFixture(): SchoolsFile {
   };
 }
 
+function closedSchoolsFixture(): ClosedSchoolsFile {
+  return {
+    referenceDate: "2026-07-16",
+    publishedAt: "2026-07-20",
+    source: { name: "전북특별자치도교육청 폐교재산 현황(공공데이터포털)", url: "https://example.com/closed-schools", year: 2026 },
+    rows: REGION_CODES.map((code, i) => ({
+      regionCode: code,
+      name: `폐교${i}`,
+      year: 2020,
+      level: "elem",
+      usage: "미활용",
+      buildingArea: 100,
+      siteArea: 200,
+      address: "전북특별자치도 어딘가",
+    })),
+  };
+}
+
 /** A fetchImpl that resolves every URL this app's DataProvider is expected to request. */
 function fullFakeFetch() {
   const calls: string[] = [];
@@ -90,6 +109,7 @@ function fullFakeFetch() {
     if (url === "/data/charset.json") return jsonResponse(CHARSET);
     if (url === "/data/manifest.json") return jsonResponse(manifestFixture());
     if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
+    if (url === "/data/closed-schools.json") return jsonResponse(closedSchoolsFixture());
     const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
     if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
     const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -110,6 +130,8 @@ describe("loadBundle", () => {
     expect(bundle.manifest.latestYear).toBe(2026);
     expect(bundle.schools.schools.length).toBe(REGION_CODES.length);
     expect(bundle.schools.referenceDate.location).toBe("2026-03-20");
+    expect(bundle.closedSchools.rows.length).toBe(REGION_CODES.length);
+    expect(bundle.closedSchools.referenceDate).toBe("2026-07-16");
     for (const id of INDICATOR_IDS) {
       expect(bundle.indicators[id]).toBeTruthy();
       expect(bundle.indicators[id].id).toBe(id);
@@ -139,6 +161,7 @@ describe("loadBundle", () => {
       if (url === "/data/charset.json") return jsonResponse(CHARSET);
       if (url === "/data/manifest.json") return jsonResponse(manifest);
       if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
+      if (url === "/data/closed-schools.json") return jsonResponse(closedSchoolsFixture());
       const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
       if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
       const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -169,6 +192,7 @@ describe("loadBundle", () => {
       if (url === "/data/charset.json") return jsonResponse(CHARSET);
       if (url === "/data/manifest.json") return jsonResponse(manifest);
       if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
+      if (url === "/data/closed-schools.json") return jsonResponse(closedSchoolsFixture());
       const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
       if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
       const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -186,6 +210,7 @@ describe("loadBundle", () => {
       if (url === "/data/charset.json") return jsonResponse(CHARSET);
       if (url === "/data/manifest.json") return jsonResponse(manifestFixture());
       if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
+      if (url === "/data/closed-schools.json") return jsonResponse(closedSchoolsFixture());
       const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
       if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
       const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -258,6 +283,21 @@ describe("assertBundle", () => {
       schools: [{ ...bundle.schools.schools[0], regionCode: "99999" }],
     };
     expect(() => assertBundle(bundle)).toThrow(/regionCode/);
+  });
+
+  it("throws when a closed-schools row's regionCode is outside the 14 시군", async () => {
+    const bundle = await validBundle();
+    bundle.closedSchools = {
+      ...bundle.closedSchools,
+      rows: [{ ...bundle.closedSchools.rows[0], regionCode: "99999" }],
+    };
+    expect(() => assertBundle(bundle)).toThrow(/regionCode/);
+  });
+
+  it("does not throw when closed-schools.json has 0 rows (a legitimate, if surprising, all-zero dataset)", async () => {
+    const bundle = await validBundle();
+    bundle.closedSchools = { ...bundle.closedSchools, rows: [] };
+    expect(() => assertBundle(bundle)).not.toThrow();
   });
 
   it("reports multiple missing items in a single error", async () => {

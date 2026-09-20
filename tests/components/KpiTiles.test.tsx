@@ -24,7 +24,7 @@ function seriesFile(id: string, values: { year: number; value: number }[]): Seri
 }
 
 function manifestFixture(): Manifest {
-  return { latestYear: 2026, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z" };
+  return { latestYear: 2026, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z", sources: [] };
 }
 
 /**
