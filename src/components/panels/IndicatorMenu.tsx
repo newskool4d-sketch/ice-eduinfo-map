@@ -68,7 +68,17 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     firstRadio?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      // Fix round 1 (review finding #1): preventDefault() so DeckMap's
+      // document-level Escape-to-deselect listener (registered in the
+      // BUBBLE phase specifically so it always runs after THIS capture-phase
+      // listener, regardless of which effect happened to attach first — see
+      // DeckMap.tsx's own comment) can tell "the menu already handled this
+      // Escape" apart from "nothing did," and skip deselecting the region.
+      // A single Escape with the menu open must close only the menu.
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+      }
     }
     function onPointerDown(event: MouseEvent) {
       const target = event.target as Node;

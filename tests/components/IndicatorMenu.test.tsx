@@ -114,6 +114,25 @@ describe("IndicatorMenu", () => {
     expect(screen.getByRole("button", { name: MENU_BUTTON_NAME })).toHaveFocus();
   });
 
+  it("Escape calls preventDefault() when it closes the menu (fix round 1, review finding #1 — lets DeckMap's own document-level Escape-to-deselect listener tell this was already handled and skip deselecting the region)", async () => {
+    const user = userEvent.setup();
+    render(<IndicatorMenu />, { wrapper: withNuqsTestingAdapter() });
+
+    await user.click(screen.getByRole("button", { name: MENU_BUTTON_NAME }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // fireEvent's return value is dispatchEvent's own result: `false` exactly
+    // when some listener called preventDefault() on this (cancelable) event.
+    // Dispatched directly on `document` (rather than via user.keyboard,
+    // which targets whatever's focused) since this listener is registered
+    // on `document` itself, and "at target" listeners fire regardless of
+    // capture/bubble.
+    const notCanceled = fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(notCanceled).toBe(false);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("closes on an outside click", async () => {
     const user = userEvent.setup();
     render(
