@@ -16,10 +16,18 @@ import { KESS_FILE_IDS } from "./sources";
 const RAW_DIR = path.resolve(import.meta.dirname, "../../data/raw");
 const INTERIM_DIR = path.resolve(import.meta.dirname, "../../data/interim");
 
-const SOURCE: IndicatorSource = {
+/**
+ * `year` here is a per-year override applied at the write site below (fix
+ * round 2, finding 11) — every interim file used to hardcode 2026 regardless
+ * of which year it actually held (data/interim/kess-2022.json's own `source`
+ * claimed year 2026), which is misleading for a per-file provenance record
+ * even though nothing downstream currently reads it (build-indicators.ts
+ * uses each INDICATORS entry's own `def.source` instead — see its
+ * `source: def.source` — not this interim file's `source` field at all).
+ */
+const SOURCE: Omit<IndicatorSource, "year"> = {
   name: "한국교육개발원 교육통계서비스(KESS) 교육기본통계 학교별 데이터셋",
   url: "https://kess.kedi.re.kr/contents/dataset",
-  year: 2026,
 };
 
 function formatDropped(dropped: Record<string, number>): string {
@@ -58,7 +66,10 @@ async function main(): Promise<void> {
     );
 
     const interimPath = path.join(INTERIM_DIR, `kess-${year}.json`);
-    await writeFile(interimPath, JSON.stringify({ year, referenceDate, source: SOURCE, rows }, null, 2));
+    await writeFile(
+      interimPath,
+      JSON.stringify({ year, referenceDate, source: { ...SOURCE, year }, rows }, null, 2),
+    );
     console.log(`[parse-kess] wrote ${interimPath}`);
 
     parsedYears.push(year);

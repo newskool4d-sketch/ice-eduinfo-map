@@ -2,8 +2,10 @@
  * Validates the built public/data files:
  *  1. every indicator file has all 14 시군 + 52000 (base, non-byLevel rows)
  *  2. schools_total's per-level 52000 values match the official 학교수 exactly
- *  3. students_total / teachers_total per-level 52000 values are within
- *     ±0.5% of the official figures
+ *  3. students_total / teachers_total per-level 52000 values match the
+ *     official 2026.4.1 figures exactly (fix round 2 — previously allowed a
+ *     ±0.5% tolerance; the pipeline's actual output already matches exactly,
+ *     so the tolerance was pure slack, not a real accommodation)
  *  4. manifest.json years match each series file's years
  *  5. every registry indicator has an indicators/<id>.json (and, unless it's
  *     an 'external' aggregate, a series/<id>.json)
@@ -54,7 +56,6 @@ import {
   OFFICIAL_TEACHERS_BY_LEVEL,
   PROVINCE_CODE,
   REGION_TABLE,
-  VALIDATE_TOLERANCE_RATIO,
 } from "./sources";
 
 const PUBLIC_DATA_DIR = path.resolve(import.meta.dirname, "../../public/data");
@@ -86,7 +87,6 @@ function checkLevel(
   indicatorFiles: Map<string, IndicatorFile>,
   id: string,
   official: Record<SchoolLevel, number>,
-  exact: boolean,
 ): void {
   const file = indicatorFiles.get(id);
   if (!file) return; // already flagged by the file-existence check
@@ -99,18 +99,8 @@ function checkLevel(
       continue;
     }
     const diff = row.value - officialValue;
-    if (exact) {
-      if (diff !== 0) {
-        fail(`${id}[${level}]`, `got ${row.value}, official ${officialValue}, diff ${diff > 0 ? "+" : ""}${diff}`);
-      }
-    } else {
-      const ratio = Math.abs(diff) / officialValue;
-      if (ratio > VALIDATE_TOLERANCE_RATIO) {
-        fail(
-          `${id}[${level}]`,
-          `got ${row.value}, official ${officialValue}, diff ${diff > 0 ? "+" : ""}${diff} (${(ratio * 100).toFixed(3)}%, tolerance ${(VALIDATE_TOLERANCE_RATIO * 100).toFixed(1)}%)`,
-        );
-      }
+    if (diff !== 0) {
+      fail(`${id}[${level}]`, `got ${row.value}, official ${officialValue}, diff ${diff > 0 ? "+" : ""}${diff}`);
     }
   }
 }
@@ -372,10 +362,12 @@ function main(): void {
     }
   }
 
-  // (2) schools_total exact match, (3) students_total / teachers_total within tolerance
-  checkLevel(indicatorFiles, "schools_total", OFFICIAL_SCHOOLS_BY_LEVEL, true);
-  checkLevel(indicatorFiles, "students_total", OFFICIAL_STUDENTS_BY_LEVEL, false);
-  checkLevel(indicatorFiles, "teachers_total", OFFICIAL_TEACHERS_BY_LEVEL, false);
+  // (2) schools_total, (3) students_total / teachers_total — all three are
+  // now exact matches against the official 2026.4.1 figures (사용자 지시:
+  // EXACT match, not a tolerance band — see checkLevel's doc comment).
+  checkLevel(indicatorFiles, "schools_total", OFFICIAL_SCHOOLS_BY_LEVEL);
+  checkLevel(indicatorFiles, "students_total", OFFICIAL_STUDENTS_BY_LEVEL);
+  checkLevel(indicatorFiles, "teachers_total", OFFICIAL_TEACHERS_BY_LEVEL);
 
   // (4) manifest years == series years, for every non-external indicator
   const manifest = loadJSON<Manifest>(path.join(PUBLIC_DATA_DIR, "manifest.json"));
@@ -434,7 +426,13 @@ function main(): void {
       };
     });
     console.table(summary);
-    console.log(`\n[validate] ${INDICATOR_IDS.length}/${INDICATORS.length} registry indicators have data files.`);
+    // Fix round 2, finding 11: this used to compare INDICATOR_IDS.length
+    // against INDICATORS.length — but INDICATOR_IDS is just
+    // INDICATORS.map(d => d.id), so that was a tautology (always N/N,
+    // regardless of whether any file actually existed). indicatorFiles.size
+    // is populated only when check (5) above actually found+parsed the file,
+    // so this now counts what was actually verified.
+    console.log(`\n[validate] ${indicatorFiles.size}/${INDICATORS.length} registry indicators have data files.`);
     return;
   }
 

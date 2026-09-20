@@ -20,6 +20,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Fix round 2, finding 1 — public/data/** and data/interim/** are
+      # committed static files (no raw sources, no network needed), so this
+      # can run right after install, before the slower typecheck/lint/build
+      # steps: a data-integrity regression (official-figure mismatch, a
+      # missing indicator file, …) fails fast instead of surfacing only via
+      # a much later, harder-to-diagnose e2e failure.
+      - name: Validate data
+        run: npm run data:validate
+
       - name: Typecheck
         run: npm run typecheck
 

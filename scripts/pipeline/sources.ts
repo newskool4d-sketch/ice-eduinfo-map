@@ -233,9 +233,6 @@ export const OFFICIAL_TEACHERS_BY_LEVEL: Record<SchoolLevel, number> = {
   special: 482,
 };
 
-/** validate.ts tolerance for students/teachers (schools must match exactly). */
-export const VALIDATE_TOLERANCE_RATIO = 0.005;
-
 // ---------------------------------------------------------------------------
 // School location CSV (Task 4B — 한국교육시설안전원 초중등학교위치)
 // ---------------------------------------------------------------------------
