@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
@@ -144,8 +144,26 @@ export default function DeckMap({
   // Mirrored into a ref so handleAfterRender (a stable, []-deps callback —
   // see its own comment) can read the LATEST fontReady without itself
   // becoming a new function every time fontReady flips.
+  //
+  // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — MUST be
+  // useLayoutEffect, not useEffect: @deck.gl/react's own <DeckGL> forwards
+  // the `layers` prop (which depends on `fontReady`, below) to the
+  // underlying Deck instance from ITS OWN layout effect (confirmed:
+  // node_modules/@deck.gl/react/dist/deckgl.js uses
+  // useIsomorphicLayoutEffect/useLayoutEffect). React flushes ALL layout
+  // effects for a commit synchronously, in tree order, before the browser
+  // can paint or run a requestAnimationFrame callback — so a layout effect
+  // here is guaranteed to update fontReadyRef.current no later than
+  // DeckGL's own layout effect pushes the labeled `layers` into deck.
+  // A plain (passive) useEffect is NOT guaranteed that ordering: passive
+  // effects are flushed via a separate, later (MessageChannel-scheduled)
+  // pass, leaving a real window where deck.gl's next render frame could
+  // fire — and handleAfterRender read fontReadyRef.current as still false
+  // — before this ref updates, silently skipping data-labels-ready on the
+  // first labeled frame (the same bug class the rest of this file's CI
+  // fixes exist to close, just from the other direction).
   const fontReadyRef = useRef(fontReady);
-  useEffect(() => {
+  useLayoutEffect(() => {
     fontReadyRef.current = fontReady;
   }, [fontReady]);
 
