@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
@@ -22,6 +22,7 @@ import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
 import { useCamera } from "@/components/map/useCamera";
+import { useFontGate } from "@/components/map/useFontGate";
 import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
@@ -47,12 +48,6 @@ declare global {
     __jbmap?: { deck: Deck };
   }
 }
-
-// Fallback used when next/font's generated CSS variable can't be resolved
-// (see the font-gating effect below) — a generic family, so
-// `document.fonts.check()` still resolves true via the browser's own
-// system-fallback glyph substitution for Hangul.
-const FALLBACK_FONT_FAMILY = "'Noto Sans KR', sans-serif";
 
 function nameOf(code: string): string {
   return isRegionCode(code) ? regionName(code) : code;
@@ -124,8 +119,7 @@ export default function DeckMap({
     }
   }, []);
 
-  const [fontReady, setFontReady] = useState(false);
-  const [fontFamily, setFontFamily] = useState(FALLBACK_FONT_FAMILY);
+  const { fontReady, fontFamily } = useFontGate(bundle.charset);
 
   // Task 4B: current zoom, throttled to ZOOM_THROTTLE_MS via onViewStateChange
   // below — this is the ONLY thing zoom is tracked for (deciding whether
@@ -156,50 +150,6 @@ export default function DeckMap({
     // human-perceptible delay the way a setTimeout(0) macrotask would.
     queueMicrotask(() => setZoom(nextZoom));
   }, []);
-
-  // Font gating: TextLayer caches one SDF atlas per fontFamily, so we must
-  // not create it until next/font's family is actually ready to rasterize
-  // EVERY character the label layer's `characterSet` declares (추가 요구
-  // #6) — not just the 14 시군 names. `characterSet` is the full
-  // charset.json string (129 chars: digits, units like 명/㎡/%, and domain
-  // terms), because labels now render formatted indicator values, not just
-  // names. Gating on a 24-character subset (as Task 1A did, before any
-  // labels carried numbers) would silently miss a missing font-family slice
-  // covering e.g. only digits or only "㎡".
-  useEffect(() => {
-    let cancelled = false;
-    async function gateFont() {
-      let family = FALLBACK_FONT_FAMILY;
-      try {
-        // Read from <body>, not document.documentElement (<html>): layout.tsx
-        // applies next/font's generated `--font-sans` variable class to
-        // <body>, and Tailwind v4 separately defines its OWN default
-        // `--font-sans` design token reaching <html> — querying
-        // documentElement picks up Tailwind's unrelated system-font stack
-        // instead (verified empirically; see task-1A-report.md).
-        const cssVar = getComputedStyle(document.body).getPropertyValue("--font-sans").trim();
-        if (cssVar) family = cssVar;
-      } catch {
-        // getComputedStyle can throw outside a browser; keep the fallback.
-      }
-      try {
-        await document.fonts.load(`600 16px ${family}`, bundle.charset);
-        if (!document.fonts.check(`600 16px ${family}`, bundle.charset)) {
-          family = FALLBACK_FONT_FAMILY;
-        }
-      } catch {
-        family = FALLBACK_FONT_FAMILY;
-      }
-      if (!cancelled) {
-        setFontFamily(family);
-        setFontReady(true);
-      }
-    }
-    void gateFont();
-    return () => {
-      cancelled = true;
-    };
-  }, [bundle.charset]);
 
   const def = indicatorById(indicatorId);
   if (!def) {
