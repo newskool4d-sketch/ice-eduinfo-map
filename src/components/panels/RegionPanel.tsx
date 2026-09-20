@@ -56,6 +56,21 @@ interface OtherIndicatorRow {
 export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSchool }: RegionPanelProps) {
   const { indicatorId, regionCode, setIndicator, setRegion } = useMapQuery();
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
+  // fix round, review finding #3: reset the 학교급 filter back to "전체"
+  // whenever the selected region changes — otherwise e.g. a "고" filter
+  // picked in one 시군 would silently carry over into the next one, which
+  // may have zero schools at that level (showing an empty/confusing list
+  // instead of the new region's full list). Render-time "adjusting state
+  // when a prop changes" (react.dev/learn/you-might-not-need-an-effect),
+  // same pattern Dashboard.tsx already uses for highlightedSchoolId — avoids
+  // an extra cascading render a useEffect-based reset would cost, and must
+  // run before the `!regionCode` early return below (Rules of Hooks: every
+  // hook call above needs to run unconditionally on every render anyway).
+  const [levelFilterRegion, setLevelFilterRegion] = useState(regionCode);
+  if (regionCode !== levelFilterRegion) {
+    setLevelFilterRegion(regionCode);
+    setLevelFilter("all");
+  }
 
   if (!regionCode) return null;
 
@@ -257,7 +272,24 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                       <span className="mr-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/70">
                         {SCHOOL_LEVEL_LABELS[school.level]}
                       </span>
-                      {school.name}
+                      {/* fix round, review finding #2: the <tr>'s onClick above is a
+                          mouse-only convenience (matches the 다른 지표 row pattern) —
+                          this <button> is the real keyboard/a11y affordance (tab stop,
+                          accessible name = the school's name). Its handler stops
+                          propagation so a click ON the button doesn't ALSO fire the
+                          row's own onClick. */}
+                      <button
+                        type="button"
+                        data-testid={`school-name-button-${school.id}`}
+                        aria-current={isHighlighted ? "true" : undefined}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onHighlightSchool(isHighlighted ? null : school.id);
+                        }}
+                        className={`rounded px-0.5 text-left ${isHighlighted ? "font-semibold" : ""}`}
+                      >
+                        {school.name}
+                      </button>
                       {school.branch && (
                         <span className="ml-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/50">
                           분교장

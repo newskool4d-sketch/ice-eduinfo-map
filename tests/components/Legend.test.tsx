@@ -149,4 +149,39 @@ describe("Legend", () => {
     expect(screen.getByText("고")).toBeInTheDocument();
     expect(screen.getByText("특수")).toBeInTheDocument();
   });
+
+  // fix round, review finding #4: the "(특수학교는 위치 자료 없음)" caveat used
+  // to render for EVERY selected region whenever schoolLevelsVisible was
+  // true, even one where every school actually has a coordinate — false
+  // information about that specific region. It must only show when the
+  // selected region itself has at least one school with no coordinate.
+  it("shows the 특수학교 위치 자료 없음 caveat when hasSchoolsWithoutLocation is true (review finding #4)", () => {
+    render(
+      <Legend
+        def={baseDef()}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+        schoolLevelsVisible
+        hasSchoolsWithoutLocation
+      />,
+    );
+    expect(screen.getByText("(특수학교는 위치 자료 없음)")).toBeInTheDocument();
+  });
+
+  it("omits the 특수학교 위치 자료 없음 caveat when the selected region's schools all have coordinates (review finding #4)", () => {
+    render(
+      <Legend
+        def={baseDef()}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+        schoolLevelsVisible
+        hasSchoolsWithoutLocation={false}
+      />,
+    );
+    expect(screen.queryByText("(특수학교는 위치 자료 없음)")).not.toBeInTheDocument();
+  });
 });

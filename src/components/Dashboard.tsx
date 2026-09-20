@@ -48,6 +48,14 @@ function DashboardInner({
   const { ticks } = useMemo(() => makeColorScale(def, map), [def, map]);
   const palette = useMemo(() => paletteFor(def.polarity), [def.polarity]);
   const hasNull = useMemo(() => regionValues(map).some((r) => r.value === null), [map]);
+  // fix round, review finding #4 — the Legend's "(특수학교는 위치 자료 없음)"
+  // caveat must only show for a region that actually HAS such a school; a
+  // school's own regionCode never equals `regionCode` when it's null, so
+  // this is safely false without a selected region too.
+  const hasSchoolsWithoutLocation = useMemo(
+    () => bundle.schools.schools.some((s) => s.regionCode === regionCode && s.lat === null),
+    [bundle.schools, regionCode],
+  );
   // The registry's static label with students_change_5y's "5년" replaced by
   // the real series year span (추가 요구 #5) — Legend's `def` prop is
   // otherwise passed straight from the registry, so this is the one field we
@@ -106,6 +114,7 @@ function DashboardInner({
           hasNull={hasNull}
           referenceDate={file.referenceDate}
           schoolLevelsVisible={!!regionCode}
+          hasSchoolsWithoutLocation={hasSchoolsWithoutLocation}
         />
         <span className="shrink-0 text-xs text-[#e6e9f0]/40">
           {bundle.schools.source.location.name} · 학교 위치 기준 {bundle.schools.referenceDate.location}

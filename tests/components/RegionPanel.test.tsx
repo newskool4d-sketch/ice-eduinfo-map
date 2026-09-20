@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -7,6 +8,7 @@ import RegionPanel from "@/components/panels/RegionPanel";
 import { REGION_CODES } from "@/lib/geo/regions";
 import { INDICATORS } from "@/lib/indicators/registry";
 import { formatDelta } from "@/lib/tooltipText";
+import { useMapQuery } from "@/lib/state/urlState";
 import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
 import type { School, SchoolsFile } from "@/lib/schools/types";
 
@@ -351,6 +353,96 @@ describe("RegionPanel", () => {
         await user.click(screen.getByRole("button", { name: "고" })); // only high1 (has coordinates)
 
         expect(screen.queryByText(/위치 없음/)).not.toBeInTheDocument();
+      });
+    });
+
+    describe("school row keyboard reachability (fix round, review finding #2)", () => {
+      it("Tab from the last 학교급 chip lands on the school row's own button, and Enter toggles the highlight (aria-current), a second Enter clears it", async () => {
+        const user = userEvent.setup();
+
+        // A stateful harness: onHighlightSchool is wired back into
+        // highlightedSchoolId (as Dashboard.tsx really does), so the SECOND
+        // Enter press observes the highlight this component itself set on
+        // the first press, rather than a static mock that never reflects it.
+        function Harness() {
+          const [highlightedSchoolId, setHighlightedSchoolId] = useState<string | null>(null);
+          return (
+            <RegionPanel
+              bundle={bundleFixture()}
+              highlightedSchoolId={highlightedSchoolId}
+              onHighlightSchool={setHighlightedSchoolId}
+            />
+          );
+        }
+        render(<Harness />, { wrapper: withNuqsTestingAdapter({ searchParams: `?region=${REGION}` }) });
+
+        // Seed focus on the last 학교급 chip (특수, immediately before the
+        // school table in DOM order) and Tab exactly once — proves the row
+        // button is the very next stop in the natural tab order (really
+        // keyboard-reachable), not just focusable via .focus().
+        screen.getByRole("button", { name: "특수" }).focus();
+        await user.tab();
+        const button = screen.getByRole("button", { name: "전주고등학교" });
+        expect(button).toHaveFocus();
+        expect(button).not.toHaveAttribute("aria-current");
+
+        await user.keyboard("{Enter}");
+        expect(button).toHaveAttribute("aria-current", "true");
+        expect(screen.getByTestId("school-row-high1")).toHaveAttribute("aria-current", "true");
+
+        await user.keyboard("{Enter}");
+        expect(button).not.toHaveAttribute("aria-current");
+        expect(screen.getByTestId("school-row-high1")).not.toHaveAttribute("aria-current");
+      });
+
+      it("clicking the row button stops propagation — onHighlightSchool fires exactly once, not twice via the row's own onClick", async () => {
+        const user = userEvent.setup();
+        const onHighlightSchool = vi.fn();
+        renderSelected(`?region=${REGION}`, {}, { onHighlightSchool });
+
+        await user.click(screen.getByRole("button", { name: "전주고등학교" }));
+
+        expect(onHighlightSchool).toHaveBeenCalledTimes(1);
+        expect(onHighlightSchool).toHaveBeenCalledWith("high1");
+      });
+    });
+
+    describe("학교급 필터 리셋 (fix round, review finding #3)", () => {
+      it("resets the 학교급 filter to 전체 when the selected region changes", async () => {
+        const user = userEvent.setup();
+
+        function Harness() {
+          const { setRegion } = useMapQuery();
+          return (
+            <>
+              <button type="button" onClick={() => setRegion(OTHER_REGION)}>
+                switch-region
+              </button>
+              <RegionPanel bundle={bundleFixture()} highlightedSchoolId={null} onHighlightSchool={() => {}} />
+            </>
+          );
+        }
+        render(<Harness />, {
+          wrapper: withNuqsTestingAdapter({ searchParams: `?region=${REGION}`, hasMemory: true }),
+        });
+
+        // Narrow to 고 (전주고등학교 only) within REGION.
+        await user.click(screen.getByRole("button", { name: "고" }));
+        expect(screen.getAllByTestId(/^school-row-/)).toHaveLength(1);
+
+        await user.click(screen.getByText("switch-region"));
+        // Wait for the region switch to actually propagate through
+        // useMapQuery before asserting — OTHER_REGION's heading appearing
+        // confirms the re-render happened.
+        await screen.findByRole("heading", { name: "군산시" });
+
+        // If the filter hadn't reset, it would still be "고" — but
+        // OTHER_REGION's only fixture school (군산초등학교) is 'elem', so the
+        // list would incorrectly show 0 rows.
+        expect(screen.getByRole("button", { name: "전체" })).toHaveAttribute("aria-pressed", "true");
+        const rows = screen.getAllByTestId(/^school-row-/);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toHaveTextContent("군산초등학교");
       });
     });
   });
