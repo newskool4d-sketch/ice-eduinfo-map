@@ -9,6 +9,12 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    // NEXT_PUBLIC_* vars are inlined into the client bundle at compile time,
+    // so this only takes effect for a server Next itself starts/compiles —
+    // see DeckMap.tsx's window.__jbmap bridge (e2e/select-region.spec.ts's
+    // canvas-click coverage). package.json must not be modified (task
+    // brief), so this is set here rather than via an npm script.
+    env: { NEXT_PUBLIC_E2E: "1" },
   },
   projects: [
     {
