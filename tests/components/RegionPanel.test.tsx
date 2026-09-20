@@ -542,7 +542,7 @@ describe("RegionPanel", () => {
     });
   });
 
-  it("shows the source name and reference date (기준 YYYY.M.D, matching TopBar/referenceDateLabel)", () => {
+  it("shows the source name and reference date (기준 YYYY.M.D, via referenceDateLabel — Task 5 fix round 1: TopBar's own caption now uses a different, raw-ISO format for a different anchor indicator, see TopBar.test.tsx)", () => {
     renderSelected(`?region=${REGION}&indicator=students_total`);
     expect(
       screen.getByText(/한국교육개발원 교육통계서비스\(KESS\) 교육기본통계 학교별 데이터셋/),

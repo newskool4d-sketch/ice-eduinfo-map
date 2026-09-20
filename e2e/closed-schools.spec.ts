@@ -16,6 +16,18 @@ test("폐교 지표: /?indicator=closed_schools 진입 → 범례 라벨 → 시
   await expect(page.getByTestId("legend-indicator-label")).toHaveText("폐교 수(누적)");
   await expect(page.getByTestId("legend-description")).not.toBeEmpty();
 
+  // Task 5 fix round 1 (coordinator ruling): the TopBar caption (next to
+  // the fixed KESS KPI tiles) must show the KESS reference date even while
+  // the SELECTED map indicator is 폐교(closed_schools) — whose own,
+  // different reference date still shows correctly in the Legend, right
+  // below it. These two must never collapse into the same (wrong) date
+  // again.
+  await expect(page.getByTestId("topbar-reference-date")).toHaveText("기준 2026-04-01");
+  // Legend's own plain "기준일 {date}" span — exact match, since the
+  // Footer's 폐교재산 source line also contains "기준일 2026-07-16" as a
+  // substring (with "(게시 2026-07-20)" appended).
+  await expect(page.getByText("기준일 2026-07-16", { exact: true })).toBeVisible();
+
   await expect(page.getByRole("heading", { name: "군산시" })).toBeVisible();
 
   const section = page.getByTestId("closed-schools-section");
