@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
@@ -107,6 +107,7 @@ export default function DeckMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef | null>(null);
   const mapReadyRef = useRef(false);
+  const labelsReadyRef = useRef(false);
 
   // Task 6, Section A.4 — reduced-motion: zeroes both the camera's
   // transitionDuration (useCamera) and every layer's own `transitions`
@@ -140,6 +141,13 @@ export default function DeckMap({
   }, []);
 
   const { fontReady, fontFamily } = useFontGate(bundle.charset);
+  // Mirrored into a ref so handleAfterRender (a stable, []-deps callback —
+  // see its own comment) can read the LATEST fontReady without itself
+  // becoming a new function every time fontReady flips.
+  const fontReadyRef = useRef(fontReady);
+  useEffect(() => {
+    fontReadyRef.current = fontReady;
+  }, [fontReady]);
 
   // Task 4B: current zoom, throttled to ZOOM_THROTTLE_MS via onViewStateChange
   // below — this is the ONLY thing zoom is tracked for (deciding whether
@@ -486,18 +494,41 @@ export default function DeckMap({
     reduceMotion,
   ]);
 
-  // Fires every frame; only the first frame after the initial view state is
+  // Fires every frame. The first frame after the initial view state is
   // ready flips the wrapper's data-map-ready flag (e2e/smoke.spec.ts waits
   // on it) and, in the e2e build only, exposes the live Deck instance so
   // Playwright can project a region's ground point to a canvas pixel
   // (e2e/select-region.spec.ts's canvas-click coverage).
+  //
+  // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — SEPARATELY,
+  // the first frame to occur once fontReadyRef.current is true flips
+  // data-labels-ready. This is NOT the same moment as useFontGate's own
+  // fontReady (exposed as data-font-ready): fontReady only means the FONT
+  // ITSELF finished loading — `layers` below still has to recompute (a
+  // normal React effect-driven re-render) and DeckGL still has to process
+  // that new `layers` prop and actually draw a frame with the label
+  // TextLayer in it, which is when deck.gl SYNCHRONOUSLY builds the
+  // TextLayer's SDF atlas (rasterizing all ~316 charset.json glyphs via
+  // tiny-sdf — CPU-heavy, main-thread, no `await` to hang a wait on). A
+  // Playwright trace from a real CI failure (run 35542371166) showed a
+  // single `mouse.move()` taking over 3 SECONDS to resolve — i.e. the main
+  // thread was blocked, almost certainly by exactly this — despite the
+  // click sequence already having waited for data-font-ready. Once THIS
+  // frame has fired, that synchronous work is provably done; e2e waits on
+  // data-labels-ready (not data-font-ready) before ever touching the
+  // canvas.
   const handleAfterRender = useCallback(() => {
-    if (mapReadyRef.current) return;
     if (!containerRef.current) return;
-    mapReadyRef.current = true;
-    containerRef.current.setAttribute("data-map-ready", "true");
-    if (process.env.NEXT_PUBLIC_E2E === "1" && deckRef.current?.deck) {
-      window.__jbmap = { deck: deckRef.current.deck, events: [] };
+    if (!mapReadyRef.current) {
+      mapReadyRef.current = true;
+      containerRef.current.setAttribute("data-map-ready", "true");
+      if (process.env.NEXT_PUBLIC_E2E === "1" && deckRef.current?.deck) {
+        window.__jbmap = { deck: deckRef.current.deck, events: [] };
+      }
+    }
+    if (fontReadyRef.current && !labelsReadyRef.current) {
+      labelsReadyRef.current = true;
+      containerRef.current.setAttribute("data-labels-ready", "true");
     }
   }, []);
 
@@ -509,9 +540,12 @@ export default function DeckMap({
       tabIndex={0}
       aria-label="전북 시군 3D 지도"
       onKeyDown={handleWrapperKeyDown}
-      // CI Linux fix — decoupled from data-map-ready (which only reflects
-      // deck.gl's first render frame, not font loading): e2e waits on THIS
-      // for "labels can actually render," matching useFontGate's own gate.
+      // CI Linux fix — useFontGate's OWN gate: the font itself finished
+      // loading. Decoupled from data-map-ready (deck.gl's first render
+      // frame, unrelated to fonts). NOT what e2e waits on before touching
+      // the canvas, though — see handleAfterRender's comment on
+      // data-labels-ready (set imperatively below) for why this alone
+      // isn't a safe "labels can actually render" signal.
       data-font-ready={fontReady ? "true" : undefined}
     >
       {cameraViewState && (

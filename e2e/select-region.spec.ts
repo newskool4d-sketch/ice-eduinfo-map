@@ -7,12 +7,16 @@ async function waitForMapReady(page: Page) {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — also wait
-  // for useFontGate's own gate. It's independent of data-map-ready (which
-  // only reflects deck.gl's first render frame): the label TextLayer's SDF
-  // atlas build is CPU-heavy main-thread work that can still be in flight
-  // right after data-map-ready flips, especially under swiftshader's
-  // software GL on CI. No interaction test should race that atlas build.
-  await expect(page.locator('[data-font-ready="true"]')).toBeAttached({ timeout: 20000 });
+  // for data-labels-ready, i.e. an actual deck.gl render frame that
+  // occurred once the font was ready (see DeckMap.tsx's handleAfterRender
+  // comment). NOT the same as merely waiting for the font to finish
+  // loading (data-font-ready): deck.gl builds the label TextLayer's SDF
+  // atlas SYNCHRONOUSLY, CPU-heavy main-thread work, as part of actually
+  // drawing that first labeled frame — a real CI trace (run 35542371166)
+  // showed a `mouse.move()` blocked for 3+ seconds by exactly this, even
+  // though the click sequence had already waited for data-font-ready. No
+  // interaction test should race that atlas build.
+  await expect(page.locator('[data-labels-ready="true"]')).toBeAttached({ timeout: 20000 });
 }
 
 const MAP_WRAPPER_LABEL = "전북 시군 3D 지도";

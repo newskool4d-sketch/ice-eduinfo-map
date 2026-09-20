@@ -16,10 +16,14 @@ test("home page renders the 3D map with 14 regions and no console errors", async
   await expect(page).toHaveTitle(/전북교육지도/);
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
-  // useFontGate's own gate (independent of data-map-ready, which only
-  // reflects deck.gl's first render frame) — wait for it too, so the check
-  // below isn't racing the SAME font load the app itself is doing.
-  await expect(page.locator('[data-font-ready="true"]')).toBeAttached({ timeout: 20000 });
+  // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — also wait
+  // for data-labels-ready: an actual deck.gl render frame that occurred
+  // once the font was ready, i.e. AFTER deck.gl's synchronous SDF-atlas
+  // build for the label TextLayer (see DeckMap.tsx's handleAfterRender
+  // comment) — not just data-font-ready (the font itself finished
+  // loading), which resolves earlier and isn't enough to guarantee the
+  // screenshot below actually shows labels.
+  await expect(page.locator('[data-labels-ready="true"]')).toBeAttached({ timeout: 20000 });
 
   // The glyphs the region labels actually need are ready in the font
   // DeckMap resolved (see DeckMap.tsx's gateFont(), which reads `--font-sans`
