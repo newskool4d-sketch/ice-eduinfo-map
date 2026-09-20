@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
@@ -375,15 +375,23 @@ export default function DeckMap({
     [selectedCode, onSelect, reselect],
   );
 
-  // Keeps window.__jbmap.selectRegion pointed at the LATEST handleRegionClick
-  // (its identity changes with selectedCode/onSelect/reselect) — see the
-  // bridge's own doc comment above for why this exists. A no-op outside the
-  // e2e build or before window.__jbmap exists (handleAfterRender creates it
-  // on the first frame; by the time any test calls selectRegion it has
-  // always already waited for that).
-  useEffect(() => {
-    if (!E2E || typeof window === "undefined" || !window.__jbmap) return;
-    window.__jbmap.selectRegion = handleRegionClick;
+  // Mirrored into a ref (same reasoning/pattern as fontReadyRef above) so
+  // window.__jbmap.selectRegion, assigned ONCE inside handleAfterRender's
+  // one-time block below, can always dispatch to the LATEST
+  // handleRegionClick despite being created before this file has any idea
+  // what "latest" will eventually mean. Fixes a real bug caught by CI run
+  // 35545008220: an EARLIER version of this fix assigned
+  // window.__jbmap.selectRegion from its own separate effect, keyed only on
+  // [handleRegionClick] — if that effect's FIRST run happened (as it always
+  // does, on mount) before handleAfterRender had yet created window.__jbmap
+  // at all, and handleRegionClick's identity never changed again
+  // afterward, selectRegion was simply never attached — `?.()` on the
+  // resulting `undefined` silently no-opped instead of throwing, which is
+  // exactly what that run's log showed (the fallback click loop ran, and
+  // failed, as if selectRegion had never been called).
+  const handleRegionClickRef = useRef(handleRegionClick);
+  useLayoutEffect(() => {
+    handleRegionClickRef.current = handleRegionClick;
   }, [handleRegionClick]);
 
   // Top-level DeckGL click: only handles the "missed everything" case (per
@@ -563,7 +571,26 @@ export default function DeckMap({
       mapReadyRef.current = true;
       containerRef.current.setAttribute("data-map-ready", "true");
       if (process.env.NEXT_PUBLIC_E2E === "1" && deckRef.current?.deck) {
-        window.__jbmap = { deck: deckRef.current.deck, events: [] };
+        window.__jbmap = {
+          deck: deckRef.current.deck,
+          events: [],
+          // Deferred via queueMicrotask — same reasoning as
+          // handleViewStateChange's own queueMicrotask(() => setZoom(...))
+          // above: this runs from Playwright's page.evaluate(), a foreign
+          // call stack outside React's own event handling, and
+          // handleRegionClick ultimately calls onSelect -> setRegion ->
+          // nuqs's router.push (a synchronous history/URL update). Calling
+          // that update synchronously from within page.evaluate() risks
+          // the same "update while a different context is mid-callback"
+          // hazard that comment already documents, PLUS Playwright's CDP
+          // Runtime.callFunctionOn is not guaranteed to tolerate a
+          // synchronous navigation-triggering side effect happening on its
+          // own call stack. queueMicrotask lets evaluate() return cleanly
+          // first; the actual selection update runs a tick later.
+          selectRegion: (code: string) => {
+            queueMicrotask(() => handleRegionClickRef.current(code));
+          },
+        };
       }
     }
     if (fontReadyRef.current && !labelsReadyRef.current) {
