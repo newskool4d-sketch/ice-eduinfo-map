@@ -21,6 +21,10 @@ test("switching the indicator updates the legend, with no console errors", async
 
   await page.screenshot({ path: "test-results/indicator-before.png" });
 
+  // Task 3: the radios now live behind TopBar's IndicatorMenu popover
+  // (button + dialog), not inline in the header — open it first.
+  await page.getByRole("button", { name: /^조건별 맵/ }).click();
+  await expect(page.getByRole("dialog", { name: "조건별 맵 선택" })).toBeVisible();
   await page.getByRole("radio", { name: "학급당 학생수" }).click();
   await expect(legendLabel).toHaveText("학급당 학생수");
 
