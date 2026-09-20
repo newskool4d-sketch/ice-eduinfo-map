@@ -4,8 +4,14 @@ import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson"
 
 import { ringsOf, type RegionFeature } from "@/lib/geo/geo";
 import { REGION_MATERIAL } from "@/components/map/lighting";
+import { dim } from "@/lib/colors";
 
 type RGBA = [number, number, number, number];
+
+/** Non-selected regions, once something IS selected: lightness only (dim(rgb, 0.55)), alpha unchanged — per the task brief's literal factor. */
+export const UNSELECTED_DIM = 0.55;
+/** The selected region itself: 원색 + 약간 밝게 (raw color, slightly brightened) — factor is this task's own choice, the brief doesn't pin an exact number. */
+export const SELECTED_BRIGHTEN = 1.15;
 
 /** `t => 1 - (1-t)^3` — deck.gl's `transitions` easing takes a plain function; not shipped by deck.gl itself. */
 export function easeCubicOut(t: number): number {
@@ -62,11 +68,25 @@ export interface RegionsLayerOptions {
   fillColorOf: (code: string) => RGBA;
   /** Included in `updateTriggers` so changing e.g. the selected indicator re-evaluates the accessors above. */
   triggerKey: string | number;
+  /**
+   * The currently-selected 시군 code, or null when nothing is selected.
+   * Optional (defaults to null) for backward compatibility with pre-Task-4A
+   * call sites. When set, `getFillColor` brightens the selected region and
+   * dims every other one (lightness only — alpha always stays 255); also
+   * included in `updateTriggers.getFillColor` (alongside `triggerKey`) so a
+   * selection change re-evaluates fill color even when the indicator
+   * itself didn't change. Does NOT affect `getElevation` — selection has no
+   * effect on bar height, only color (the separate `selected-ring` layer
+   * marks the selection's height instead).
+   */
+  selectedCode?: string | null;
   onClick?: (code: string) => void;
 }
 
 /** The extruded 3D body of the scene — height/color driven entirely by the injected accessors. */
 export function makeRegionsLayer(fc: RegionsFeatureCollection, opts: RegionsLayerOptions) {
+  const selectedCode = opts.selectedCode ?? null;
+
   return new GeoJsonLayer<RegionFeature["properties"]>({
     id: "regions",
     data: fc,
@@ -74,14 +94,29 @@ export function makeRegionsLayer(fc: RegionsFeatureCollection, opts: RegionsLaye
     filled: true,
     getElevation: (f) => opts.elevationOf(f.properties.code),
     elevationScale: 1,
-    getFillColor: (f) => opts.fillColorOf(f.properties.code),
+    // Inline (not a separately-declared function): a standalone function
+    // needs its own parameter type annotation, and GeoJsonLayer's generic
+    // Accessor type is keyed to `Feature<Geometry, ...>` (every geometry
+    // kind it could in principle carry) — narrowing that annotation to
+    // `Polygon | MultiPolygon` (accurate for this app's data, but narrower
+    // than the prop's declared type) makes TS reject the assignment.
+    // Inline, contextual typing infers the correct (wider) parameter type
+    // instead, same as `getElevation` above.
+    getFillColor: (f) => {
+      const code = f.properties.code;
+      const [r, g, b, a] = opts.fillColorOf(code);
+      if (!selectedCode) return [r, g, b, a];
+      const factor = code === selectedCode ? SELECTED_BRIGHTEN : UNSELECTED_DIM;
+      const [dr, dg, db] = dim([r, g, b], factor);
+      return [dr, dg, db, a];
+    },
     material: REGION_MATERIAL,
     pickable: true,
     autoHighlight: true,
     highlightColor: [255, 255, 255, 60],
     updateTriggers: {
       getElevation: [opts.triggerKey],
-      getFillColor: [opts.triggerKey],
+      getFillColor: [opts.triggerKey, selectedCode],
     },
     transitions: {
       getElevation: { type: "interpolation", duration: 600, easing: easeCubicOut },

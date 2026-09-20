@@ -9,9 +9,11 @@ import {
   makeNeighborsLayer,
   makeRegionsLayer,
   makeSelectedRingLayer,
+  SELECTED_BRIGHTEN,
+  UNSELECTED_DIM,
 } from "@/components/map/layers/regionLayers";
 import { ELEVATION_FLOOR, ELEVATION_MAX, makeElevationScale } from "@/lib/scales";
-import { makeColorScale } from "@/lib/colors";
+import { dim, makeColorScale } from "@/lib/colors";
 import { valueMap } from "@/lib/stats";
 import type { IndicatorDef, IndicatorFile } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
@@ -146,6 +148,96 @@ describe("makeRegionsLayer", () => {
     // @ts-expect-error — minimal PickingInfo stub for this unit test.
     layer.props.onClick({ object: featureA }, {});
     expect(onClick).toHaveBeenCalledWith("52110");
+  });
+
+  describe("selection-aware fillColorOf (Task 4A)", () => {
+    const fillColorOf = vi.fn(
+      (code: string): [number, number, number, number] =>
+        code === "52110" ? [10, 20, 30, 255] : [40, 50, 60, 255],
+    );
+
+    it("passes fillColorOf's colors through unchanged when selectedCode is null (no selection)", () => {
+      const layer = makeRegionsLayer(regionsFixture(), {
+        elevationOf: () => 1,
+        fillColorOf,
+        triggerKey: "v1",
+        selectedCode: null,
+      });
+      const ctx = { index: 0, data: regionsFixture().features, target: [] };
+      type Ctx = typeof ctx;
+      const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
+      expect(getFillColor(featureA, ctx)).toEqual([10, 20, 30, 255]);
+    });
+
+    it("brightens the selected region's color (alpha stays 255)", () => {
+      const layer = makeRegionsLayer(regionsFixture(), {
+        elevationOf: () => 1,
+        fillColorOf,
+        triggerKey: "v1",
+        selectedCode: "52110",
+      });
+      const ctx = { index: 0, data: regionsFixture().features, target: [] };
+      type Ctx = typeof ctx;
+      const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
+      const [r, g, b, a] = getFillColor(featureA, ctx) as [number, number, number, number];
+      const [er, eg, eb] = dim([10, 20, 30], SELECTED_BRIGHTEN);
+      expect([r, g, b, a]).toEqual([er, eg, eb, 255]);
+      // Genuinely brighter, not just "different" — and never dimmed.
+      expect(r).toBeGreaterThanOrEqual(10);
+      expect(a).toBe(255);
+    });
+
+    it("dims a non-selected region's color by exactly dim(rgb, 0.55), alpha stays 255", () => {
+      const fixture = regionsFixture();
+      const layer = makeRegionsLayer(fixture, {
+        elevationOf: () => 1,
+        fillColorOf,
+        triggerKey: "v1",
+        selectedCode: "52110", // fixture.features[1] (52130) is NOT selected
+      });
+      const ctx = { index: 0, data: fixture.features, target: [] };
+      type Ctx = typeof ctx;
+      const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
+      const [r, g, b, a] = getFillColor(fixture.features[1], ctx) as [number, number, number, number];
+      const [er, eg, eb] = dim([40, 50, 60], UNSELECTED_DIM);
+      expect([r, g, b, a]).toEqual([er, eg, eb, 255]);
+      expect(a).toBe(255);
+    });
+
+    it("updateTriggers.getFillColor includes selectedCode (alongside triggerKey); getElevation is unaffected by selection", () => {
+      const layer = makeRegionsLayer(regionsFixture(), {
+        elevationOf: () => 1,
+        fillColorOf,
+        triggerKey: "v1",
+        selectedCode: "52110",
+      });
+      expect(layer.props.updateTriggers.getFillColor).toContain("v1");
+      expect(layer.props.updateTriggers.getFillColor).toContain("52110");
+      expect(layer.props.updateTriggers.getElevation).toEqual(["v1"]);
+    });
+
+    it("updateTriggers.getFillColor reflects a null selectedCode too (deselecting must re-trigger)", () => {
+      const layer = makeRegionsLayer(regionsFixture(), {
+        elevationOf: () => 1,
+        fillColorOf,
+        triggerKey: "v1",
+        selectedCode: null,
+      });
+      expect(layer.props.updateTriggers.getFillColor).toEqual(["v1", null]);
+    });
+
+    it("omitting selectedCode behaves the same as null (backward compatible with pre-4A call sites)", () => {
+      const layer = makeRegionsLayer(regionsFixture(), {
+        elevationOf: () => 1,
+        fillColorOf,
+        triggerKey: "v1",
+      });
+      const ctx = { index: 0, data: regionsFixture().features, target: [] };
+      type Ctx = typeof ctx;
+      const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
+      expect(getFillColor(featureA, ctx)).toEqual([10, 20, 30, 255]);
+      expect(layer.props.updateTriggers.getFillColor).toEqual(["v1", null]);
+    });
   });
 
   describe("wired to a real indicator (scales.ts/colors.ts), not a trivial mock", () => {

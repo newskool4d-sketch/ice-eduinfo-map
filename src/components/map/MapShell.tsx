@@ -16,6 +16,6 @@ const DeckMap = dynamic<DeckMapProps>(() => import("./DeckMap"), {
   ),
 });
 
-export default function MapShell({ indicatorId }: DeckMapProps) {
-  return <DeckMap indicatorId={indicatorId} />;
+export default function MapShell(props: DeckMapProps) {
+  return <DeckMap {...props} />;
 }
