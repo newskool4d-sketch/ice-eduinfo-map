@@ -8,7 +8,7 @@
  * both redundant and wrong for ratio-kind indicators.
  */
 import { PROVINCE_CODE } from "./geo/regions";
-import type { IndicatorDef, IndicatorFile, SeriesFile } from "./indicators/types";
+import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "./indicators/types";
 
 /**
  * Extracts a region-code -> value map from an indicator file, keeping only
@@ -141,4 +141,19 @@ export function displayLabel(def: IndicatorDef, series: Record<string, SeriesFil
     if (range) return def.label.replace("5년", `${range[0]}→${range[1]}`);
   }
   return def.label;
+}
+
+/**
+ * The top bar's "기준 YYYY.M.D" caption (TopBar). The year comes from
+ * `manifest.latestYear` — the dataset's single authoritative "as of" year —
+ * while month/day come from the given indicator file's own `referenceDate`
+ * (e.g. "2026-04-01"). Every indicator file currently shares the same
+ * referenceDate, but this keeps the caption tied to whichever file the
+ * caller is actually displaying rather than assuming that will always hold.
+ * No zero-padding (2026.4.1, not 2026.04.01), per the task brief's literal
+ * example.
+ */
+export function referenceDateLabel(manifest: Manifest, file: IndicatorFile): string {
+  const [, month, day] = file.referenceDate.split("-").map(Number);
+  return `기준 ${manifest.latestYear}.${month}.${day}`;
 }

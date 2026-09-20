@@ -5,12 +5,13 @@ import {
   deltaPrevYear,
   displayLabel,
   rank,
+  referenceDateLabel,
   regionValues,
   trend,
   valueMap,
   vsProvince,
 } from "@/lib/stats";
-import type { IndicatorDef, IndicatorFile, SeriesFile } from "@/lib/indicators/types";
+import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
 
 function fileFixture(): IndicatorFile {
@@ -220,5 +221,28 @@ describe("displayLabel", () => {
   it("falls back to the static label when the students_total series is unavailable", () => {
     const def: IndicatorDef = { ...baseDef, id: "students_change_5y", label: "학생수 5년 증감률" };
     expect(displayLabel(def, {})).toBe("학생수 5년 증감률");
+  });
+});
+
+describe("referenceDateLabel", () => {
+  function manifestFixture(latestYear: number): Manifest {
+    return { latestYear, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z" };
+  }
+
+  it("formats as '기준 {year}.{month}.{day}' with no zero-padding", () => {
+    const file: IndicatorFile = { ...fileFixture(), referenceDate: "2026-04-01" };
+    expect(referenceDateLabel(manifestFixture(2026), file)).toBe("기준 2026.4.1");
+  });
+
+  it("takes the year from manifest.latestYear, not from the file's own year field", () => {
+    // A deliberately mismatched year on the file — the caption always
+    // reflects the manifest's authoritative latestYear.
+    const file: IndicatorFile = { ...fileFixture(), year: 2099, referenceDate: "2026-04-01" };
+    expect(referenceDateLabel(manifestFixture(2026), file)).toBe("기준 2026.4.1");
+  });
+
+  it("takes month/day from the file's own referenceDate", () => {
+    const file: IndicatorFile = { ...fileFixture(), referenceDate: "2026-12-25" };
+    expect(referenceDateLabel(manifestFixture(2026), file)).toBe("기준 2026.12.25");
   });
 });

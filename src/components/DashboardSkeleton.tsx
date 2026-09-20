@@ -1,0 +1,23 @@
+import TopBar from "@/components/panels/TopBar";
+import { DEFAULT_INDICATOR_ID } from "@/lib/indicators/registry";
+
+/**
+ * The <Suspense> fallback for Dashboard in app/page.tsx. nuqs's useMapQuery()
+ * (used inside Dashboard) calls useSearchParams() under the hood, which
+ * requires a Suspense boundary above it for `next build`'s static
+ * prerendering — this is the static shell Next renders in that gap, before
+ * Dashboard itself takes over client-side.
+ *
+ * Layout skeleton only, dark, no data: reuses TopBar with `bundle={null}`
+ * (its own loading state — indicator menu + KPI tiles render as skeleton
+ * bars) rather than duplicating that markup here. `indicatorId` is never
+ * displayed in the bundle-less state, so any valid id works.
+ */
+export default function DashboardSkeleton() {
+  return (
+    <div className="grid h-full grid-rows-[56px_1fr] bg-[#0b0f19] text-[#e6e9f0]">
+      <TopBar indicatorId={DEFAULT_INDICATOR_ID} bundle={null} />
+      <div className="flex items-center justify-center text-sm text-[#e6e9f0]/50">지도 준비 중</div>
+    </div>
+  );
+}
