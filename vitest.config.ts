@@ -18,7 +18,10 @@ export default defineConfig({
   test: {
     environment: "node",
     setupFiles: ["tests/setup.ts"],
-    passWithNoTests: true,
+    // Task 6, Section C.3 — removed: a project whose `include` glob
+    // (accidentally, e.g. after a rename) matches zero files used to still
+    // exit 0 ("빈 프로젝트가 조용히 통과하지 않도록" — silently passing is
+    // worse than failing loudly here, since `npm test` gates CI).
     projects: [
       {
         extends: true,
