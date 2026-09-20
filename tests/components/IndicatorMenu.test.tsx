@@ -16,6 +16,11 @@ describe("IndicatorMenu", () => {
     expect(button).toHaveTextContent(indicatorById(DEFAULT_INDICATOR_ID)!.label);
     expect(button).toHaveAttribute("aria-haspopup", "dialog");
     expect(button).toHaveAttribute("aria-expanded", "false");
+    // Fix round 2, finding 8 — aria-controls used to be unconditionally set
+    // to "indicator-menu-popover" even while closed, but the popover <div>
+    // carrying that id is only rendered when open — a dangling IDREF while
+    // closed (an id that resolves to nothing in the DOM at all).
+    expect(button).not.toHaveAttribute("aria-controls");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -27,7 +32,12 @@ describe("IndicatorMenu", () => {
 
     const dialog = screen.getByRole("dialog", { name: "조건별 맵 선택" });
     expect(dialog).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: MENU_BUTTON_NAME })).toHaveAttribute("aria-expanded", "true");
+    const button = screen.getByRole("button", { name: MENU_BUTTON_NAME });
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    // Fix round 2, finding 8 — while open, aria-controls correctly
+    // references the now-rendered popover's real id (see the closed-state
+    // assertion in the previous test for the other half of this contract).
+    expect(button).toHaveAttribute("aria-controls", "indicator-menu-popover");
 
     const radios = screen.getAllByRole("radio");
     expect(radios.length).toBeGreaterThan(1);

@@ -208,33 +208,67 @@ describe("makeColorScale — colorBuckets option (Task 6, Section C-추가 #5)",
     expect(() => makeColorScale(def({ kind: "count", domain: [0, 10] }), map)).not.toThrow();
   });
 
-  // Fix round 1/5, finding 1 — the exact real-world dataset that exposed the
-  // tie-bucketing bug: public/data/indicators/closed_schools_unused.json's
-  // 14 시군 values as of this fix (only 5 distinct values, 6 of them tied at
-  // the domain floor 0). Copied in directly rather than re-derived so this
-  // regresses loudly even if the live data file's shape changes later.
-  it("falls back to linear for the real closed_schools_unused dataset (exactly palette.length distinct values, heavy ties)", () => {
+  // Fix round 2, finding 9 (controller ruling) — the fallback threshold is
+  // now `distinctValues.length >= palette.length` (was `>`). With EXACTLY
+  // palette.length (5) distinct values, a 5-quantile split still assigns
+  // one distinct value to each of the 5 buckets cleanly — the previous `>`
+  // threshold routed this exact case to 'linear' instead, which is what let
+  // real closed_schools_unused data ([0×6,1×5,2,8,9], 5 distinct) cluster
+  // into just 2 colors (dominated by the tied-at-0 low end) instead of
+  // spreading across all 5. Reaching the quantile branch here is safe
+  // because of fix round 1's OTHER change (still in effect): scaleQuantile's
+  // domain is the DEDUPLICATED distinct values [0,1,2,8,9], not the raw
+  // array, so the old tie-bucketing bug (bisect-right pushing a
+  // domain-floor-tied value into the wrong bucket) doesn't recur — verified
+  // below via the actual computed thresholds (0.8/1.6/4.4/8.2, from
+  // scaleQuantile().domain([0,1,2,8,9]), confirmed empirically with
+  // d3-scale directly — see this fix's report).
+  it("uses quantile (not linear) for the real closed_schools_unused dataset — exactly palette.length distinct values", () => {
     const tiedValues = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 8, 9];
     const tiedMap = new Map<string, number | null>(tiedValues.map((value, i) => [`code-${i}`, value]));
     const testDef = def({ kind: "count", polarity: "higherWorse" });
 
-    // Quantile was never even asked for here (count-kind defaults to it) —
-    // this is the data-driven fallback, not an opt-out.
     const scale = makeColorScale(testDef, tiedMap);
+    expect(scale.colorBuckets).toBe("quantile");
+    expect(scale.ticks).toHaveLength(6);
+    expect(scale.ticks[0]).toBe(0);
+    expect(scale.ticks[5]).toBe(9);
+    expect(scale.ticks[1]).toBeCloseTo(0.8);
+    expect(scale.ticks[2]).toBeCloseTo(1.6);
+    expect(scale.ticks[3]).toBeCloseTo(4.4);
+    expect(scale.ticks[4]).toBeCloseTo(8.2);
+    for (let i = 1; i < scale.ticks.length; i++) {
+      expect(scale.ticks[i]).toBeGreaterThan(scale.ticks[i - 1]);
+    }
+
+    // The value tied at the domain floor (0) reaches the FIRST palette
+    // color rather than being pushed to the second (fix round 1's dedup fix
+    // is what makes this hold even though this dataset is heavily tied) —
+    // and all 5 palette colors actually get used across the 14 regions.
+    const palette = paletteFor("higherWorse");
+    expect(scale.colorOf("code-0")).toEqual([...palette[0], 255]); // value 0
+    const colorsUsed = new Set(tiedValues.map((_, i) => scale.colorOf(`code-${i}`).join(",")));
+    expect(colorsUsed.size).toBe(5);
+  });
+
+  // Keeps the sub-threshold fallback path covered now that the boundary
+  // case (exactly 5 distinct values) moved to the quantile branch above.
+  it("still falls back to linear below palette.length distinct values (4 distinct)", () => {
+    const fourDistinct = [0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3];
+    const map = new Map<string, number | null>(fourDistinct.map((value, i) => [`code-${i}`, value]));
+    const testDef = def({ kind: "count", polarity: "higherWorse" });
+
+    const scale = makeColorScale(testDef, map);
     expect(scale.colorBuckets).toBe("linear");
     expect(scale.ticks).toHaveLength(6);
     for (let i = 1; i < scale.ticks.length; i++) {
       expect(scale.ticks[i]).toBeGreaterThan(scale.ticks[i - 1]);
     }
-    // The regression this fix targets: a value tied at the domain floor
-    // must reach the FIRST palette color, not skip straight to the second.
-    const palette = paletteFor("higherWorse");
-    expect(scale.colorOf("code-0")).toEqual([...palette[0], 255]);
 
-    // An explicit request for quantile is overridden by the same
-    // data-driven fallback (Task 6, Section C-추가 #5's `opts.colorBuckets`
-    // is a request, not a guarantee — see ColorScaleOptions' doc comment).
-    const requested = makeColorScale(testDef, tiedMap, { colorBuckets: "quantile" });
+    // An explicit request for quantile is still overridden by the same
+    // data-driven fallback (ColorScaleOptions is a request, not a
+    // guarantee — see its own doc comment).
+    const requested = makeColorScale(testDef, map, { colorBuckets: "quantile" });
     expect(requested.colorBuckets).toBe("linear");
   });
 

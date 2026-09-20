@@ -211,7 +211,13 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-controls="indicator-menu-popover"
+        // Fix round 2, finding 8 — this used to be unconditionally set to
+        // "indicator-menu-popover", but that <div> only exists in the DOM
+        // while `open` (see the conditional render below) — a dangling
+        // IDREF (referencing an id that resolves to nothing at all) whenever
+        // the menu was closed. Only set it once the referenced element
+        // actually exists.
+        aria-controls={open ? "indicator-menu-popover" : undefined}
         onKeyDown={(event) => {
           // Only Enter needs tracking here — see the lifecycle effect's
           // comment for exactly why Space doesn't have the same race.

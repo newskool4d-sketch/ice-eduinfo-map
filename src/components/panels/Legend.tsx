@@ -21,7 +21,7 @@ export interface LegendProps {
   schoolLevelsVisible?: boolean;
   /** fix round, review finding #4 — true only when the SELECTED region itself has at least one school with no coordinate (lat == null, i.e. a 특수학교 row — see School.locationMissingReason). Gates the "(특수학교는 위치 자료 없음)" caveat so it isn't shown for a region where every school actually has a point on the map. Defaults to false. */
   hasSchoolsWithoutLocation?: boolean;
-  /** Task 6, Section C-추가 #5 — which bucket rule produced `ticks`/the map's actual colors (see makeColorScale's `ColorScale.colorBuckets`). Defaults to 'linear' (no note) — pass 'quantile' to add a "색 구간: 5분위" note, e.g. for a count-kind indicator's skewed 14-시군 distribution. */
+  /** Task 6, Section C-추가 #5 — which bucket rule produced `ticks`/the map's actual colors (see makeColorScale's `ColorScale.colorBuckets`). Defaults to 'linear' (no note) — pass 'quantile' to add a "색 구간: 고유값 5분위" note, e.g. for a count-kind indicator's skewed 14-시군 distribution. */
   colorBuckets?: "linear" | "quantile";
 }
 
@@ -54,8 +54,13 @@ export default function Legend({
   // Task 6, Section C-추가 #5 — count-kind indicators' color buckets are
   // quantile (rank-based), not the equal-width linear split the base note
   // implies for color; this note prevents that misreading without changing
-  // the (still-linear) height encoding.
-  if (colorBuckets === "quantile") notes.push("색 구간: 5분위");
+  // the (still-linear) height encoding. Fix round 2, finding 9 — reworded
+  // "색 구간: 5분위" to "색 구간: 고유값 5분위" ("5분위 of DISTINCT values"): the
+  // quantile split is computed over the deduplicated distinct values (see
+  // colors.ts's makeColorScale doc comment), not literally 5 equal-COUNT
+  // slices of the raw 14-시군 array, so the plain "5분위" wording could be
+  // misread as the latter.
+  if (colorBuckets === "quantile") notes.push("색 구간: 고유값 5분위");
 
   return (
     <div className="flex flex-wrap items-center gap-4 text-xs text-[#e6e9f0]/70">

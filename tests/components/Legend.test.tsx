@@ -187,11 +187,11 @@ describe("Legend", () => {
   // Task 6, Section C-추가 #5 — count 지표는 색 구간이 quantile(5분위)로 바뀌므로
   // 범례에 이를 명시해야 사용자가 "왜 색이 값과 등간격으로 대응하지 않는지" 오해하지
   // 않는다.
-  it("adds a '색 구간: 5분위' note only when colorBuckets is 'quantile'", () => {
+  it("adds a '색 구간: 고유값 5분위' note only when colorBuckets is 'quantile'", () => {
     const { rerender } = render(
       <Legend def={baseDef()} ticks={TICKS} palette={paletteFor("neutral")} hasNull={false} referenceDate="2026-04-01" />,
     );
-    expect(screen.queryByText(/색 구간: 5분위/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/색 구간: 고유값 5분위/)).not.toBeInTheDocument();
 
     rerender(
       <Legend
@@ -203,10 +203,10 @@ describe("Legend", () => {
         colorBuckets="quantile"
       />,
     );
-    expect(screen.getByText(/색 구간: 5분위/)).toBeInTheDocument();
+    expect(screen.getByText(/색 구간: 고유값 5분위/)).toBeInTheDocument();
   });
 
-  // Fix round 1/5, finding 4: "높이·색 모두 값에 비례" next to "색 구간: 5분위" was a
+  // Fix round 1/5, finding 4: "높이·색 모두 값에 비례" next to "색 구간: 고유값 5분위" was a
   // direct self-contradiction (claims color IS proportional to value right
   // next to a note saying it's rank-based instead).
   it("shows '높이는 값에 비례' instead of '높이·색 모두 값에 비례' when colorBuckets is 'quantile' (finding 4)", () => {
@@ -224,7 +224,7 @@ describe("Legend", () => {
     expect(screen.queryByText(/높이·색 모두 값에 비례/)).not.toBeInTheDocument();
   });
 
-  it("omits the '색 구간: 5분위' note when colorBuckets is 'linear' (explicit or default)", () => {
+  it("omits the '색 구간: 고유값 5분위' note when colorBuckets is 'linear' (explicit or default)", () => {
     render(
       <Legend
         def={baseDef()}
@@ -235,7 +235,7 @@ describe("Legend", () => {
         colorBuckets="linear"
       />,
     );
-    expect(screen.queryByText(/색 구간: 5분위/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/색 구간: 고유값 5분위/)).not.toBeInTheDocument();
   });
 
   it("omits the 특수학교 위치 자료 없음 caveat when the selected region's schools all have coordinates (review finding #4)", () => {

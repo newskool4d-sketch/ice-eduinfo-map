@@ -86,13 +86,15 @@ export interface ColorScale {
    * count-kind indicators (their 14 시군 values skew hard toward 전주시, so
    * equal-width buckets left most regions in the bottom step) and 'linear'
    * otherwise — see `makeColorScale`'s `opts.colorBuckets`. Legend shows a
-   * "색 구간: 5분위" note only when this is 'quantile'.
+   * "색 구간: 고유값 5분위" note only when this is 'quantile'.
    *
    * Fix round 1/5, finding 1 — this can be 'linear' even when quantile was
    * requested (the kind-based default, or an explicit
-   * `opts.colorBuckets: 'quantile'`): with `palette.length` (5) or fewer
+   * `opts.colorBuckets: 'quantile'`): with FEWER THAN `palette.length` (5)
    * DISTINCT non-null region values, `makeColorScale` falls back to
-   * 'linear' instead (see its doc comment for why). Callers/Legend must
+   * 'linear' instead (fix round 2, finding 9: the threshold is `< 5`, not
+   * `<= 5` — exactly 5 distinct values still uses quantile; see its doc
+   * comment for why). Callers/Legend must
    * always read the MODE FROM THIS FIELD rather than re-deriving it from
    * `def.kind` or `opts`.
    */
@@ -127,18 +129,23 @@ export interface ColorScaleOptions {
  * every region actually AT 0 gets bucketed into palette[1]: palette[0] is
  * never used at all, and the Legend's ticks render as 0, 0, 0, 1, 1, 9
  * (not strictly increasing — actively misleading). Two-part fix:
- *  1. With `palette.length` (5) or fewer DISTINCT non-null values, a
- *     "5-quantile" split isn't meaningful anyway (at most one value per
+ *  1. With FEWER THAN `palette.length` (5) DISTINCT non-null values, a
+ *     "5-quantile" split isn't meaningful anyway (fewer than one value per
  *     bucket) — fall back to the linear/quantize scale instead, and
  *     report the ACTUAL mode used via the returned `colorBuckets` (never
  *     silently pretend quantile ran). This is data-driven: it applies even
  *     when quantile was explicitly requested via `opts.colorBuckets`.
- *  2. With more than 5 distinct values, quantile still runs, but its
- *     domain is the DEDUPLICATED distinct values (not the raw per-region
- *     array) — every repeated value collapses to one entry first, so a
- *     threshold interpolated between two ADJACENT DISTINCT values can
- *     still land exactly on one of them without starving a whole bucket
- *     the way un-deduplicated ties did.
+ *  2. With `palette.length` (5) or more distinct values, quantile still
+ *     runs, but its domain is the DEDUPLICATED distinct values (not the raw
+ *     per-region array) — every repeated value collapses to one entry
+ *     first, so a threshold interpolated between two ADJACENT DISTINCT
+ *     values can still land exactly on one of them without starving a whole
+ *     bucket the way un-deduplicated ties did. Fix round 2, finding 9
+ *     (controller ruling) moved the boundary from `> 5` to `>= 5`: EXACTLY
+ *     5 distinct values (e.g. real closed_schools_unused data) still gets
+ *     one value per bucket cleanly once deduplicated, so there's no reason
+ *     to force it to linear — verified empirically (thresholds
+ *     0.8/1.6/4.4/8.2 over distinct values [0,1,2,8,9], all 5 colors used).
  */
 export function makeColorScale(
   def: IndicatorDef,
@@ -156,8 +163,16 @@ export function makeColorScale(
         .filter((v): v is number => v !== null),
     ),
   ).sort((a, b) => a - b);
+  // Fix round 2, finding 9 (controller ruling) — >= , not >: with EXACTLY
+  // palette.length (5) distinct values, a 5-quantile split over the
+  // deduplicated distinct-value domain still assigns one value per bucket
+  // cleanly (fix round 1's dedup fix is what makes that safe — see this
+  // function's own doc comment). The strict `>` used to route that exact
+  // boundary case to 'linear' instead, which is what let real
+  // closed_schools_unused data (5 distinct values, heavily tied at the low
+  // end) cluster into only 2 colors instead of spreading across all 5.
   const colorBuckets: ColorBucketMode =
-    requestedBuckets === "quantile" && distinctValues.length > palette.length ? "quantile" : "linear";
+    requestedBuckets === "quantile" && distinctValues.length >= palette.length ? "quantile" : "linear";
 
   if (colorBuckets === "quantile") {
     // scaleQuantile takes the raw DATA array (not a [min,max] pair) — it
