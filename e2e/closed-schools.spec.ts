@@ -13,7 +13,7 @@ test("폐교 지표: /?indicator=closed_schools 진입 → 범례 라벨 → 시
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
 
-  await expect(page.getByTestId("legend-indicator-label")).toHaveText("폐교 수(누적)");
+  await expect(page.getByTestId("legend-indicator-label")).toHaveText("폐교 수(등재)");
   await expect(page.getByTestId("legend-description")).not.toBeEmpty();
 
   // Task 5 fix round 1 (coordinator ruling): the TopBar caption (next to

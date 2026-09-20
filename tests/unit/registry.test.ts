@@ -137,8 +137,9 @@ describe("INDICATORS registry", () => {
       }
     });
 
-    it("gives closed_schools the exact label '폐교 수(누적)' (pinned by the e2e test too)", () => {
-      expect(indicatorById("closed_schools")?.label).toBe("폐교 수(누적)");
+    it("gives closed_schools the exact label '폐교 수(등재)' and shortLabel '폐교 수' (label pinned by the e2e test too)", () => {
+      expect(indicatorById("closed_schools")?.label).toBe("폐교 수(등재)");
+      expect(indicatorById("closed_schools")?.shortLabel).toBe("폐교 수");
     });
 
     it("gives each 폐교 지표 an external aggregate over CLOSED_SCHOOLS_AGGREGATE_FILE with a distinct field", () => {

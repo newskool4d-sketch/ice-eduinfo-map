@@ -233,7 +233,15 @@ export const INDICATORS: IndicatorDef[] = [
     source: KESS_SOURCE,
     aggregate: { kind: "external", file: "series/students_total.json", field: "change5y" },
     description: "학생수 증감률입니다. 마이너스(-)가 클수록 학령인구 감소가 가파른 지역입니다.",
-    caveat: "비교 구간은 학생수 시계열이 확보된 최초 연도부터 최신 연도까지입니다(정확한 연도는 라벨·범례 표기 참조).",
+    // Fix round 1/5, finding 5: the previous wording only described the
+    // fallback branch ("최초 연도부터 최신 연도까지"), which is misleading in
+    // the common case where a full 5개년 시계열 is available (build-indicators.ts's
+    // computeChange5y compares against latestYear-5 whenever that year exists,
+    // and only falls back to the oldest available year otherwise). Reworded to
+    // cover both branches; still no literal years baked in here — the exact
+    // compared years render dynamically via stats.ts's displayLabel()
+    // ("5년" -> "{min}→{max}" in the label/legend).
+    caveat: "최신 연도와 5년 전 값을 비교합니다. 5년 전 자료가 없으면 확보된 가장 오래된 연도와 비교합니다(정확한 연도는 라벨·범례 표기 참조).",
   },
   // Task 5 — 폐교 지표(외부 CSV). 세 지표 모두 aggregate.kind: 'external'로,
   // build-indicators.ts가 data/raw의 폐교재산 현황 CSV(또는 그 committed
@@ -244,14 +252,22 @@ export const INDICATORS: IndicatorDef[] = [
   {
     id: "closed_schools",
     group: "smallSchool",
-    label: "폐교 수(누적)",
+    // Fix round 1/5, finding 1: "폐교 수(누적)" + a description hardcoding
+    // "1991년 이후" overstated what this source actually is — a roster
+    // snapshot of 폐교재산 the office still tracks as of its 기준일, not a
+    // guaranteed-complete cumulative history back to a fixed year (a 폐교 that
+    // was later sold off can drop out of the roster entirely). Relabeled to
+    // "등재"(registered/on the roster) and shortLabel added for any UI that
+    // wants a shorter form.
+    label: "폐교 수(등재)",
+    shortLabel: "폐교 수",
     unit: "교",
     polarity: "higherWorse",
     kind: "count",
     format: formatInt,
     source: CLOSED_SCHOOLS_SOURCE,
     aggregate: { kind: "external", file: CLOSED_SCHOOLS_AGGREGATE_FILE, field: "count" },
-    description: "1991년 이후 누적 폐교 수입니다. 학령인구 감소와 학교 통폐합이 누적된 결과를 보여줍니다.",
+    description: "교육청 폐교재산 현황에 등재된 폐교 수입니다(기준일 시점). 매각 등으로 처분된 폐교는 등재에서 빠질 수 있습니다.",
     caveat: "전북특별자치도교육청 폐교재산 현황 기준(하단 출처의 기준일 참조). 분교장을 포함하며, 본교 기준인 학교수 지표와 집계 범위가 다릅니다.",
   },
   {
@@ -264,7 +280,12 @@ export const INDICATORS: IndicatorDef[] = [
     format: formatInt,
     source: CLOSED_SCHOOLS_SOURCE,
     aggregate: { kind: "external", file: CLOSED_SCHOOLS_AGGREGATE_FILE, field: "unused" },
-    description: "폐교 재산 중 활용 계획이 없는(미활용) 폐교 수입니다. 재산 활용 정책의 우선 검토 대상입니다.",
+    // Fix round 1/5, finding 6: the previous wording ("활용 계획이 없는" +
+    // "정책의 우선 검토 대상") claimed intent/plans the source data doesn't
+    // actually state — 활용현황구분명='미활용' is just a status classification
+    // on the 기준일, not a statement that no plan exists. Reworded to
+    // describe the classification itself.
+    description: "활용현황이 '미활용'으로 분류된 폐교 수입니다.",
     caveat: "전북특별자치도교육청 폐교재산 현황 기준(하단 출처의 기준일 참조). 활용현황구분명이 '미활용'인 행만 집계합니다.",
   },
   {
@@ -278,7 +299,13 @@ export const INDICATORS: IndicatorDef[] = [
     source: CLOSED_SCHOOLS_SOURCE,
     aggregate: { kind: "external", file: CLOSED_SCHOOLS_AGGREGATE_FILE, field: "recent" },
     description: "최근 10년간(폐교연도 기준) 발생한 폐교 수입니다. 최근의 통폐합 추세를 보여줍니다.",
-    caveat: "기준: 데이터상 최신 폐교연도를 포함한 10개년. 전북특별자치도교육청 폐교재산 현황 기준(하단 출처의 기준일 참조).",
+    // Fix round 1/5, finding 3: the window is anchored on the source's 기준일
+    // (referenceDate), not on the data rows' own max 폐교연도 (see
+    // scripts/pipeline/lib/closed-schools.ts's aggregateClosedSchools) — worded
+    // generically here, no literal year, since this file has no access to the
+    // actual built data at authoring time; the real 기준일 always renders via
+    // the source line below.
+    caveat: "기준: 하단 출처의 기준일이 속한 연도를 포함해 최근 10개년(폐교연도 기준)을 집계합니다. 전북특별자치도교육청 폐교재산 현황 기준(하단 출처의 기준일 참조).",
   },
 ];
 

@@ -9,7 +9,7 @@
 import type { ClosedSchoolRow } from "../../../src/lib/closedSchools/types";
 import type { IndicatorRow } from "../../../src/lib/indicators/types";
 import { parseCsv } from "./csv";
-import { LEVEL_MAP, PROVINCE_CODE, REGION_TABLE } from "../sources";
+import { LEVEL_MAP, PROVINCE_CODE, REGION_TABLE, USAGE_VALUES } from "../sources";
 
 const CLOSED_SCHOOLS_CSV_COLUMNS = [
   "시도교육청코드",
@@ -110,7 +110,12 @@ export function parseClosedSchoolsCsv(csvText: string): ParseClosedSchoolsCsvRes
       throw new Error(`폐교 CSV ${JSON.stringify(name)}: 폐교연도 값이 숫자가 아닙니다 (${JSON.stringify(yearRaw)})`);
     }
 
-    const usage = raw[col["활용현황구분명"]] ?? "";
+    const usage = (raw[col["활용현황구분명"]] ?? "").trim();
+    if (!USAGE_VALUES.includes(usage)) {
+      throw new Error(
+        `폐교 CSV ${JSON.stringify(name)}: 알 수 없는 활용현황구분명 ${JSON.stringify(usage)} (허용값: ${USAGE_VALUES.join(", ")})`,
+      );
+    }
 
     const buildingAreaRaw = raw[col["건물연면적"]] ?? "";
     const buildingArea = Number(buildingAreaRaw);
@@ -136,6 +141,44 @@ export function parseClosedSchoolsCsv(csvText: string): ParseClosedSchoolsCsvRes
 
 export type ClosedSchoolsMetric = "count" | "unused" | "recent";
 
+const REFERENCE_DATE_RE = /^(\d{4})-\d{2}-\d{2}$/;
+
+/**
+ * Extracts the calendar year out of an ISO `YYYY-MM-DD` referenceDate string
+ * (e.g. a ClosedSchoolsFile's own 기준일). Throws on a malformed input —
+ * same fail-loud policy as this module's other parsing helpers
+ * (regionCodeForClosedSchool, the 학교급구분명/활용현황구분명 checks above).
+ * Exported so validate.ts's check 7 can recompute the same "최근 10년"
+ * threshold independently, against the same referenceDate.
+ */
+export function referenceYear(referenceDate: string): number {
+  const match = REFERENCE_DATE_RE.exec(referenceDate);
+  if (!match) {
+    throw new Error(`referenceDate 형식이 올바르지 않습니다 (예상: YYYY-MM-DD): ${JSON.stringify(referenceDate)}`);
+  }
+  return Number(match[1]);
+}
+
+/**
+ * Fix round 1/5, finding 4 ("날짜기준 규칙" sanity check): a source's
+ * 게시(갱신)일(publishedAt)은 그 기준일(referenceDate)보다 이를 수 없다 — ISO
+ * `YYYY-MM-DD` strings compare lexicographically the same as chronologically,
+ * so a plain string comparison is sufficient. Throws immediately on a
+ * violation (e.g. sources.ts의 CLOSED_SCHOOLS_PUBLISHED_AT을 갱신하면서 실수로
+ * 기준일보다 이른 날짜를 넣은 경우) — a config/data-entry error, not a gap to
+ * silently paper over, matching this module's other fail-loud checks. Called
+ * from build-indicators.ts right after buildClosedSchoolsInterim() returns
+ * (build-closed-schools.ts itself is intentionally not touched by this fix
+ * round).
+ */
+export function assertPublishedAtNotBeforeReferenceDate(referenceDate: string, publishedAt: string): void {
+  if (publishedAt < referenceDate) {
+    throw new Error(
+      `폐교 데이터 날짜 불일치: publishedAt(${JSON.stringify(publishedAt)})이 referenceDate(${JSON.stringify(referenceDate)})보다 이릅니다.`,
+    );
+  }
+}
+
 /**
  * 14 시군 + 52000 IndicatorRow[] for each of the 3 폐교 지표 metrics
  * (closed_schools / closed_schools_unused / closed_schools_recent), in one
@@ -143,14 +186,20 @@ export type ClosedSchoolsMetric = "count" | "unused" | "recent";
  * absent) — mirrors scripts/pipeline/lib/aggregate.ts's convention, since
  * 진안·장수·순창 등 폐교가 0건인 시군도 지도에 값이 있어야 한다.
  *
- * "최근 10년" = 폐교연도 >= (rows 안의 최신 폐교연도 - 9). This is computed
- * from the 폐교 데이터 자체의 최신 연도, independent of KESS's manifest
- * latestYear — the two happen to coincide at 2026 today, but this function
- * never assumes that.
+ * "최근 10년" = 폐교연도 >= (referenceDate의 연도 - 9). Fix round 1/5, finding
+ * 3: previously anchored on the CSV rows' own max 폐교연도, which silently
+ * drifts if a future refresh's newest row isn't from the 기준일 year itself
+ * (e.g. no school closed in the reference year). Anchoring on referenceDate
+ * — the same date already shown to the user as this dataset's 기준일 — keeps
+ * the window meaning "the 10 years up to as-of-now" regardless of the data's
+ * own distribution. `referenceDate` is required (not optional/defaulted)
+ * precisely so a caller can never forget to pass it.
  */
-export function aggregateClosedSchools(rows: ClosedSchoolRow[]): Record<ClosedSchoolsMetric, IndicatorRow[]> {
-  const maxYear = rows.reduce((max, r) => Math.max(max, r.year), -Infinity);
-  const recentThreshold = maxYear - 9;
+export function aggregateClosedSchools(
+  rows: ClosedSchoolRow[],
+  referenceDate: string,
+): Record<ClosedSchoolsMetric, IndicatorRow[]> {
+  const recentThreshold = referenceYear(referenceDate) - 9;
 
   const predicates: Record<ClosedSchoolsMetric, (r: ClosedSchoolRow) => boolean> = {
     count: () => true,
