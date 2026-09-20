@@ -6,14 +6,16 @@
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 
 import type { ClosedSchoolsFile } from "../closedSchools/types";
-import type { RegionFeature } from "../geo/geo";
+import type { RegionsFeatureCollection } from "../geo/geo";
 import type { IndicatorFile, Manifest, SeriesFile } from "../indicators/types";
 import type { SchoolsFile } from "../schools/types";
 
-export type RegionsFeatureCollection = FeatureCollection<
-  Polygon | MultiPolygon,
-  RegionFeature["properties"]
->;
+// Re-exported (not redefined) — `RegionFeature`/`RegionsFeatureCollection`'s
+// single source of truth is src/lib/geo/geo.ts, which also hosts
+// `splitRegionIslands` (Task 6, Section C.1) and needs the type itself;
+// data/types.ts importing it the other way around (from geo.ts) keeps the
+// dependency one-directional.
+export type { RegionsFeatureCollection };
 
 export type NeighborsFeatureCollection = FeatureCollection<
   Polygon | MultiPolygon,
@@ -48,4 +50,20 @@ export interface DataBundle {
    * missing entry.
    */
   series: Record<string, SeriesFile>;
+}
+
+/**
+ * Task 6, Section C.1 — `DataBundle` plus the once-derived main/island
+ * region splits (see `splitRegionIslands` in geo.ts). `load.ts`/
+ * `assertBundle` keep working with the plain `DataBundle` shape (they run
+ * BEFORE this derivation) — `DataProvider.tsx` computes `regionsMain`/
+ * `regionsIslands` exactly once, right after a successful load, and is what
+ * actually lands in its "ready" state; `useBundle()` (and therefore every
+ * consumer — DeckMap, MapFallback, etc.) receives THIS type.
+ */
+export interface EnrichedDataBundle extends DataBundle {
+  /** Every region's largest-area part only — what the extruded `regions` layer renders. Always exactly REGION_CODES.length features, one per region, in the original order. */
+  regionsMain: RegionsFeatureCollection;
+  /** Every region's remaining (non-largest) parts, if any — what the flat `region-islands` layer renders. Only regions that actually have extra parts appear here at all. */
+  regionsIslands: RegionsFeatureCollection;
 }

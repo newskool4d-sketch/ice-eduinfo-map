@@ -124,6 +124,83 @@ describe("makeColorScale", () => {
   });
 });
 
+// Task 6, Section C-추가 #5 — count 지표 색 구간: count-kind indicators' 14
+// 시군 values skew hard toward 전주시, so equal-WIDTH linear buckets leave
+// most regions in the bottom step. Color buckets switch to quantile
+// (equal-COUNT) for count-kind by default; height/domain stay linear
+// (unaffected — this option only ever changes `colorOf`/`ticks`, never
+// `domainOf`/makeElevationScale).
+describe("makeColorScale — colorBuckets option (Task 6, Section C-추가 #5)", () => {
+  // Skewed like a real count-kind indicator: 4 low/clustered values + 1 big
+  // outlier (전주시-like).
+  const skewedCodes = ["52110", "52130", "52140", "52180", "52190"];
+  const skewedMap = new Map<string, number | null>([
+    ["52110", 1000],
+    ["52130", 3],
+    ["52140", 2],
+    ["52180", 1],
+    ["52190", 0],
+  ]);
+
+  it("count-kind indicators default to quantile bucketing", () => {
+    const { colorBuckets } = makeColorScale(def({ kind: "count" }), skewedMap);
+    expect(colorBuckets).toBe("quantile");
+  });
+
+  it("ratio-kind indicators default to linear bucketing", () => {
+    const { colorBuckets } = makeColorScale(def({ kind: "ratio" }), skewedMap);
+    expect(colorBuckets).toBe("linear");
+  });
+
+  it("an explicit colorBuckets option overrides the kind-based default", () => {
+    expect(makeColorScale(def({ kind: "ratio" }), skewedMap, { colorBuckets: "quantile" }).colorBuckets).toBe(
+      "quantile",
+    );
+    expect(makeColorScale(def({ kind: "count" }), skewedMap, { colorBuckets: "linear" }).colorBuckets).toBe(
+      "linear",
+    );
+  });
+
+  it("quantile mode spreads a skewed dataset across distinct color buckets (linear clusters most into the bottom one)", () => {
+    const linear = makeColorScale(def({ kind: "count" }), skewedMap, { colorBuckets: "linear" });
+    const linearColors = new Set(skewedCodes.map((c) => linear.colorOf(c).join(",")));
+    // Linear (equal-width [0,1000] buckets): 0/1/2/3 all fall in the bottom
+    // 200-wide bucket alongside each other — at most 2 distinct colors
+    // among the 5 regions (bottom bucket + the outlier's own top bucket).
+    expect(linearColors.size).toBeLessThanOrEqual(2);
+
+    const quantile = makeColorScale(def({ kind: "count" }), skewedMap, { colorBuckets: "quantile" });
+    const quantileColors = new Set(skewedCodes.map((c) => quantile.colorOf(c).join(",")));
+    // Quantile (rank-based, 5 distinct values / 5 buckets): every region
+    // lands in its own bucket.
+    expect(quantileColors.size).toBe(5);
+  });
+
+  it("still exposes 6 ticks (domain ends + 4 interior boundaries) — height/domain unaffected by bucket mode", () => {
+    const { ticks } = makeColorScale(def({ kind: "count" }), skewedMap, { colorBuckets: "quantile" });
+    expect(ticks).toHaveLength(6);
+    expect(ticks[0]).toBe(0); // count-kind floors at 0, same domainOf() the elevation scale uses
+    expect(ticks[5]).toBe(1000);
+  });
+
+  it("null values are still NULL_COLOR under quantile mode", () => {
+    const map = new Map<string, number | null>([
+      ["52110", 5],
+      ["52130", null],
+    ]);
+    const { colorOf } = makeColorScale(def({ kind: "count" }), map);
+    expect(colorOf("52130")).toEqual([...NULL_COLOR, 255]);
+  });
+
+  it("does not throw when every value is null (empty quantile domain fallback)", () => {
+    const map = new Map<string, number | null>([
+      ["52110", null],
+      ["52130", null],
+    ]);
+    expect(() => makeColorScale(def({ kind: "count", domain: [0, 10] }), map)).not.toThrow();
+  });
+});
+
 describe("dim", () => {
   it("scales each channel by factor and rounds", () => {
     expect(dim([100, 200, 50], 0.5)).toEqual([50, 100, 25]);

@@ -8,7 +8,7 @@ import Legend from "@/components/panels/Legend";
 import RegionList from "@/components/panels/RegionList";
 import RegionPanel from "@/components/panels/RegionPanel";
 import TopBar from "@/components/panels/TopBar";
-import { DataProvider, useData } from "@/lib/data/DataProvider";
+import { DataProvider, useData, useRetry } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
 import type { RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
@@ -20,6 +20,31 @@ function CenteredMessage({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#0b0f19] px-6 text-center text-sm text-[#e6e9f0]/50">
       {children}
+    </div>
+  );
+}
+
+/**
+ * Task 6, Section A.5 — DataProvider's error state: shows the underlying
+ * cause (load.ts's fetchJson throws e.g. "loadBundle: failed to fetch
+ * /data/regions.geojson (HTTP 404)" — filename + HTTP status already
+ * embedded in the message for the common "file missing/renamed" case) and a
+ * "다시 시도" button that re-runs the SAME load from scratch via
+ * DataProvider's useRetry().
+ */
+function DataErrorMessage({ error }: { error: string }) {
+  const retry = useRetry();
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[#0b0f19] px-6 text-center text-sm text-[#e6e9f0]/70">
+      <p>데이터를 불러오지 못했습니다.</p>
+      <p className="max-w-md text-xs text-[#e6e9f0]/50">{error}</p>
+      <button
+        type="button"
+        onClick={retry}
+        className="rounded bg-white/10 px-3 py-1.5 text-[#e6e9f0] hover:bg-white/20"
+      >
+        다시 시도
+      </button>
     </div>
   );
 }
@@ -46,7 +71,7 @@ function DashboardInner({
   // color scale from the same pure function over the same bundle+indicatorId
   // inputs (see "상태 위치" in the brief — no scale objects are prop-drilled
   // between Dashboard and DeckMap).
-  const { ticks } = useMemo(() => makeColorScale(def, map), [def, map]);
+  const { ticks, colorBuckets } = useMemo(() => makeColorScale(def, map), [def, map]);
   const palette = useMemo(() => paletteFor(def.polarity), [def.polarity]);
   const hasNull = useMemo(() => regionValues(map).some((r) => r.value === null), [map]);
   // fix round, review finding #4 — the Legend's "(특수학교는 위치 자료 없음)"
@@ -83,6 +108,19 @@ function DashboardInner({
 
   return (
     <div className="grid grid-rows-[1fr_auto] overflow-hidden">
+      {/* Task 6, Section B — a DEDICATED aria-live region for indicator
+          switches, independent of DeckMap's own region-selection
+          announcement (src/components/map/DeckMap.tsx): that one only
+          updates its TEXT (and so only gets announced by a screen reader)
+          when something is actually selected — switching indicators while
+          nothing is selected leaves its string unchanged ("선택 해제됨, 전체
+          보기" either way), so it alone can't cover "지표 변경" in general.
+          Placed here (not inside <main>) so it still fires even when
+          MapShell renders MapFallback/MapErrorBoundary instead of the real
+          map (Section A). */}
+      <span aria-live="polite" className="sr-only" data-testid="indicator-announcement">
+        {`지표 변경: ${legendDef.label}`}
+      </span>
       <div className="grid grid-cols-[1fr_360px] overflow-hidden">
         <main className="relative min-h-0 min-w-0 overflow-hidden">
           <MapShell
@@ -117,6 +155,7 @@ function DashboardInner({
             referenceDate={file.referenceDate}
             schoolLevelsVisible={!!regionCode}
             hasSchoolsWithoutLocation={hasSchoolsWithoutLocation}
+            colorBuckets={colorBuckets}
           />
         </footer>
         {/* Task 5 — replaces the old inline "학교 위치 기준 …" span: Footer
@@ -141,9 +180,7 @@ function DashboardBody() {
     <div className="grid h-full grid-rows-[56px_1fr] bg-[#0b0f19] text-[#e6e9f0]">
       <TopBar indicatorId={indicatorId} bundle={bundle} />
       {state.status === "loading" && <CenteredMessage>데이터 불러오는 중…</CenteredMessage>}
-      {state.status === "error" && (
-        <CenteredMessage>데이터를 불러오지 못했습니다: {state.error}</CenteredMessage>
-      )}
+      {state.status === "error" && <DataErrorMessage error={state.error} />}
       {state.status === "ready" && (
         <DashboardInner
           bundle={state.bundle}

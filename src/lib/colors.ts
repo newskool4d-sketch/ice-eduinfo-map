@@ -1,10 +1,11 @@
 /**
  * Pure value -> fill-color scale for the extruded 3D map. No React import.
  */
-import { scaleQuantize } from "d3-scale";
+import { scaleQuantile, scaleQuantize } from "d3-scale";
 import { interpolateBlues, interpolateOrRd, interpolateViridis } from "d3-scale-chromatic";
 
 import { domainOf } from "./scales";
+import { regionValues } from "./stats";
 import type { IndicatorDef, Polarity } from "./indicators/types";
 
 export type RGB = [number, number, number];
@@ -70,22 +71,73 @@ export function paletteFor(polarity: Polarity): RGB[] {
   return PALETTE_SAMPLE_T.map((t) => parseColor(interpolate(t)));
 }
 
+/** How `makeColorScale` splits the palette's 5 steps across the domain — see `ColorScale.colorBuckets`. */
+export type ColorBucketMode = "linear" | "quantile";
+
 export interface ColorScale {
   colorOf: (code: string) => RGBA;
-  /** Domain ends plus the 4 interior quantize thresholds — 6 values bounding the 5 buckets. */
+  /** Domain ends plus the 4 interior bucket-boundary values — 6 values bounding the 5 buckets. Always [domainOf()[0], …, domainOf()[1]] regardless of `colorBuckets` — only what falls BETWEEN those ends changes. */
   ticks: number[];
+  /**
+   * Task 6, Section C-추가 #5 — which bucket rule actually produced
+   * `ticks`/`colorOf`: 'linear' (scaleQuantize — 5 equal-WIDTH buckets
+   * across the domain) or 'quantile' (scaleQuantile — 5 equal-COUNT
+   * buckets, i.e. by rank/percentile). Defaults to 'quantile' for
+   * count-kind indicators (their 14 시군 values skew hard toward 전주시, so
+   * equal-width buckets left most regions in the bottom step) and 'linear'
+   * otherwise — see `makeColorScale`'s `opts.colorBuckets`. Legend shows a
+   * "색 구간: 5분위" note only when this is 'quantile'.
+   */
+  colorBuckets: ColorBucketMode;
+}
+
+export interface ColorScaleOptions {
+  /** Overrides the `def.kind`-based default — see `ColorScale.colorBuckets`. */
+  colorBuckets?: ColorBucketMode;
 }
 
 /**
  * Builds a code -> RGBA color accessor plus the tick boundaries for a
- * Legend, via a 5-step scaleQuantize over the same domain domainOf()
- * computes for the elevation scale (so height and color always encode the
- * same domain). A null value (or a code absent from `map`) always returns
+ * Legend, over the same domain domainOf() computes for the elevation scale
+ * (so height and color always encode the same domain — bucket MODE never
+ * changes the domain itself, only how the 5 palette steps are split across
+ * it). A null value (or a code absent from `map`) always returns
  * NULL_COLOR; alpha is always 255.
  */
-export function makeColorScale(def: IndicatorDef, map: Map<string, number | null>): ColorScale {
+export function makeColorScale(
+  def: IndicatorDef,
+  map: Map<string, number | null>,
+  opts: ColorScaleOptions = {},
+): ColorScale {
   const domain = domainOf(def, map);
   const palette = paletteFor(def.polarity);
+  const colorBuckets: ColorBucketMode = opts.colorBuckets ?? (def.kind === "count" ? "quantile" : "linear");
+
+  if (colorBuckets === "quantile") {
+    // scaleQuantile takes the raw DATA array (not a [min,max] pair) — it
+    // sorts internally and splits it into `palette.length` roughly-equal-
+    // COUNT groups, unlike scaleQuantize's equal-WIDTH value ranges. Falls
+    // back to the 2-point domain when every region is null (mirrors
+    // domainOf's own empty-data fallback) so this never throws on an empty
+    // array.
+    const values = regionValues(map)
+      .map((r) => r.value)
+      .filter((v): v is number => v !== null);
+    const quantile = scaleQuantile<RGB>()
+      .domain(values.length > 0 ? values : domain)
+      .range(palette);
+    const ticks = [domain[0], ...quantile.quantiles(), domain[1]];
+
+    function colorOf(code: string): RGBA {
+      const value = map.get(code);
+      if (value === null || value === undefined) return [...NULL_COLOR, 255];
+      const [r, g, b] = quantile(value);
+      return [r, g, b, 255];
+    }
+
+    return { colorOf, ticks, colorBuckets };
+  }
+
   const quantize = scaleQuantize<RGB>().domain(domain).range(palette);
   const ticks = [domain[0], ...quantize.thresholds(), domain[1]];
 
@@ -96,7 +148,7 @@ export function makeColorScale(def: IndicatorDef, map: Map<string, number | null
     return [r, g, b, 255];
   }
 
-  return { colorOf, ticks };
+  return { colorOf, ticks, colorBuckets };
 }
 
 function clampByte(v: number): number {

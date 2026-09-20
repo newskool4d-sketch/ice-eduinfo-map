@@ -42,6 +42,16 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   // on every close is a safety net so that stale `true` can never survive
   // into the next open and swallow an unrelated later real click.
   const suppressNextClickRef = useRef(false);
+  // Task 6, Section B — set by the toggle button's own onKeyDown (below)
+  // whenever ENTER is what's about to activate it; read and reset by the
+  // lifecycle effect immediately below on every `open` transition (opening
+  // OR closing), so it can never survive stale into a later, differently-
+  // triggered open.
+  const openedByEnterRef = useRef(false);
+  // Guards exactly the ONE stray radio keyup a KEYBOARD-Enter-triggered open
+  // produces — see the effect body and handlePopoverKeyUp below for the full
+  // mechanism.
+  const suppressNextRadioKeyupRef = useRef(false);
 
   const def = indicatorById(indicatorId);
   const label = def ? displayLabel(def, series) : indicatorId;
@@ -54,6 +64,10 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   // own event manager (mjolnir.js), which can stop propagation on pointer
   // events, never prevents an outside click from reaching this handler.
   useEffect(() => {
+    // Consumed on EVERY `open` transition (not just opening) so it can
+    // never go stale — see openedByEnterRef's own doc comment.
+    const openedByEnter = openedByEnterRef.current;
+    openedByEnterRef.current = false;
     if (!open) return;
 
     // Captured once, up front — read fresh at cleanup time (weeks/renders
@@ -65,6 +79,25 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     const button = buttonRef.current;
 
     const firstRadio = popover?.querySelector<HTMLInputElement>('input[type="radio"]');
+    // Task 6, Section B (keyboard operability bug found via e2e/a11y.spec.ts,
+    // confirmed with a precise keydown/keyup trace): a native <button>
+    // fires its click on Enter's KEYDOWN (not keyup, unlike Space) — so
+    // `firstRadio?.focus()` right below runs SYNCHRONOUSLY as part of
+    // handling that same keydown, and the physical Enter key's still-
+    // pending KEYUP then lands on the now-focused RADIO instead of the
+    // button. Without this guard, handlePopoverKeyUp's "Enter/Space on a
+    // radio commits and closes" rule (see its own comment) misreads that
+    // stray keyup as a deliberate commit and instantly re-closes the menu
+    // that literally just opened — every single keyboard-Enter open,
+    // 100% reproducible. Space doesn't have this problem (its click fires
+    // on the BUTTON's own keyup, by which point that key's full
+    // keydown+keyup pair has already finished targeting the button, before
+    // focus ever moves) — restricting this guard to the Enter-open case
+    // specifically (openedByEnter) keeps every other keyup path (a mouse-
+    // click-then-radio-Enter commit, a Space-opened menu, …) unaffected.
+    if (firstRadio && openedByEnter) {
+      suppressNextRadioKeyupRef.current = true;
+    }
     firstRadio?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
@@ -92,6 +125,11 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
       document.removeEventListener("keydown", onKeyDown, { capture: true });
       document.removeEventListener("mousedown", onPointerDown, { capture: true });
       suppressNextClickRef.current = false;
+      // Clears any UNCONSUMED suppression (e.g. the menu closed via Escape/
+      // outside-click before the expected stray radio keyup ever arrived) —
+      // otherwise it could wrongly survive into a later, mouse-opened
+      // session and swallow a genuine radio Enter/Space commit there.
+      suppressNextRadioKeyupRef.current = false;
       button?.focus();
     };
   }, [open]);
@@ -155,6 +193,13 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   // click keeps both keys on the same safe, race-free path.
   function handlePopoverKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
     if (isRadioInput(event.target) && (event.key === "Enter" || event.key === " ")) {
+      // Task 6, Section B — see the lifecycle effect's comment: this exact
+      // keyup can be the trailing artifact of the SAME Enter press that
+      // just opened the menu, not a real commit gesture.
+      if (suppressNextRadioKeyupRef.current) {
+        suppressNextRadioKeyupRef.current = false;
+        return;
+      }
       setOpen(false);
     }
   }
@@ -167,6 +212,11 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="indicator-menu-popover"
+        onKeyDown={(event) => {
+          // Only Enter needs tracking here — see the lifecycle effect's
+          // comment for exactly why Space doesn't have the same race.
+          if (event.key === "Enter") openedByEnterRef.current = true;
+        }}
         onClick={() => setOpen((v) => !v)}
         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-sm text-[#e6e9f0] hover:bg-white/10"
       >

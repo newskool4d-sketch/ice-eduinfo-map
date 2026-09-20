@@ -124,23 +124,33 @@ describe("makeSchoolsLayer", () => {
     expect(getFillColor(d, ctxFor([d]))).toEqual(SCHOOL_LEVEL_COLORS.high);
   });
 
-  it("getLineColor is translucent white normally, opaque when the school is highlighted", () => {
+  // Task 6, Section C-추가 #4 — 학교 점 가독성: a dark, opaque stroke (not
+  // translucent white) so a point stays legible even on a bright top face
+  // (e.g. Viridis's near-yellow high end almost swallowing an amber 중학교
+  // dot with the OLD translucent-white-at-alpha-120 stroke — verified via a
+  // WCAG contrast check: dark stroke vs bright yellow bg = ~15:1, the old
+  // white-alpha-120 blend vs the same bg was nowhere close). Highlighted
+  // stays opaque WHITE (unchanged) — a different, deliberately
+  // higher-attention cue, distinguished from normal by hue, not alpha, now
+  // that both are fully opaque.
+  it("getLineColor is a dark, opaque stroke normally; opaque white when highlighted", () => {
     const d = school({ id: "target", regionCode: "52110" });
     const notHighlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: null });
     const highlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: "target" });
     const getLineColorPlain = notHighlighted.props.getLineColor as (d: School, ctx: Ctx) => Color;
     const getLineColorHighlighted = highlighted.props.getLineColor as (d: School, ctx: Ctx) => Color;
-    const [, , , plainAlpha] = getLineColorPlain(d, ctxFor([d])) as [number, number, number, number];
-    const [, , , highlightAlpha] = getLineColorHighlighted(d, ctxFor([d])) as [number, number, number, number];
-    expect(plainAlpha).toBeLessThan(255);
-    expect(highlightAlpha).toBe(255);
+    expect(getLineColorPlain(d, ctxFor([d]))).toEqual([11, 15, 25, 255]);
+    expect(getLineColorHighlighted(d, ctxFor([d]))).toEqual([255, 255, 255, 255]);
   });
 
-  it("getLineWidth is 2px when highlighted", () => {
+  it("getLineWidth is 1.5px normally, 2px when highlighted", () => {
     const d = school({ id: "target", regionCode: "52110" });
+    const notHighlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: null });
     const highlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: "target" });
-    const getLineWidth = highlighted.props.getLineWidth as (d: School, ctx: Ctx) => number;
-    expect(getLineWidth(d, ctxFor([d]))).toBe(2);
+    const getLineWidthPlain = notHighlighted.props.getLineWidth as (d: School, ctx: Ctx) => number;
+    const getLineWidthHighlighted = highlighted.props.getLineWidth as (d: School, ctx: Ctx) => number;
+    expect(getLineWidthPlain(d, ctxFor([d]))).toBe(1.5);
+    expect(getLineWidthHighlighted(d, ctxFor([d]))).toBe(2);
   });
 
   it("updateTriggers include triggerKey (via getPosition) and highlightedId (via getLineColor/getLineWidth)", () => {
@@ -173,6 +183,11 @@ describe("makeSchoolsLayer", () => {
   it("uses a 600ms transition on getPosition", () => {
     const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
     expect(layer.props.transitions).toMatchObject({ getPosition: 600 });
+  });
+
+  it("zeroes the getPosition transition when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
+    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", transitionDuration: 0 });
+    expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
   });
 });
 
@@ -235,6 +250,18 @@ describe("makeSchoolLabelsLayer", () => {
       triggerKey: "v1",
     });
     expect(layer.props.parameters).toMatchObject({ depthCompare: "always", depthWriteEnabled: false });
+  });
+
+  it("zeroes the getPosition transition when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
+    const layer = makeSchoolLabelsLayer([], {
+      elevationOf,
+      visible: true,
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      triggerKey: "v1",
+      transitionDuration: 0,
+    });
+    expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
   });
 });
 

@@ -38,7 +38,7 @@ export default function RegionList({ bundle }: RegionListProps) {
   return (
     <div>
       <p className="mb-3 text-sm text-[#e6e9f0]/50">시군을 클릭하거나 목록에서 선택하세요</p>
-      <p className="mb-2 text-xs text-[#e6e9f0]/40">{label} 기준</p>
+      <p className="mb-2 text-xs text-[#e6e9f0]/50">{label} 기준</p>
       <ul className="flex flex-col gap-1">
         {orderedCodes.map((code) => {
           const value = map.get(code);

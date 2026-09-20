@@ -4,10 +4,22 @@ import type { PickingInfo } from "@deck.gl/core";
 import { SCHOOL_LEVEL_COLORS } from "@/lib/schoolVisuals";
 import type { School } from "@/lib/schools/types";
 
-const LINE_COLOR_NORMAL: [number, number, number, number] = [255, 255, 255, 120];
+// Task 6, Section C-추가 #4 — 학교 점 가독성: a dark, OPAQUE stroke (was
+// translucent white, alpha 120) so a point stays legible against a bright
+// top face (e.g. Viridis's near-yellow high end almost swallowed an amber
+// 중학교 dot at the old alpha). `#0b0f19` matches this app's own map/page
+// background — a stroke that dark reads as a crisp separating edge against
+// ANY fill color behind it (verified: ~15:1 WCAG contrast vs a bright
+// yellow top face, vs ~1.25:1 for the bare amber fill with no stroke at
+// all). Highlighted stays opaque white (unchanged) — a deliberately
+// higher-attention cue, now distinguished from normal by hue rather than
+// alpha, since both are fully opaque.
+const LINE_COLOR_NORMAL: [number, number, number, number] = [11, 15, 25, 255];
 const LINE_COLOR_HIGHLIGHTED: [number, number, number, number] = [255, 255, 255, 255];
-const LINE_WIDTH_NORMAL = 1;
+const LINE_WIDTH_NORMAL = 1.5;
 const LINE_WIDTH_HIGHLIGHTED = 2;
+/** Default deck.gl `transitions` duration (ms) — see each factory's `transitionDuration` option. */
+const DEFAULT_TRANSITION_DURATION = 600;
 
 /** A school with a real location match (see fix-round-1: a 특수학교 row has `lat`/`lng: null` and can never be plotted). */
 export type PositionedSchool = School & { lat: number; lng: number };
@@ -45,11 +57,14 @@ export interface SchoolsLayerOptions {
   onClick?: (id: string) => void;
   /** Included in updateTriggers.getPosition — elevationOf's output depends on the selected indicator, so a school's z coordinate must re-evaluate when it changes (same pattern as makeRegionsLayer's triggerKey). */
   triggerKey: string | number;
+  /** deck.gl `transitions` duration (ms) for getPosition. Defaults to 600. Task 6, Section A.4 — pass 0 when `prefers-reduced-motion: reduce`. */
+  transitionDuration?: number;
 }
 
 /** The 학교 point layer — only ever fed the selected 시군's schools by the caller (DeckMap); `visible` additionally gates the whole layer (e.g. off entirely when nothing is selected). `schools` must already be pre-filtered to real coordinates (see `hasCoordinates`) — this factory does NOT filter or reallocate `data` itself (fix-round-2, review finding #1: that used to happen here, defeating `data` reference stability across re-renders); the `PositionedSchool[]` parameter type enforces this at compile time, not just by convention. See `tests/unit/schoolLayers.test.ts`. */
 export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayerOptions) {
   const highlightedId = opts.highlightedId ?? null;
+  const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
 
   return new ScatterplotLayer<PositionedSchool>({
     id: "schools",
@@ -78,7 +93,7 @@ export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayer
       getLineWidth: [highlightedId],
     },
     transitions: {
-      getPosition: 600,
+      getPosition: transitionDuration,
     },
     onClick: opts.onClick
       ? (info: PickingInfo<PositionedSchool>) => {
@@ -95,10 +110,14 @@ export interface SchoolLabelsLayerOptions {
   fontFamily: string;
   characterSet: string[];
   triggerKey: string | number;
+  /** deck.gl `transitions` duration (ms) for getPosition. Defaults to 600. Task 6, Section A.4 — pass 0 when `prefers-reduced-motion: reduce`. */
+  transitionDuration?: number;
 }
 
 /** 학교명 라벨 — billboarded text just above each school's point marker. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. `schools` must already be pre-filtered to real coordinates, same as makeSchoolsLayer — see its doc comment (fix-round-2, review finding #1). */
 export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolLabelsLayerOptions) {
+  const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
+
   return new TextLayer<PositionedSchool>({
     id: "school-labels",
     data: schools,
@@ -125,7 +144,7 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
       getText: [opts.triggerKey],
     },
     transitions: {
-      getPosition: 600,
+      getPosition: transitionDuration,
     },
   });
 }

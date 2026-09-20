@@ -4,8 +4,8 @@ import type { Position } from "@deck.gl/core";
 import { makeRegionLabelLayer, type RegionLabel } from "@/components/map/layers/labelLayer";
 
 const labels: RegionLabel[] = [
-  { code: "52110", name: "전주시", position: [127.1, 35.8] },
-  { code: "52130", name: "군산시", position: [126.7, 35.9] },
+  { code: "52110", name: "전주시", position: [127.1, 35.8], labelOffset: [0, -10] },
+  { code: "52130", name: "군산시", position: [126.7, 35.9], labelOffset: [0, 0] },
 ];
 
 describe("makeRegionLabelLayer", () => {
@@ -92,6 +92,49 @@ describe("makeRegionLabelLayer", () => {
     expect(layer.props.parameters).toMatchObject({
       depthCompare: "always",
       depthWriteEnabled: false,
+    });
+  });
+
+  // Task 6, Section C.2 — 라벨 겹침 완화: a per-region pixel nudge from
+  // data/manual/label-offsets.json (regions.geojson's properties.labelOffset),
+  // applied via deck.gl TextLayer's own `getPixelOffset` (no new package).
+  it("getPixelOffset returns the label's own labelOffset", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+    });
+    type Ctx = { index: number; data: RegionLabel[]; target: number[] };
+    const getPixelOffset = layer.props.getPixelOffset as (d: RegionLabel, ctx: Ctx) => readonly [number, number];
+    const ctx: Ctx = { index: 0, data: labels, target: [] };
+    expect(getPixelOffset(labels[0], ctx)).toEqual([0, -10]);
+    expect(getPixelOffset(labels[1], ctx)).toEqual([0, 0]);
+  });
+
+  describe("transitionDuration option (Task 6, Section A.4 — reduced motion)", () => {
+    it("defaults to a 600ms getPosition transition when omitted", () => {
+      const layer = makeRegionLabelLayer(labels, {
+        elevationOf: () => 0,
+        textOf: (code) => code,
+        triggerKey: "v1",
+        fontFamily: "Test Font",
+        characterSet: ["a"],
+      });
+      expect(layer.props.transitions).toMatchObject({ getPosition: 600 });
+    });
+
+    it("zeroes the getPosition transition when transitionDuration: 0", () => {
+      const layer = makeRegionLabelLayer(labels, {
+        elevationOf: () => 0,
+        textOf: (code) => code,
+        triggerKey: "v1",
+        fontFamily: "Test Font",
+        characterSet: ["a"],
+        transitionDuration: 0,
+      });
+      expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
     });
   });
 });

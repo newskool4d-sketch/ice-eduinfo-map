@@ -4,6 +4,8 @@ export interface RegionLabel {
   code: string;
   name: string;
   position: [number, number];
+  /** Task 6, Section C.2 — manual per-region pixel nudge (regions.geojson's `properties.labelOffset`, sourced from data/manual/label-offsets.json), applied via `getPixelOffset` below. `[0, 0]` for a region with no configured nudge. */
+  labelOffset: [number, number];
 }
 
 export interface RegionLabelLayerOptions {
@@ -15,10 +17,14 @@ export interface RegionLabelLayerOptions {
   fontFamily: string;
   /** Static charset from public/data/charset.json — keeps the SDF atlas stable across selection changes. */
   characterSet: string[];
+  /** deck.gl `transitions` duration (ms) for getPosition. Defaults to 600. Task 6, Section A.4 — pass 0 when `prefers-reduced-motion: reduce`. */
+  transitionDuration?: number;
 }
 
 /** Billboarded 시군-name labels, floating above each region's top face. */
 export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLayerOptions) {
+  const transitionDuration = opts.transitionDuration ?? 600;
+
   return new TextLayer<RegionLabel>({
     id: "region-labels",
     data: labels,
@@ -28,6 +34,12 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
       opts.elevationOf(d.code) + 200,
     ],
     getText: (d) => opts.textOf(d.code),
+    // Task 6, Section C.2 — 라벨 겹침 완화 (전주·익산·완주·김제): a fixed
+    // per-region pixel nudge, independent of zoom/rotation (deck.gl applies
+    // `getPixelOffset` in screen space, after projection) — exactly what's
+    // needed to pull 4 label anchors that sit close together on screen
+    // apart from each other without moving their actual ground position.
+    getPixelOffset: (d) => d.labelOffset,
     sizeUnits: "pixels",
     getSize: 14,
     billboard: true,
@@ -52,7 +64,7 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
       getText: [opts.triggerKey],
     },
     transitions: {
-      getPosition: 600,
+      getPosition: transitionDuration,
     },
   });
 }

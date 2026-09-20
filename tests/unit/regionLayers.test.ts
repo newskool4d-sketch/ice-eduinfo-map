@@ -6,6 +6,7 @@ import type { RegionFeature } from "@/lib/geo/geo";
 import {
   easeCubicOut,
   makeFootprintLayer,
+  makeIslandsLayer,
   makeNeighborsLayer,
   makeRegionsLayer,
   makeSelectedRingLayer,
@@ -24,7 +25,7 @@ function regionsFixture(): FeatureCollection<Polygon, RegionFeature["properties"
     features: [
       {
         type: "Feature",
-        properties: { code: "52110", name: "전주시", bbox: [0, 0, 1, 1], labelPoint: [0.5, 0.5] },
+        properties: { code: "52110", name: "전주시", bbox: [0, 0, 1, 1], labelPoint: [0.5, 0.5], labelOffset: [0, 0] },
         geometry: {
           type: "Polygon",
           coordinates: [
@@ -40,7 +41,7 @@ function regionsFixture(): FeatureCollection<Polygon, RegionFeature["properties"
       },
       {
         type: "Feature",
-        properties: { code: "52130", name: "군산시", bbox: [2, 0, 3, 1], labelPoint: [2.5, 0.5] },
+        properties: { code: "52130", name: "군산시", bbox: [2, 0, 3, 1], labelPoint: [2.5, 0.5], labelOffset: [0, 0] },
         geometry: {
           type: "Polygon",
           coordinates: [
@@ -148,6 +149,37 @@ describe("makeRegionsLayer", () => {
     // @ts-expect-error — minimal PickingInfo stub for this unit test.
     layer.props.onClick({ object: featureA }, {});
     expect(onClick).toHaveBeenCalledWith("52110");
+  });
+
+  describe("transitionDuration option (Task 6, Section A.4 — reduced motion)", () => {
+    it("defaults to a 600ms transition when omitted", () => {
+      const layer = makeRegionsLayer(regionsFixture(), {
+        elevationOf: () => 1,
+        fillColorOf: () => [0, 0, 0, 255],
+        triggerKey: "v1",
+      });
+      const transitions = layer.props.transitions as {
+        getElevation: { duration: number };
+        getFillColor: { duration: number };
+      };
+      expect(transitions.getElevation.duration).toBe(600);
+      expect(transitions.getFillColor.duration).toBe(600);
+    });
+
+    it("zeroes both transitions when transitionDuration: 0 (prefers-reduced-motion)", () => {
+      const layer = makeRegionsLayer(regionsFixture(), {
+        elevationOf: () => 1,
+        fillColorOf: () => [0, 0, 0, 255],
+        triggerKey: "v1",
+        transitionDuration: 0,
+      });
+      const transitions = layer.props.transitions as {
+        getElevation: { duration: number };
+        getFillColor: { duration: number };
+      };
+      expect(transitions.getElevation.duration).toBe(0);
+      expect(transitions.getFillColor.duration).toBe(0);
+    });
   });
 
   describe("selection-aware fillColorOf (Task 4A)", () => {
@@ -343,5 +375,71 @@ describe("makeFootprintLayer", () => {
     expect(layer.props.getLineWidth).toBe(1);
     expect(layer.props.getLineColor).toEqual([90, 100, 125, 160]);
     expect(layer.props.pickable).toBe(false);
+  });
+});
+
+// Task 6, Section C.1 — 섬은 평면으로: the flat sibling of `regions`, drawn
+// for each region's non-largest MultiPolygon parts (see splitRegionIslands
+// in geo.ts). Must match `regions`' own fillColorOf/selection behavior
+// exactly (same visual color, just not extruded) and stay pickable so
+// hover/click parity holds (getTooltip/handleRegionClick dispatch on
+// `info.object.properties.code`, which every GeoJsonLayer feature carries
+// regardless of layer id — no per-layer-id special-casing needed there).
+describe("makeIslandsLayer", () => {
+  it("is a flat (non-extruded), filled, pickable layer with id 'region-islands'", () => {
+    const layer = makeIslandsLayer(regionsFixture(), {
+      fillColorOf: () => [1, 2, 3, 255],
+      triggerKey: "v1",
+    });
+    expect(layer.props.id).toBe("region-islands");
+    expect(layer.props.extruded).toBe(false);
+    expect(layer.props.filled).toBe(true);
+    expect(layer.props.pickable).toBe(true);
+  });
+
+  it("getFillColor delegates to fillColorOf, keyed by properties.code", () => {
+    const fillColorOf = vi.fn(
+      (code: string): [number, number, number, number] =>
+        code === "52110" ? [10, 20, 30, 255] : [40, 50, 60, 255],
+    );
+    const layer = makeIslandsLayer(regionsFixture(), { fillColorOf, triggerKey: "v1" });
+    const ctx = { index: 0, data: regionsFixture().features, target: [] };
+    type Ctx = typeof ctx;
+    const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
+    expect(getFillColor(featureA, ctx)).toEqual([10, 20, 30, 255]);
+    expect(fillColorOf).toHaveBeenCalledWith("52110");
+  });
+
+  it("applies the same selection dim/brighten as makeRegionsLayer", () => {
+    const fillColorOf = (): [number, number, number, number] => [10, 20, 30, 255];
+    const layer = makeIslandsLayer(regionsFixture(), { fillColorOf, triggerKey: "v1", selectedCode: "52110" });
+    const ctx = { index: 0, data: regionsFixture().features, target: [] };
+    type Ctx = typeof ctx;
+    const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
+    const [r, g, b, a] = getFillColor(featureA, ctx) as [number, number, number, number];
+    const [er, eg, eb] = dim([10, 20, 30], SELECTED_BRIGHTEN);
+    expect([r, g, b, a]).toEqual([er, eg, eb, 255]);
+  });
+
+  it("forwards clicks with the clicked feature's code, same as makeRegionsLayer", () => {
+    const onClick = vi.fn();
+    const layer = makeIslandsLayer(regionsFixture(), {
+      fillColorOf: () => [0, 0, 0, 255],
+      triggerKey: "v1",
+      onClick,
+    });
+    // @ts-expect-error — minimal PickingInfo stub for this unit test.
+    layer.props.onClick({ object: featureA }, {});
+    expect(onClick).toHaveBeenCalledWith("52110");
+  });
+
+  it("updateTriggers.getFillColor includes triggerKey and selectedCode", () => {
+    const layer = makeIslandsLayer(regionsFixture(), {
+      fillColorOf: () => [0, 0, 0, 255],
+      triggerKey: "indicator-42",
+      selectedCode: "52110",
+    });
+    expect(layer.props.updateTriggers.getFillColor).toContain("indicator-42");
+    expect(layer.props.updateTriggers.getFillColor).toContain("52110");
   });
 });

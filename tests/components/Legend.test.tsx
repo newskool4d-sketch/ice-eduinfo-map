@@ -184,6 +184,42 @@ describe("Legend", () => {
     expect(screen.getByText("(특수학교는 위치 자료 없음)")).toBeInTheDocument();
   });
 
+  // Task 6, Section C-추가 #5 — count 지표는 색 구간이 quantile(5분위)로 바뀌므로
+  // 범례에 이를 명시해야 사용자가 "왜 색이 값과 등간격으로 대응하지 않는지" 오해하지
+  // 않는다.
+  it("adds a '색 구간: 5분위' note only when colorBuckets is 'quantile'", () => {
+    const { rerender } = render(
+      <Legend def={baseDef()} ticks={TICKS} palette={paletteFor("neutral")} hasNull={false} referenceDate="2026-04-01" />,
+    );
+    expect(screen.queryByText(/색 구간: 5분위/)).not.toBeInTheDocument();
+
+    rerender(
+      <Legend
+        def={baseDef()}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+        colorBuckets="quantile"
+      />,
+    );
+    expect(screen.getByText(/색 구간: 5분위/)).toBeInTheDocument();
+  });
+
+  it("omits the '색 구간: 5분위' note when colorBuckets is 'linear' (explicit or default)", () => {
+    render(
+      <Legend
+        def={baseDef()}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+        colorBuckets="linear"
+      />,
+    );
+    expect(screen.queryByText(/색 구간: 5분위/)).not.toBeInTheDocument();
+  });
+
   it("omits the 특수학교 위치 자료 없음 caveat when the selected region's schools all have coordinates (review finding #4)", () => {
     render(
       <Legend

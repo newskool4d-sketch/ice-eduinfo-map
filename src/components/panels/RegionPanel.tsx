@@ -184,7 +184,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
           {def.description}
         </p>
         {def.caveat && (
-          <p data-testid="region-panel-caveat" className="mt-1 text-[10px] leading-snug text-[#e6e9f0]/40">
+          <p data-testid="region-panel-caveat" className="mt-1 text-[10px] leading-snug text-[#e6e9f0]/50">
             {def.caveat}
           </p>
         )}
@@ -207,7 +207,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                   <th
                     scope="colgroup"
                     colSpan={3}
-                    className="pt-2 pb-1 text-left text-[10px] font-normal uppercase tracking-wide text-[#e6e9f0]/40"
+                    className="pt-2 pb-1 text-left text-[10px] font-normal uppercase tracking-wide text-[#e6e9f0]/50"
                   >
                     {GROUP_LABELS[group]}
                   </th>
@@ -261,7 +261,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
             학교 {filteredSchools.length}개 · 소규모 {smallCount}개
             {noLocationCount > 0 && <> · 위치 없음 {noLocationCount}개</>}
           </p>
-          <p className="text-[10px] text-[#e6e9f0]/40">위치 기준 {bundle.schools.referenceDate.location}</p>
+          <p className="text-[10px] text-[#e6e9f0]/50">위치 기준 {bundle.schools.referenceDate.location}</p>
         </div>
 
         <div className="mb-2 flex flex-wrap gap-1">
@@ -378,7 +378,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         </details>
       </section>
 
-      <footer className="text-[10px] text-[#e6e9f0]/40">
+      <footer className="text-[10px] text-[#e6e9f0]/50">
         {def.source.name} · {referenceDateLabel(bundle.manifest, file)}
       </footer>
     </div>

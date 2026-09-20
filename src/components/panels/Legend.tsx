@@ -21,6 +21,8 @@ export interface LegendProps {
   schoolLevelsVisible?: boolean;
   /** fix round, review finding #4 — true only when the SELECTED region itself has at least one school with no coordinate (lat == null, i.e. a 특수학교 row — see School.locationMissingReason). Gates the "(특수학교는 위치 자료 없음)" caveat so it isn't shown for a region where every school actually has a point on the map. Defaults to false. */
   hasSchoolsWithoutLocation?: boolean;
+  /** Task 6, Section C-추가 #5 — which bucket rule produced `ticks`/the map's actual colors (see makeColorScale's `ColorScale.colorBuckets`). Defaults to 'linear' (no note) — pass 'quantile' to add a "색 구간: 5분위" note, e.g. for a count-kind indicator's skewed 14-시군 distribution. */
+  colorBuckets?: "linear" | "quantile";
 }
 
 function rgbCss([r, g, b]: readonly number[]): string {
@@ -36,6 +38,7 @@ export default function Legend({
   referenceDate,
   schoolLevelsVisible = false,
   hasSchoolsWithoutLocation = false,
+  colorBuckets = "linear",
 }: LegendProps) {
   const notes: string[] = ["높이·색 모두 값에 비례"];
   if (def.scale === "sqrt") notes.push("제곱근 스케일");
@@ -43,6 +46,11 @@ export default function Legend({
   // or a ratio-kind indicator whose data minimum isn't 0) with one check: in
   // either case the resulting scale's lower bound (ticks[0]) simply isn't 0.
   if (ticks[0] !== 0) notes.push("기준선 ≠ 0");
+  // Task 6, Section C-추가 #5 — count-kind indicators' color buckets are
+  // quantile (rank-based), not the equal-width linear split "높이·색 모두 값에
+  // 비례" literally implies for color; this note prevents that
+  // misreading without changing the (still-linear) height encoding.
+  if (colorBuckets === "quantile") notes.push("색 구간: 5분위");
 
   return (
     <div className="flex flex-wrap items-center gap-4 text-xs text-[#e6e9f0]/70">
@@ -50,7 +58,7 @@ export default function Legend({
         <span className="text-sm font-semibold text-[#e6e9f0]" data-testid="legend-indicator-label">
           {def.label}
         </span>
-        <span className="max-w-[280px] text-[10px] leading-snug text-[#e6e9f0]/45" data-testid="legend-description">
+        <span className="max-w-[280px] text-[10px] leading-snug text-[#e6e9f0]/50" data-testid="legend-description">
           {def.description}
         </span>
       </span>
@@ -101,7 +109,7 @@ export default function Legend({
             );
           })}
           {hasSchoolsWithoutLocation && (
-            <span className="text-[10px] text-[#e6e9f0]/40">(특수학교는 위치 자료 없음)</span>
+            <span className="text-[10px] text-[#e6e9f0]/50">(특수학교는 위치 자료 없음)</span>
           )}
         </div>
       )}
