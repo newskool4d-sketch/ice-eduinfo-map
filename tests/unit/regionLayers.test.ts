@@ -10,6 +10,11 @@ import {
   makeRegionsLayer,
   makeSelectedRingLayer,
 } from "@/components/map/layers/regionLayers";
+import { ELEVATION_FLOOR, ELEVATION_MAX, makeElevationScale } from "@/lib/scales";
+import { makeColorScale } from "@/lib/colors";
+import { valueMap } from "@/lib/stats";
+import type { IndicatorDef, IndicatorFile } from "@/lib/indicators/types";
+import { formatInt } from "@/lib/format";
 
 function regionsFixture(): FeatureCollection<Polygon, RegionFeature["properties"]> {
   return {
@@ -141,6 +146,67 @@ describe("makeRegionsLayer", () => {
     // @ts-expect-error — minimal PickingInfo stub for this unit test.
     layer.props.onClick({ object: featureA }, {});
     expect(onClick).toHaveBeenCalledWith("52110");
+  });
+
+  describe("wired to a real indicator (scales.ts/colors.ts), not a trivial mock", () => {
+    function indicatorFixture(): IndicatorDef {
+      return {
+        id: "students_total",
+        group: "scale",
+        label: "학생수",
+        unit: "명",
+        polarity: "neutral",
+        kind: "count",
+        format: formatInt,
+        source: { name: "KESS", url: "https://example.com", year: 2026 },
+        aggregate: { kind: "sum", field: "students" },
+      };
+    }
+
+    function fileFixture(): IndicatorFile {
+      return {
+        id: "students_total",
+        year: 2026,
+        referenceDate: "2026-04-01",
+        source: indicatorFixture().source,
+        rows: [
+          { regionCode: "52110", value: 100 }, // matches regionsFixture()'s first feature
+          { regionCode: "52130", value: 0 }, // matches regionsFixture()'s second feature
+          { regionCode: "52000", value: 100 },
+        ],
+      };
+    }
+
+    it("reflects the injected indicator's real values in getElevation, keyed by triggerKey=indicatorId", () => {
+      const def = indicatorFixture();
+      const map = valueMap(fileFixture());
+      const elevationOf = makeElevationScale(def, map);
+      const { colorOf } = makeColorScale(def, map);
+      const fixture = regionsFixture();
+
+      const layer = makeRegionsLayer(fixture, {
+        elevationOf,
+        fillColorOf: colorOf,
+        triggerKey: def.id, // a real indicatorId, not an arbitrary "v1" string
+      });
+
+      const ctx = { index: 0, data: fixture.features, target: [] };
+      type Ctx = typeof ctx;
+      const getElevation = layer.props.getElevation as (f: typeof featureA, ctx: Ctx) => number;
+      const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
+
+      // 52110 has the domain max (100 of [0,100]) -> tallest, brightest step.
+      expect(getElevation(fixture.features[0], ctx)).toBeCloseTo(ELEVATION_MAX, 5);
+      // 52130 has the domain min (0) -> the floor, not an arbitrary mock value.
+      expect(getElevation(fixture.features[1], ctx)).toBeCloseTo(ELEVATION_FLOOR, 5);
+      expect(getElevation(fixture.features[0], ctx)).toBeGreaterThan(getElevation(fixture.features[1], ctx));
+
+      expect(getFillColor(fixture.features[0], ctx)).toEqual(colorOf("52110"));
+      expect(getFillColor(fixture.features[1], ctx)).toEqual(colorOf("52130"));
+
+      expect(layer.props.updateTriggers.getElevation).toContain("students_total");
+      expect(layer.props.updateTriggers.getFillColor).toContain("students_total");
+    });
   });
 });
 

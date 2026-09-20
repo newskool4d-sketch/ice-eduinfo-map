@@ -76,14 +76,15 @@ async function runMapshaper(
 
 /**
  * sido === '52' (전북) 필터 → sgg_cd(=sgg, 5211*는 52110으로 통합) 로 dissolve
- * → simplify → bbox/labelPoint 계산. 14개 시군 코드표에 없는 결과가 나오면
- * (파이프라인 버그 또는 원본 데이터 변경) 즉시 실패한다.
+ * → simplify → 미세 섬 제거 → bbox/labelPoint 계산. 14개 시군 코드표에 없는
+ * 결과가 나오면(파이프라인 버그 또는 원본 데이터 변경) 즉시 실패한다.
  */
 export async function transformRegions(
   inputGeojsonText: string,
-  opts: { simplifyPercent?: number } = {},
+  opts: { simplifyPercent?: number; minIslandAreaKm2?: number } = {},
 ): Promise<FeatureCollection<Polygon | MultiPolygon, RegionFeature["properties"]>> {
   const simplifyPercent = opts.simplifyPercent ?? 5;
+  const minIslandAreaKm2 = opts.minIslandAreaKm2 ?? 1;
   const outputText = await runMapshaper(
     [
       "-i input.geojson",
@@ -97,6 +98,22 @@ export async function transformRegions(
       `-each "sgg_cd = sgg_cd.slice(0,4) === '5211' ? '52110' : sgg_cd"`,
       "-dissolve sgg_cd",
       `-simplify ${simplifyPercent}% keep-shapes`,
+      // 추가 요구 #3: drop sub-`minIslandAreaKm2` detached polygon rings (군산
+      // 고군산군도/부안 미세 섬 that would otherwise render as thin spike
+      // columns at any real ELEVATION_FLOOR). Placed AFTER -simplify, not
+      // between -dissolve and -simplify as the task brief's plan excerpt
+      // describes: empirically (see task-2-report.md), running
+      // -filter-islands before -simplify has NO effect on the final output
+      // here — `-simplify ... keep-shapes` independently prunes/shrinks
+      // small rings via its own sub-tolerance-area sliver drop, and the
+      // pre-simplify-filtered and unfiltered outputs came out byte-identical
+      // when compared directly (confirmed with mapshaper@0.7.62's own
+      // `-info`/message logging). Filtering AFTER simplify operates on the
+      // actual shipped geometry, so `minIslandAreaKm2` means what it says
+      // about the file real users load. 위도(부안, ~11.65km²) and the 5
+      // largest 고군산군도 islands (1.6-6.6km², 군산) survive this threshold;
+      // only sub-1km² fragments are dropped.
+      `-filter-islands min-area=${minIslandAreaKm2}km2`,
       '-each "bbox=this.bounds, labelPoint=[this.innerX, this.innerY]"',
       "-o output.geojson precision=0.00001",
     ],

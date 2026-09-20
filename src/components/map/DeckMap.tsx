@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DeckGL from "@deck.gl/react";
 import { MapView } from "@deck.gl/core";
 import type { LayersList } from "@deck.gl/core";
-import { interpolateBlues } from "d3-scale-chromatic";
+import { CompassWidget, DarkTheme, ResetViewWidget } from "@deck.gl/widgets";
+import "@deck.gl/widgets/stylesheet.css";
 
-import { isRegionCode, REGIONS, regionName } from "@/lib/geo/regions";
+import { isRegionCode, regionName } from "@/lib/geo/regions";
 import { unionBbox, type Bbox } from "@/lib/geo/geo";
 import { lightingEffect } from "@/components/map/lighting";
 import { CONTROLLER, fitOverview } from "@/components/map/camera";
@@ -18,7 +19,12 @@ import {
 } from "@/components/map/layers/regionLayers";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import { makeTooltip } from "@/components/map/tooltip";
-import { loadGeo, type LoadedGeo } from "@/components/map/loadGeo";
+import { useBundle } from "@/lib/data/DataProvider";
+import { indicatorById } from "@/lib/indicators/registry";
+import type { IndicatorDef } from "@/lib/indicators/types";
+import { displayLabel, rank, valueMap, vsProvince } from "@/lib/stats";
+import { makeColorScale } from "@/lib/colors";
+import { makeElevationScale } from "@/lib/scales";
 
 // Fallback used when next/font's generated CSS variable can't be resolved
 // (see the font-gating effect below) — a generic family, so
@@ -26,93 +32,54 @@ import { loadGeo, type LoadedGeo } from "@/components/map/loadGeo";
 // system-fallback glyph substitution for Hangul.
 const FALLBACK_FONT_FAMILY = "'Noto Sans KR', sans-serif";
 
-// Real Hangul text to gate on — see the `text` argument to
-// `document.fonts.load()`/`.check()` in the font-gating effect below.
-// Google Fonts serves a large CJK family like Noto Sans KR as ~370 small
-// `@font-face` blocks, each scoped to a `unicode-range` slice of a few dozen
-// characters (confirmed by inspecting the built CSS: 372 blocks, 19,602
-// ranges, 100% coverage of U+AC00-D7A3 — but no single block covering that
-// whole range, so the browser only fetches the specific slices a given
-// string of text actually needs). `fonts.load()`/`.check()` called with NO
-// `text` argument only resolves the slice covering U+0020 (space) per spec,
-// which says nothing about whether the Hangul-covering slices have loaded.
-const FONT_GATE_SAMPLE_TEXT = REGIONS.map((r) => r.name).join("");
-
-// No real indicator data yet (that lands in a later task) — every region's
-// height/color is a deterministic hash of its own code, so the scene is
-// visually stable across reloads without depending on any indicator.
-function dummyValue(code: string): number {
-  const n = parseInt(code, 10);
-  return ((n * 2654435761) % 1000) / 1000;
-}
-
-const MIN_ELEVATION = 800;
-const MAX_ELEVATION = 50000;
-
-function elevationOf(code: string): number {
-  return MIN_ELEVATION + (MAX_ELEVATION - MIN_ELEVATION) * dummyValue(code);
-}
-
-const FILL_COLOR_STEPS: number = 5;
-const FILL_COLOR_DOMAIN: [number, number] = [0.25, 0.95];
-const RGB_PATTERN = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/;
-
-function fillColorOf(code: string): [number, number, number, number] {
-  const t = dummyValue(code);
-  // Quantize into FILL_COLOR_STEPS buckets so the dummy scene reads as a
-  // discrete legend (matching how a real indicator's choropleth will look)
-  // rather than a continuous gradient.
-  const bucket = Math.min(FILL_COLOR_STEPS - 1, Math.floor(t * FILL_COLOR_STEPS));
-  const q = FILL_COLOR_STEPS === 1 ? 0 : bucket / (FILL_COLOR_STEPS - 1);
-  const [lo, hi] = FILL_COLOR_DOMAIN;
-  const rgbString = interpolateBlues(lo + (hi - lo) * q);
-  const match = RGB_PATTERN.exec(rgbString);
-  if (!match) return [8, 48, 107, 255];
-  return [Number(match[1]), Number(match[2]), Number(match[3]), 255];
-}
-
-// Static for this task (no selectable indicator yet) — updateTriggers still
-// need a key so the layer factories' `opts.triggerKey` contract is exercised
-// the same way a real indicator id will drive it in a later task.
-const DUMMY_TRIGGER_KEY = "dummy-v1";
-
-function valueTextOf(code: string): string {
-  return `더미 값 ${dummyValue(code).toFixed(2)}`;
-}
-
 function nameOf(code: string): string {
   return isRegionCode(code) ? regionName(code) : code;
 }
 
+/**
+ * `def.format(value)` already embeds the unit for some indicators
+ * (formatPercent -> "%", formatArea -> "㎡") but not others (formatInt/
+ * formatDecimal). Appending `def.unit` unconditionally would double up for
+ * the first group ("12.3%%"); only appending when it isn't already there
+ * handles both without a per-indicator special case.
+ */
+function formatWithUnit(def: IndicatorDef, value: number): string {
+  const formatted = def.format(value);
+  return formatted.endsWith(def.unit) ? formatted : `${formatted}${def.unit}`;
+}
+
+/** "+1,234명" / "-3.2%" — sign always shown, magnitude formatted (and unit-suffixed) the same way as the main value. */
+function formatDelta(def: IndicatorDef, delta: number): string {
+  const formatted = formatWithUnit(def, Math.abs(delta));
+  return delta < 0 ? `-${formatted}` : `+${formatted}`;
+}
+
+const VIEW = new MapView();
+
 type ViewState = ReturnType<typeof fitOverview>;
 
-export default function DeckMap() {
+export interface DeckMapProps {
+  indicatorId: string;
+}
+
+export default function DeckMap({ indicatorId }: DeckMapProps) {
+  const bundle = useBundle();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapReadyRef = useRef(false);
 
-  const [geo, setGeo] = useState<LoadedGeo | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [fontReady, setFontReady] = useState(false);
   const [fontFamily, setFontFamily] = useState(FALLBACK_FONT_FAMILY);
   const [initialViewState, setInitialViewState] = useState<ViewState | null>(null);
 
-  // Load regions/neighbors/charset once on mount.
-  useEffect(() => {
-    let cancelled = false;
-    loadGeo()
-      .then((data) => {
-        if (!cancelled) setGeo(data);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Font gating: TextLayer caches one SDF atlas per fontFamily, so we must
-  // not create it until next/font's family is actually ready to rasterize.
+  // not create it until next/font's family is actually ready to rasterize
+  // EVERY character the label layer's `characterSet` declares (추가 요구
+  // #6) — not just the 14 시군 names. `characterSet` is the full
+  // charset.json string (129 chars: digits, units like 명/㎡/%, and domain
+  // terms), because labels now render formatted indicator values, not just
+  // names. Gating on a 24-character subset (as Task 1A did, before any
+  // labels carried numbers) would silently miss a missing font-family slice
+  // covering e.g. only digits or only "㎡".
   useEffect(() => {
     let cancelled = false;
     async function gateFont() {
@@ -123,18 +90,15 @@ export default function DeckMap() {
         // <body>, and Tailwind v4 separately defines its OWN default
         // `--font-sans` design token reaching <html> — querying
         // documentElement picks up Tailwind's unrelated system-font stack
-        // instead (verified empirically; see task-1A-report.md), silently
-        // bypassing the fallback below since that value is non-empty too.
+        // instead (verified empirically; see task-1A-report.md).
         const cssVar = getComputedStyle(document.body).getPropertyValue("--font-sans").trim();
         if (cssVar) family = cssVar;
       } catch {
         // getComputedStyle can throw outside a browser; keep the fallback.
       }
       try {
-        // Pass real Hangul text, not just the default (space) — see
-        // FONT_GATE_SAMPLE_TEXT above for why this specific call matters.
-        await document.fonts.load(`600 16px ${family}`, FONT_GATE_SAMPLE_TEXT);
-        if (!document.fonts.check(`600 16px ${family}`, FONT_GATE_SAMPLE_TEXT)) {
+        await document.fonts.load(`600 16px ${family}`, bundle.charset);
+        if (!document.fonts.check(`600 16px ${family}`, bundle.charset)) {
           family = FALLBACK_FONT_FAMILY;
         }
       } catch {
@@ -149,7 +113,7 @@ export default function DeckMap() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [bundle.charset]);
 
   // Uncontrolled camera: compute the initial view once, from the container's
   // measured size, the loaded regions' combined bbox, and every region's
@@ -157,22 +121,86 @@ export default function DeckMap() {
   // so a label doesn't end up clipped even when the polygon bbox itself
   // just barely fits).
   useEffect(() => {
-    if (!geo || !containerRef.current) return;
+    if (!containerRef.current) return;
     const { width, height } = containerRef.current.getBoundingClientRect();
     if (width <= 0 || height <= 0) return;
-    const bbox: Bbox = unionBbox(geo.regions.features);
-    const labelPoints = geo.regions.features.map((f) => f.properties.labelPoint);
+    const bbox: Bbox = unionBbox(bundle.regions.features);
+    const labelPoints = bundle.regions.features.map((f) => f.properties.labelPoint);
     setInitialViewState(fitOverview(bbox, labelPoints, { width, height }));
-  }, [geo]);
+    // bundle.regions is a stable reference for the provider's lifetime (set
+    // once on load, never recreated) — this effect only re-runs if the
+    // container itself is remeasured via a fresh mount.
+  }, [bundle.regions]);
 
-  // No View-level `padding` here: Dashboard.tsx's CSS grid
-  // (`grid-cols-[1fr_360px]`) already keeps this canvas out of the right
-  // panel's 360px column, so an additional `padding: { right: 360 }` would
-  // shift content a further ~180px left inside an already-narrower canvas
-  // (double-counting the panel). See task-1A-report.md's fix-round-1 section.
-  const views = useMemo(() => new MapView(), []);
+  const def = indicatorById(indicatorId);
+  if (!def) {
+    throw new Error(`DeckMap: unknown indicatorId "${indicatorId}"`);
+  }
 
-  const getTooltip = useMemo(() => makeTooltip(nameOf, valueTextOf), []);
+  const file = bundle.indicators[indicatorId];
+  const map = useMemo(() => valueMap(file), [file]);
+  const elevationOf = useMemo(() => makeElevationScale(def, map), [def, map]);
+  const { colorOf } = useMemo(() => makeColorScale(def, map), [def, map]);
+  const ranks = useMemo(() => rank(map, def.polarity), [map, def.polarity]);
+  const label = useMemo(() => displayLabel(def, bundle.series), [def, bundle.series]);
+
+  const labelTextOf = useCallback(
+    (code: string): string => {
+      const name = nameOf(code);
+      const value = map.get(code);
+      if (value === null || value === undefined) return `${name}\n자료 없음`;
+      return `${name}\n${def.format(value)}`;
+    },
+    [map, def],
+  );
+
+  const linesOf = useCallback(
+    (code: string): string[] => {
+      const name = nameOf(code);
+      const value = map.get(code);
+      if (value === null || value === undefined) {
+        return [name, `${label}: 자료 없음`];
+      }
+      const valueLine = `${label}: ${formatWithUnit(def, value)}`;
+      const r = ranks.get(code);
+      const rankLine = r !== undefined ? `14개 시군 중 ${r}위` : "순위 없음";
+      const delta = vsProvince(map, code);
+      // vsProvince is always `value - 52000행`, per stats.ts — but the 52000
+      // row is only a true (Σ/Σ) *average* for ratio-kind indicators; for
+      // count-kind indicators it's the province-wide *total* (Σ), so
+      // labeling the comparison "평균 대비" there would misreport what the
+      // number is (confirmed while manually checking the tooltip: 임실군's
+      // students_total delta renders as -164,634, i.e. against the total,
+      // not a ~11,854 provincial average — "총계 대비" is the honest label).
+      const deltaNoun = def.kind === "ratio" ? "평균" : "총계";
+      const deltaLine =
+        delta === null
+          ? `전북 ${deltaNoun} 대비: 자료 없음`
+          : `전북 ${deltaNoun} 대비 ${formatDelta(def, delta)}`;
+      return [name, valueLine, rankLine, deltaLine];
+    },
+    [map, def, label, ranks],
+  );
+
+  // Static across indicator switches — regenerating this array on every
+  // indicatorId change would give the label TextLayer a new `data` reference
+  // each time, defeating deck.gl's diffing (the constraint the task brief
+  // calls out explicitly: "매 렌더 새 배열을 만들지 않는다").
+  const labels = useMemo(
+    () =>
+      bundle.regions.features.map((f) => ({
+        code: f.properties.code,
+        name: f.properties.name,
+        position: f.properties.labelPoint,
+      })),
+    [bundle.regions],
+  );
+
+  const characterSet = useMemo(() => Array.from(bundle.charset), [bundle.charset]);
+
+  const views = useMemo(() => VIEW, []);
+
+  const getTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
 
   const getCursor = useCallback(
     ({ isDragging, isHovering }: { isDragging: boolean; isHovering: boolean }) =>
@@ -180,65 +208,70 @@ export default function DeckMap() {
     [],
   );
 
+  // 추가 요구 #4: 나침반(bearing/pitch reset) + 전체보기(fit-to-overview)
+  // buttons, bottom-left inside the canvas. Both are official deck.gl
+  // widgets (already a direct dependency) rather than hand-rolled buttons:
+  // ResetViewWidget defaults to deck.props.initialViewState — exactly the
+  // fitOverview() seed below — and both call the Widget base class's
+  // setViewState(), which works correctly against this uncontrolled view
+  // (no viewState/onViewStateChange loop needed here).
+  const widgets = useMemo(
+    () => [
+      new CompassWidget({ id: "compass", placement: "bottom-left", label: "나침반" }),
+      new ResetViewWidget({ id: "reset-view", placement: "bottom-left", label: "전체보기" }),
+    ],
+    [],
+  );
+  // 16px margin (추가 요구 #4) instead of the widget package's 12px default;
+  // DarkTheme keeps the buttons legible against the varied 3D scene behind
+  // them (the default LightTheme assumes a light page background).
+  const widgetThemeStyle: CSSProperties = { ...DarkTheme, "--widget-margin": "16px" } as CSSProperties;
+
   const layers = useMemo<LayersList>(() => {
-    if (!geo) return [];
     const layerList: LayersList = [
-      makeNeighborsLayer(geo.neighbors),
-      makeFootprintLayer(geo.regions),
-      makeRegionsLayer(geo.regions, {
+      makeNeighborsLayer(bundle.neighbors),
+      makeFootprintLayer(bundle.regions),
+      makeRegionsLayer(bundle.regions, {
         elevationOf,
-        fillColorOf,
-        triggerKey: DUMMY_TRIGGER_KEY,
+        fillColorOf: colorOf,
+        triggerKey: indicatorId,
       }),
       makeSelectedRingLayer(null, 0),
     ];
     if (fontReady) {
-      const labels = geo.regions.features.map((f) => ({
-        code: f.properties.code,
-        name: f.properties.name,
-        position: f.properties.labelPoint,
-      }));
       layerList.push(
         makeRegionLabelLayer(labels, {
           elevationOf,
-          textOf: nameOf,
-          triggerKey: DUMMY_TRIGGER_KEY,
+          textOf: labelTextOf,
+          triggerKey: indicatorId,
           fontFamily,
-          characterSet: geo.charset,
+          characterSet,
         }),
       );
     }
     return layerList;
-  }, [geo, fontReady, fontFamily]);
+  }, [bundle.regions, bundle.neighbors, elevationOf, colorOf, indicatorId, fontReady, labels, labelTextOf, fontFamily, characterSet]);
 
-  // Fires every frame; only the first frame after regions have loaded flips
-  // the wrapper's data-map-ready flag (e2e/smoke.spec.ts waits on it).
+  // Fires every frame; only the first frame after the initial view state is
+  // ready flips the wrapper's data-map-ready flag (e2e/smoke.spec.ts waits
+  // on it).
   const handleAfterRender = useCallback(() => {
     if (mapReadyRef.current) return;
-    if (!geo || !containerRef.current) return;
+    if (!containerRef.current) return;
     mapReadyRef.current = true;
     containerRef.current.setAttribute("data-map-ready", "true");
-  }, [geo]);
+  }, []);
 
   return (
-    <div ref={containerRef} className="relative h-full w-full bg-[#0b0f19]">
-      {loadError && (
-        <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-red-300">
-          지도를 불러오지 못했습니다: {loadError}
-        </div>
-      )}
-      {!geo && !loadError && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-[#e6e9f0]/50">
-          지도 데이터를 불러오는 중
-        </div>
-      )}
-      {geo && initialViewState && (
+    <div ref={containerRef} className="relative h-full w-full bg-[#0b0f19]" style={widgetThemeStyle}>
+      {initialViewState && (
         <DeckGL
           initialViewState={initialViewState}
           views={views}
           controller={CONTROLLER}
           effects={[lightingEffect]}
           layers={layers}
+          widgets={widgets}
           getTooltip={getTooltip}
           getCursor={getCursor}
           onAfterRender={handleAfterRender}

@@ -11,29 +11,36 @@ function infoFor(code: string | undefined): PickingInfo {
 
 describe("makeTooltip", () => {
   it("returns null when nothing is hovered", () => {
-    const getTooltip = makeTooltip(
-      () => "전주시",
-      () => "더미 값 0.42",
-    );
+    const getTooltip = makeTooltip(() => ["전주시", "학생수: 70,444명"]);
     expect(getTooltip(infoFor(undefined))).toBeNull();
   });
 
-  it("renders the region name and value text as HTML when a feature is hovered", () => {
-    const getTooltip = makeTooltip(
-      (code) => `이름:${code}`,
-      (code) => `값:${code}`,
-    );
-    const result = getTooltip(infoFor("52110"));
-    expect(result).not.toBeNull();
-    expect(result?.html).toContain("이름:52110");
-    expect(result?.html).toContain("값:52110");
+  it("returns null when linesOf returns null for the hovered code", () => {
+    const getTooltip = makeTooltip(() => null);
+    expect(getTooltip(infoFor("52110"))).toBeNull();
   });
 
-  it("HTML-escapes name/value text", () => {
-    const getTooltip = makeTooltip(
-      () => "<script>alert(1)</script>",
-      () => "a & b",
-    );
+  // The brief's tooltip spec is 4 distinct lines: name / label:value / rank /
+  // vsProvince — a single <div> with an embedded "\n" (the old 2-line shape)
+  // can't render that as separate visual lines in HTML, so makeTooltip takes
+  // a full line list instead of separate name/value accessors.
+  it("renders every line as HTML, with the first line bold as the title", () => {
+    const getTooltip = makeTooltip((code) => [
+      `이름:${code}`,
+      `학생수: 70,444명`,
+      `14개 시군 중 1위`,
+      `전북 평균 대비 +5,000`,
+    ]);
+    const result = getTooltip(infoFor("52110"));
+    expect(result).not.toBeNull();
+    expect(result?.html).toContain("<strong>이름:52110</strong>");
+    expect(result?.html).toContain("<div>학생수: 70,444명</div>");
+    expect(result?.html).toContain("<div>14개 시군 중 1위</div>");
+    expect(result?.html).toContain("<div>전북 평균 대비 +5,000</div>");
+  });
+
+  it("HTML-escapes every line", () => {
+    const getTooltip = makeTooltip(() => ["<script>alert(1)</script>", "a & b"]);
     const result = getTooltip(infoFor("52110"));
     expect(result?.html).not.toContain("<script>");
     expect(result?.html).toContain("&lt;script&gt;");
@@ -41,10 +48,7 @@ describe("makeTooltip", () => {
   });
 
   it("uses a dark tooltip card style", () => {
-    const getTooltip = makeTooltip(
-      () => "전주시",
-      () => "값",
-    );
+    const getTooltip = makeTooltip(() => ["전주시", "값"]);
     const result = getTooltip(infoFor("52110"));
     expect(result?.style).toMatchObject({
       background: "#141a2a",

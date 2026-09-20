@@ -69,4 +69,29 @@ describe("makeRegionLabelLayer", () => {
     expect(layer.props.updateTriggers.getPosition).toContain("indicator-7");
     expect(layer.props.updateTriggers.getText).toContain("indicator-7");
   });
+
+  // 추가 요구 #2: labels must always draw on top of a taller neighboring
+  // region, not get depth-tested away behind it. `depthCompare: 'always'`
+  // (not `depthWriteEnabled: false` alone — that only stops the label from
+  // *writing* depth, it would still be *tested* against and hidden by an
+  // already-drawn taller neighbor) makes every fragment pass the depth test
+  // unconditionally; confirmed against the installed luma.gl@9.4 types
+  // (CompareFunction in @luma.gl/core's adapter/types/parameters.d.ts) and
+  // against @deck.gl/core's CompositeLayer.getSubLayerProps, which forwards
+  // `this.props.parameters` verbatim to every sub-layer TextLayer renders
+  // (MultiIconLayer for characters, TextBackgroundLayer for background) — so
+  // setting it once here on the outer TextLayer is sufficient.
+  it("disables the depth test so labels always draw on top (추가 요구 #2)", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+    });
+    expect(layer.props.parameters).toMatchObject({
+      depthCompare: "always",
+      depthWriteEnabled: false,
+    });
+  });
 });

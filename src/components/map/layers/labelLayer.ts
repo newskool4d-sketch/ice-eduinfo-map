@@ -39,6 +39,14 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
     outlineWidth: 0.15,
     outlineColor: [10, 14, 25, 255],
     getColor: [236, 239, 245, 255],
+    // 추가 요구 #2: labels must always draw on top of a taller neighboring
+    // region's already-rendered top face, never get depth-tested away behind
+    // it. `depthCompare: 'always'` makes every fragment pass the depth test
+    // unconditionally (`depthWriteEnabled: false` alone only stops the label
+    // from *writing* depth — it would still be *tested* against and hidden).
+    // CompositeLayer.getSubLayerProps forwards `parameters` verbatim to
+    // every sub-layer TextLayer renders, so setting it here once is enough.
+    parameters: { depthCompare: "always", depthWriteEnabled: false },
     updateTriggers: {
       getPosition: [opts.triggerKey],
       getText: [opts.triggerKey],
