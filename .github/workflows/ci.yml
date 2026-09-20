@@ -31,3 +31,56 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Task 6, Section D.1 — separate job (not extra steps in `build`) so a
+  # typecheck/lint/unit-test/build failure fails fast without waiting on the
+  # much slower browser install + e2e run; `needs: build` still skips this
+  # job entirely once that happens. `public/data/**` (regions.geojson,
+  # indicators/*.json, …) is committed to the repo, so this job needs no
+  # `npm run data:build` step of its own — a fresh checkout already has
+  # everything the app serves.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # `CI` is set by GitHub Actions automatically (truthy) — playwright.config.ts's
+      # webServer already switches to `npm run build && npm run start` (Section
+      # E's orchestrator ruling) and the chromium project already adds the
+      # swiftshader launch args purely from that same `process.env.CI` check, so
+      # nothing extra needs setting here.
+      - name: Run e2e tests
+        run: npm run e2e
+
+      # Screenshot comparison (toHaveScreenshot) baselines are NOT introduced
+      # by this task (task-6-brief.md, Section D.1) — captured screenshots
+      # only ever go out as this artifact, never committed/compared.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload e2e screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
