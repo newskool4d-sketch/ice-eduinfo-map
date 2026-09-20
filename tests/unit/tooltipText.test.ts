@@ -1,0 +1,122 @@
+import { describe, expect, it } from "vitest";
+
+import { formatDelta, formatWithUnit, makeLinesOf } from "@/lib/tooltipText";
+import type { IndicatorDef } from "@/lib/indicators/types";
+import { formatInt, formatPercent } from "@/lib/format";
+import { PROVINCE_CODE } from "@/lib/geo/regions";
+
+// Small local fixtures (no network, no real registry import) — mirrors the
+// pattern already used in tests/unit/stats.test.ts's `baseDef`.
+const countDef: IndicatorDef = {
+  id: "students_total",
+  group: "scale",
+  label: "학생수",
+  unit: "명",
+  polarity: "neutral",
+  kind: "count",
+  format: formatInt,
+  source: { name: "KESS", url: "https://example.com", year: 2026 },
+  aggregate: { kind: "sum", field: "students" },
+};
+
+const ratioDef: IndicatorDef = {
+  id: "students_per_class",
+  group: "scale",
+  label: "학급당 학생수",
+  unit: "%",
+  polarity: "higherWorse",
+  kind: "ratio",
+  format: (v: number) => formatPercent(v),
+  source: { name: "KESS", url: "https://example.com", year: 2026 },
+  aggregate: { kind: "ratio", numerator: "students", denominator: "classes" },
+};
+
+describe("formatWithUnit", () => {
+  it("appends def.unit when the formatted value doesn't already end with it", () => {
+    expect(formatWithUnit(countDef, 1234)).toBe(`${formatInt(1234)}명`);
+  });
+
+  it("does not double up the unit when def.format already embeds it (e.g. formatPercent -> '%')", () => {
+    const result = formatWithUnit(ratioDef, 12.3);
+    expect(result).toBe(formatPercent(12.3));
+    expect(result).not.toMatch(/%%/);
+  });
+});
+
+describe("formatDelta", () => {
+  it("prefixes a positive delta with +", () => {
+    expect(formatDelta(countDef, 200)).toBe(`+${formatInt(200)}명`);
+  });
+
+  it("prefixes a negative delta with an ASCII '-' and formats the (absolute) magnitude", () => {
+    expect(formatDelta(countDef, -400)).toBe(`-${formatInt(400)}명`);
+  });
+});
+
+describe("makeLinesOf", () => {
+  // 52110 전주시, 52130 군산시, 52140 익산시 — real REGION_CODES so nameOf()
+  // resolves a real name instead of falling back to the raw code.
+  const countMap = new Map<string, number | null>([
+    ["52110", 700],
+    ["52130", 100],
+    ["52140", null],
+    [PROVINCE_CODE, 500],
+  ]);
+
+  it("returns the 2-line '자료 없음' branch when the region has no value", () => {
+    const linesOf = makeLinesOf({ def: countDef, label: "학생수", map: countMap });
+    const lines = linesOf("52140");
+    expect(lines).toEqual(["익산시", "학생수: 자료 없음"]);
+  });
+
+  it("renders the rank line as '14개 시군 중 n위'", () => {
+    const linesOf = makeLinesOf({ def: countDef, label: "학생수", map: countMap });
+    const lines = linesOf("52110");
+    expect(lines[0]).toBe("전주시");
+    expect(lines[2]).toBe("14개 시군 중 1위");
+  });
+
+  it("uses '전북 총계 대비' wording for a count-kind indicator, with a positive delta", () => {
+    const linesOf = makeLinesOf({ def: countDef, label: "학생수", map: countMap });
+    // 52110: 700 - 500(province) = +200
+    const lines = linesOf("52110");
+    expect(lines[3]).toBe(`전북 총계 대비 +${formatInt(200)}명`);
+  });
+
+  it("formats a negative delta with the '-' sign for a count-kind indicator", () => {
+    const linesOf = makeLinesOf({ def: countDef, label: "학생수", map: countMap });
+    // 52130: 100 - 500(province) = -400
+    const lines = linesOf("52130");
+    expect(lines[3]).toBe(`전북 총계 대비 -${formatInt(400)}명`);
+  });
+
+  it("uses '전북 평균 대비' wording for a ratio-kind indicator", () => {
+    const ratioMap = new Map<string, number | null>([
+      ["52110", 20],
+      ["52130", 15],
+      [PROVINCE_CODE, 18],
+    ]);
+    const linesOf = makeLinesOf({ def: ratioDef, label: "학급당 학생수", map: ratioMap });
+    const lines = linesOf("52110");
+    expect(lines[3]).toBe(`전북 평균 대비 +${formatPercent(2)}`);
+  });
+
+  it('shows "순위 없음" for a code that has a value but is excluded from ranking (52000 itself)', () => {
+    const linesOf = makeLinesOf({ def: countDef, label: "학생수", map: countMap });
+    const lines = linesOf(PROVINCE_CODE);
+    // PROVINCE_CODE is deliberately not a recognized RegionCode (geo/regions.ts),
+    // so nameOf() falls back to the raw code.
+    expect(lines[0]).toBe(PROVINCE_CODE);
+    expect(lines[2]).toBe("순위 없음");
+  });
+
+  it("shows '자료 없음' on the delta line when the province (52000) value itself is null", () => {
+    const map = new Map<string, number | null>([
+      ["52110", 100],
+      [PROVINCE_CODE, null],
+    ]);
+    const linesOf = makeLinesOf({ def: countDef, label: "학생수", map });
+    const lines = linesOf("52110");
+    expect(lines[3]).toBe("전북 총계 대비: 자료 없음");
+  });
+});

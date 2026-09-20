@@ -21,10 +21,10 @@ import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import { makeTooltip } from "@/components/map/tooltip";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
-import type { IndicatorDef } from "@/lib/indicators/types";
-import { displayLabel, rank, valueMap, vsProvince } from "@/lib/stats";
+import { displayLabel, valueMap } from "@/lib/stats";
 import { makeColorScale } from "@/lib/colors";
 import { makeElevationScale } from "@/lib/scales";
+import { makeLinesOf } from "@/lib/tooltipText";
 
 // Fallback used when next/font's generated CSS variable can't be resolved
 // (see the font-gating effect below) — a generic family, so
@@ -34,24 +34,6 @@ const FALLBACK_FONT_FAMILY = "'Noto Sans KR', sans-serif";
 
 function nameOf(code: string): string {
   return isRegionCode(code) ? regionName(code) : code;
-}
-
-/**
- * `def.format(value)` already embeds the unit for some indicators
- * (formatPercent -> "%", formatArea -> "㎡") but not others (formatInt/
- * formatDecimal). Appending `def.unit` unconditionally would double up for
- * the first group ("12.3%%"); only appending when it isn't already there
- * handles both without a per-indicator special case.
- */
-function formatWithUnit(def: IndicatorDef, value: number): string {
-  const formatted = def.format(value);
-  return formatted.endsWith(def.unit) ? formatted : `${formatted}${def.unit}`;
-}
-
-/** "+1,234명" / "-3.2%" — sign always shown, magnitude formatted (and unit-suffixed) the same way as the main value. */
-function formatDelta(def: IndicatorDef, delta: number): string {
-  const formatted = formatWithUnit(def, Math.abs(delta));
-  return delta < 0 ? `-${formatted}` : `+${formatted}`;
 }
 
 const VIEW = new MapView();
@@ -141,7 +123,6 @@ export default function DeckMap({ indicatorId }: DeckMapProps) {
   const map = useMemo(() => valueMap(file), [file]);
   const elevationOf = useMemo(() => makeElevationScale(def, map), [def, map]);
   const { colorOf } = useMemo(() => makeColorScale(def, map), [def, map]);
-  const ranks = useMemo(() => rank(map, def.polarity), [map, def.polarity]);
   const label = useMemo(() => displayLabel(def, bundle.series), [def, bundle.series]);
 
   const labelTextOf = useCallback(
@@ -154,33 +135,12 @@ export default function DeckMap({ indicatorId }: DeckMapProps) {
     [map, def],
   );
 
-  const linesOf = useCallback(
-    (code: string): string[] => {
-      const name = nameOf(code);
-      const value = map.get(code);
-      if (value === null || value === undefined) {
-        return [name, `${label}: 자료 없음`];
-      }
-      const valueLine = `${label}: ${formatWithUnit(def, value)}`;
-      const r = ranks.get(code);
-      const rankLine = r !== undefined ? `14개 시군 중 ${r}위` : "순위 없음";
-      const delta = vsProvince(map, code);
-      // vsProvince is always `value - 52000행`, per stats.ts — but the 52000
-      // row is only a true (Σ/Σ) *average* for ratio-kind indicators; for
-      // count-kind indicators it's the province-wide *total* (Σ), so
-      // labeling the comparison "평균 대비" there would misreport what the
-      // number is (confirmed while manually checking the tooltip: 임실군's
-      // students_total delta renders as -164,634, i.e. against the total,
-      // not a ~11,854 provincial average — "총계 대비" is the honest label).
-      const deltaNoun = def.kind === "ratio" ? "평균" : "총계";
-      const deltaLine =
-        delta === null
-          ? `전북 ${deltaNoun} 대비: 자료 없음`
-          : `전북 ${deltaNoun} 대비 ${formatDelta(def, delta)}`;
-      return [name, valueLine, rankLine, deltaLine];
-    },
-    [map, def, label, ranks],
-  );
+  // Tooltip line assembly (name / value / rank / vsProvince delta) lives in
+  // src/lib/tooltipText.ts (Fix round 1, review finding #1) — pure and unit
+  // tested there (tests/unit/tooltipText.test.ts), with zero deck.gl/React
+  // dependency. makeLinesOf computes rank(map) once per def/label/map
+  // change (not per hover) and returns the (code) => string[] tooltip fn.
+  const linesOf = useMemo(() => makeLinesOf({ def, label, map }), [def, label, map]);
 
   // Static across indicator switches — regenerating this array on every
   // indicatorId change would give the label TextLayer a new `data` reference

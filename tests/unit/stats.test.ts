@@ -61,49 +61,24 @@ describe("regionValues", () => {
 });
 
 describe("rank", () => {
-  // Per task-2-report.md: the literal brief text states "큰 값이 1위" for
-  // higherWorse, higherBetter, AND neutral alike (three times, identically
-  // worded) — largest raw value always gets rank 1, regardless of polarity.
-  // `polarity` is accepted for signature symmetry with paletteFor()/domainOf()
-  // but has no directional effect today; these three tests pin that down
-  // explicitly so a future change to this behavior is a deliberate, visible
-  // diff rather than a silent regression.
-  it("ranks largest value first for higherWorse", () => {
+  // Fix round 1 (review finding #3): `rank` no longer takes a `polarity`
+  // parameter at all — ranking is always by descending raw value (1위 =
+  // 가장 큰 값), for every polarity, per the controller's ruling. The three
+  // near-duplicate per-polarity tests that used to pin this down (when
+  // `polarity` was still an accepted-but-unused argument) are collapsed
+  // into one, since there is no longer a parameter to vary.
+  it("ranks the 14 시군 by descending raw value (largest = rank 1), excluding 52000", () => {
     const map = new Map([
       ["52110", 30],
       ["52130", 10],
       ["52140", 20],
       ["52000", 999],
     ]);
-    const ranks = rank(map, "higherWorse");
+    const ranks = rank(map);
     expect(ranks.get("52110")).toBe(1);
     expect(ranks.get("52140")).toBe(2);
     expect(ranks.get("52130")).toBe(3);
     expect(ranks.has("52000")).toBe(false);
-  });
-
-  it("ranks largest value first for higherBetter", () => {
-    const map = new Map([
-      ["52110", 30],
-      ["52130", 10],
-      ["52140", 20],
-    ]);
-    const ranks = rank(map, "higherBetter");
-    expect(ranks.get("52110")).toBe(1);
-    expect(ranks.get("52140")).toBe(2);
-    expect(ranks.get("52130")).toBe(3);
-  });
-
-  it("ranks largest value first for neutral", () => {
-    const map = new Map([
-      ["52110", 30],
-      ["52130", 10],
-      ["52140", 20],
-    ]);
-    const ranks = rank(map, "neutral");
-    expect(ranks.get("52110")).toBe(1);
-    expect(ranks.get("52140")).toBe(2);
-    expect(ranks.get("52130")).toBe(3);
   });
 
   it("gives ties the same (competition-style) rank and skips the next", () => {
@@ -112,7 +87,7 @@ describe("rank", () => {
       ["52130", 10],
       ["52140", 8],
     ]);
-    const ranks = rank(map, "neutral");
+    const ranks = rank(map);
     expect(ranks.get("52110")).toBe(1);
     expect(ranks.get("52130")).toBe(1);
     expect(ranks.get("52140")).toBe(3); // skips rank 2
@@ -123,7 +98,7 @@ describe("rank", () => {
       ["52110", 10],
       ["52130", null],
     ]);
-    const ranks = rank(map, "neutral");
+    const ranks = rank(map);
     expect(ranks.has("52130")).toBe(false);
     expect(ranks.get("52110")).toBe(1);
   });
