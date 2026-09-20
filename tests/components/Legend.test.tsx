@@ -124,4 +124,29 @@ describe("Legend", () => {
     );
     expect(screen.getByText(/2026-04-01/)).toBeInTheDocument();
   });
+
+  it("omits the 4 학교급 swatches when schoolLevelsVisible is false/unset (no 시군 selected)", () => {
+    const { container } = render(
+      <Legend def={baseDef()} ticks={TICKS} palette={paletteFor("neutral")} hasNull={false} referenceDate="2026-04-01" />,
+    );
+    expect(container.querySelectorAll("[data-testid='legend-school-swatch']")).toHaveLength(0);
+  });
+
+  it("shows exactly 4 학교급 color swatches (초/중/고/특수) when schoolLevelsVisible", () => {
+    render(
+      <Legend
+        def={baseDef()}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+        schoolLevelsVisible
+      />,
+    );
+    expect(screen.getAllByTestId("legend-school-swatch")).toHaveLength(4);
+    expect(screen.getByText("초")).toBeInTheDocument();
+    expect(screen.getByText("중")).toBeInTheDocument();
+    expect(screen.getByText("고")).toBeInTheDocument();
+    expect(screen.getByText("특수")).toBeInTheDocument();
+  });
 });
