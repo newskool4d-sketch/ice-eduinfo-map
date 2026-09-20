@@ -10,12 +10,12 @@ import { indicatorById, INDICATORS } from "@/lib/indicators/registry";
 import type { IndicatorGroup, SchoolLevel } from "@/lib/indicators/types";
 import { SCHOOL_LEVEL_LABELS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
 import type { School } from "@/lib/schools/types";
-import { displayLabel, rank, referenceDateLabel, trend, valueMap, vsProvince } from "@/lib/stats";
+import { displayLabel, rank, referenceDateLabel, shareOfProvince, trend, valueMap, vsProvince } from "@/lib/stats";
 import { useMapQuery } from "@/lib/state/urlState";
-import { formatDelta } from "@/lib/tooltipText";
+import { formatDelta, formatShare } from "@/lib/tooltipText";
 
 export interface RegionPanelProps {
-  bundle: Pick<DataBundle, "indicators" | "series" | "manifest" | "schools">;
+  bundle: Pick<DataBundle, "indicators" | "series" | "manifest" | "schools" | "closedSchools">;
   /** The currently-highlighted school (map point click / this panel's own row click), or null. Owned by Dashboard, mirrored to DeckMap so either side can drive it. */
   highlightedSchoolId: string | null;
   /** Called with a school id to highlight it, or null to clear. This component does its own "click the same row again -> clear" toggle before calling it (mirroring DeckMap's point-click handler). */
@@ -82,13 +82,17 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
   const label = displayLabel(def, bundle.series);
   const value = map.get(regionCode);
   const regionRank = rank(map).get(regionCode) ?? null;
-  const delta = vsProvince(map, regionCode);
-  // Fix-round-1 ruling (tooltipText.ts): count-kind 52000 rows are a total
-  // (총계), not an average, so only ratio-kind indicators say "평균 대비".
-  const deltaNoun = def.kind === "ratio" ? "평균" : "총계";
+  // Task 5, Section D (fix round 2): count-kind 52000 rows are a province-
+  // wide TOTAL (Σ), not an average, so a subtracted "전북 총계 대비
+  // −95,514명" misreports the number — count-kind now shows "전북 대비 비중"
+  // (시군값/52000값×100, 0-100%) instead. ratio-kind keeps the original
+  // subtraction ("전북 평균 대비 ±x"), which IS a true Σ/Σ average.
+  const share = def.kind === "count" ? shareOfProvince(map, regionCode) : null;
+  const delta = def.kind === "ratio" ? vsProvince(map, regionCode) : null;
   // Same warning-tone rule as KpiTiles: an INCREASE is only ever flagged when
-  // higher reads as worse.
-  const isWarnDelta = delta !== null && delta > 0 && def.polarity === "higherWorse";
+  // higher reads as worse — a share isn't a directional delta, so this only
+  // ever applies to the ratio-kind branch.
+  const isWarnDelta = def.kind === "ratio" && delta !== null && delta > 0 && def.polarity === "higherWorse";
 
   // Task 4B — 학교 목록: the selected 시군's schools, then the 학교급 chip
   // filter, sorted by students desc. The summary line ("학교 N개 · 소규모
@@ -101,6 +105,15 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
   const smallCount = filteredSchools.filter((s) => s.small).length;
   // fix-round-1: 특수학교 rows carry no coordinate (see School.locationMissingReason) — surfaced in the summary line whenever the current filter includes any.
   const noLocationCount = filteredSchools.filter((s) => s.lat === null).length;
+
+  // Task 5 — 폐교 목록: the selected 시군's 폐교 rows, most recent 폐교연도
+  // first (a reasonable default; the whole list is short enough — see the
+  // per-region table in task-5-report.md — that no further filter/sort UI
+  // is needed here, unlike the 학교 목록 above).
+  const regionClosedSchools = bundle.closedSchools.rows
+    .filter((s) => s.regionCode === regionCode)
+    .slice()
+    .sort((a, b) => b.year - a.year);
 
   const seriesFile = bundle.series[indicatorId];
   const trendRows = seriesFile ? trend(seriesFile, regionCode) : [];
@@ -159,8 +172,22 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
           data-testid="region-panel-delta"
           className={`text-xs ${isWarnDelta ? "text-orange-400" : "text-[#e6e9f0]/70"}`}
         >
-          {delta === null ? `전북 ${deltaNoun} 대비 자료 없음` : `전북 ${deltaNoun} 대비 ${formatDelta(def, delta)}`}
+          {def.kind === "count"
+            ? share === null
+              ? "전북 대비 비중 자료 없음"
+              : `전북 대비 비중 ${formatShare(share)}`
+            : delta === null
+              ? "전북 평균 대비 자료 없음"
+              : `전북 평균 대비 ${formatDelta(def, delta)}`}
         </p>
+        <p data-testid="region-panel-description" className="mt-2 text-[10px] leading-snug text-[#e6e9f0]/50">
+          {def.description}
+        </p>
+        {def.caveat && (
+          <p data-testid="region-panel-caveat" className="mt-1 text-[10px] leading-snug text-[#e6e9f0]/40">
+            {def.caveat}
+          </p>
+        )}
       </section>
 
       <section className="mb-4">
@@ -321,6 +348,34 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
             </tbody>
           </table>
         )}
+      </section>
+
+      <section className="mb-4">
+        <details data-testid="closed-schools-section">
+          <summary className="cursor-pointer text-xs text-[#e6e9f0]/60 hover:text-[#e6e9f0]">
+            폐교 목록 ({regionClosedSchools.length}개)
+          </summary>
+          {regionClosedSchools.length === 0 ? (
+            <p className="mt-2 text-xs text-[#e6e9f0]/50">폐교 이력이 없습니다</p>
+          ) : (
+            <table className="mt-2 w-full border-collapse text-xs">
+              <tbody>
+                {regionClosedSchools.map((school) => (
+                  <tr key={`${school.name}-${school.year}`} data-testid={`closed-school-row-${school.name}-${school.year}`}>
+                    <td className="py-0.5 pr-1">
+                      <span className="mr-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/70">
+                        {SCHOOL_LEVEL_LABELS[school.level]}
+                      </span>
+                      {school.name}
+                    </td>
+                    <td className="py-0.5 text-right tabular-nums text-[#e6e9f0]/70">{school.year}</td>
+                    <td className="py-0.5 pl-2 text-right text-[#e6e9f0]/50">{school.usage}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </details>
       </section>
 
       <footer className="text-[10px] text-[#e6e9f0]/40">

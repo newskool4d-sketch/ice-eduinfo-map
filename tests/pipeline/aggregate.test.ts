@@ -146,6 +146,7 @@ const sumStudentsDef: IndicatorDef = {
   format: String,
   source: { name: "KESS test", url: "https://example.com", year: 2026 },
   aggregate: { kind: "sum", field: "students" },
+  description: "테스트용 설명",
 };
 
 const schoolsTotalDef: IndicatorDef = {

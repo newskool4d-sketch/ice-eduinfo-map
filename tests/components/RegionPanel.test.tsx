@@ -7,10 +7,12 @@ import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 import RegionPanel from "@/components/panels/RegionPanel";
 import { REGION_CODES } from "@/lib/geo/regions";
 import { INDICATORS } from "@/lib/indicators/registry";
-import { formatDelta } from "@/lib/tooltipText";
+import { shareOfProvince, valueMap } from "@/lib/stats";
+import { formatShare } from "@/lib/tooltipText";
 import { useMapQuery } from "@/lib/state/urlState";
 import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
 import type { School, SchoolsFile } from "@/lib/schools/types";
+import type { ClosedSchoolRow, ClosedSchoolsFile } from "@/lib/closedSchools/types";
 
 const REGION = "52110"; // 전주시
 const OTHER_REGION = "52130"; // 군산시
@@ -60,7 +62,7 @@ function studentsTotalSeries(): SeriesFile {
 }
 
 function manifestFixture(): Manifest {
-  return { latestYear: 2026, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z" };
+  return { latestYear: 2026, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z", sources: [] };
 }
 
 function schoolFixture(overrides: Partial<School> & Pick<School, "id" | "regionCode">): School {
@@ -112,6 +114,32 @@ function schoolsFixture(): SchoolsFile {
   };
 }
 
+function closedSchoolRow(overrides: Partial<ClosedSchoolRow> & Pick<ClosedSchoolRow, "name" | "year">): ClosedSchoolRow {
+  return {
+    regionCode: REGION,
+    level: "elem",
+    usage: "미활용",
+    buildingArea: 100,
+    siteArea: 200,
+    address: "전북특별자치도 전주시 어딘가",
+    ...overrides,
+  };
+}
+
+/** 2 폐교 in REGION(전주시) — different years to pin the "최신 연도 먼저" sort — plus 1 in OTHER_REGION (must never appear). */
+function closedSchoolsFixture(): ClosedSchoolsFile {
+  return {
+    referenceDate: "2026-07-16",
+    publishedAt: "2026-07-20",
+    source: { name: "전북특별자치도교육청 폐교재산 현황(공공데이터포털)", url: "https://example.com/closed-schools", year: 2026 },
+    rows: [
+      closedSchoolRow({ name: "전주오래된폐교", year: 2005, usage: "자체활용", level: "mid" }),
+      closedSchoolRow({ name: "전주최근폐교", year: 2023, usage: "미활용", level: "high" }),
+      closedSchoolRow({ regionCode: OTHER_REGION, name: "군산폐교", year: 2020 }),
+    ],
+  };
+}
+
 function bundleFixture() {
   const indicators: Record<string, IndicatorFile> = {};
   const series: Record<string, SeriesFile> = {};
@@ -121,7 +149,13 @@ function bundleFixture() {
       series[def.id] = def.id === "students_total" ? studentsTotalSeries() : { id: def.id, rows: [] };
     }
   }
-  return { indicators, series, manifest: manifestFixture(), schools: schoolsFixture() };
+  return {
+    indicators,
+    series,
+    manifest: manifestFixture(),
+    schools: schoolsFixture(),
+    closedSchools: closedSchoolsFixture(),
+  };
 }
 
 function renderSelected(
@@ -167,12 +201,40 @@ describe("RegionPanel", () => {
     expect(screen.getByText(`${REGION_CODES.length}개 시군 중 1위`)).toBeInTheDocument();
   });
 
-  it("shows the 전북 대비 delta with sign, using formatDelta (총계, since students_total is count-kind)", () => {
+  it("shows '전북 대비 비중' (share, not a signed delta) for students_total, a count-kind indicator (Task 5, Section D)", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    const file = studentsTotalFile();
+    const expectedShare = shareOfProvince(valueMap(file), REGION)!;
+    // 70851 / 150851 * 100
+    expect(screen.getByTestId("region-panel-delta")).toHaveTextContent(
+      `전북 대비 비중 ${formatShare(expectedShare)}`,
+    );
+    // Never signed (a share isn't a directional delta).
+    expect(screen.getByTestId("region-panel-delta")).not.toHaveTextContent(/[+-]\d/);
+  });
+
+  it("shows '전북 평균 대비' with a signed delta for a ratio-kind indicator", () => {
+    renderSelected(`?region=${REGION}&indicator=students_per_class`);
+    // genericFile: REGION=100, OTHER_REGION=40, PROVINCE=140 -> delta = 100-140 = -40
+    expect(screen.getByTestId("region-panel-delta")).toHaveTextContent(/전북 평균 대비 -/);
+  });
+
+  it("shows the current indicator's description in the current-indicator card (Task 5, Section C)", () => {
     renderSelected(`?region=${REGION}&indicator=students_total`);
     const def = INDICATORS.find((d) => d.id === "students_total")!;
-    // 70851 - 150851 = -80000
-    const expectedDelta = formatDelta(def, 70851 - 150851);
-    expect(screen.getByTestId("region-panel-delta")).toHaveTextContent(`전북 총계 대비 ${expectedDelta}`);
+    expect(screen.getByTestId("region-panel-description")).toHaveTextContent(def.description);
+  });
+
+  it("omits the caveat line for an indicator with none (students_total)", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    expect(screen.queryByTestId("region-panel-caveat")).not.toBeInTheDocument();
+  });
+
+  it("shows the caveat line for an indicator that has one (small_schools)", () => {
+    renderSelected(`?region=${REGION}&indicator=small_schools`);
+    const smallSchoolsDef = INDICATORS.find((d) => d.id === "small_schools")!;
+    expect(smallSchoolsDef.caveat).toBeTruthy();
+    expect(screen.getByTestId("region-panel-caveat")).toHaveTextContent(smallSchoolsDef.caveat!);
   });
 
   it("renders a sparkline trend when a series file exists for the current indicator", () => {
@@ -186,11 +248,11 @@ describe("RegionPanel", () => {
     expect(screen.getByText("추이 없음")).toBeInTheDocument();
   });
 
-  it("lists all 15 registry indicators in the 다른 지표 table", () => {
+  it("lists all 18 registry indicators in the 다른 지표 table", () => {
     renderSelected(`?region=${REGION}&indicator=students_total`);
     const rows = screen.getAllByTestId(/^other-indicator-/);
     expect(rows).toHaveLength(INDICATORS.length);
-    expect(rows).toHaveLength(15);
+    expect(rows).toHaveLength(18);
   });
 
   it("highlights the current indicator's row in the 다른 지표 table", () => {
@@ -447,7 +509,40 @@ describe("RegionPanel", () => {
     });
   });
 
-  it("shows the source name and reference date (기준 YYYY.M.D, matching TopBar/referenceDateLabel)", () => {
+  describe("폐교 목록 (Task 5)", () => {
+    it("renders a collapsible 폐교 목록 section with the region's own count", () => {
+      renderSelected(`?region=${REGION}`);
+      const section = screen.getByTestId("closed-schools-section");
+      expect(section.tagName).toBe("DETAILS");
+      expect(screen.getByText("폐교 목록 (2개)")).toBeInTheDocument();
+    });
+
+    it("lists only the selected region's 폐교 rows, most recent 폐교연도 first", () => {
+      renderSelected(`?region=${REGION}`);
+      const rows = screen.getAllByTestId(/^closed-school-row-/);
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveTextContent("전주최근폐교");
+      expect(rows[0]).toHaveTextContent("2023");
+      expect(rows[1]).toHaveTextContent("전주오래된폐교");
+      expect(rows[1]).toHaveTextContent("2005");
+      expect(screen.queryByText("군산폐교")).not.toBeInTheDocument();
+    });
+
+    it("shows 급 배지 and 활용현황 (usage) on each row", () => {
+      renderSelected(`?region=${REGION}`);
+      const row = screen.getByTestId("closed-school-row-전주최근폐교-2023");
+      expect(row).toHaveTextContent("고"); // SCHOOL_LEVEL_LABELS.high
+      expect(row).toHaveTextContent("미활용");
+    });
+
+    it("shows a 'no history' message when the region has no 폐교 rows", () => {
+      renderSelected("?region=52140"); // 익산시 — no closed-schools fixture rows for this region
+      expect(screen.getByText("폐교 목록 (0개)")).toBeInTheDocument();
+      expect(screen.getByText("폐교 이력이 없습니다")).toBeInTheDocument();
+    });
+  });
+
+  it("shows the source name and reference date (기준 YYYY.M.D, via referenceDateLabel — Task 5 fix round 1: TopBar's own caption now uses a different, raw-ISO format for a different anchor indicator, see TopBar.test.tsx)", () => {
     renderSelected(`?region=${REGION}&indicator=students_total`);
     expect(
       screen.getByText(/한국교육개발원 교육통계서비스\(KESS\) 교육기본통계 학교별 데이터셋/),

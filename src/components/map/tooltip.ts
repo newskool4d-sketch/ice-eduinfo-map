@@ -42,9 +42,10 @@ function renderLines(lines: string[]): TooltipResult {
  * Builds a deck.gl `getTooltip` callback for the region (GeoJsonLayer)
  * layers. `linesOf` is the injection point (like the layer factories'
  * `elevationOf`/`fillColorOf`): DeckMap.tsx builds [name, "label: value
- * 단위", "14개 시군 중 n위", "전북 평균 대비 ±x"] for the real indicator.
- * `linesOf` returning null (or an empty array) suppresses the tooltip, same
- * as no code being hovered.
+ * 단위", "{N}개 시군 중 n위", "전북 평균 대비 ±x" (ratio-kind) 또는 "전북 대비
+ * 비중 x%" (count-kind, Task 5 Section D)] for the real indicator — see
+ * tooltipText.ts's makeLinesOf for the exact rule. `linesOf` returning null
+ * (or an empty array) suppresses the tooltip, same as no code being hovered.
  */
 export function makeTooltip(linesOf: (code: string) => string[] | null) {
   return (info: PickingInfo): TooltipResult | null => {

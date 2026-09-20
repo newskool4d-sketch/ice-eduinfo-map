@@ -252,6 +252,7 @@ describe("makeRegionsLayer", () => {
         format: formatInt,
         source: { name: "KESS", url: "https://example.com", year: 2026 },
         aggregate: { kind: "sum", field: "students" },
+        description: "테스트용 설명",
       };
     }
 

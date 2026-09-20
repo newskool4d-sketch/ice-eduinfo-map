@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CLOSED_SCHOOLS_AGGREGATE_FILE,
   DEFAULT_INDICATOR_ID,
   INDICATOR_IDS,
   INDICATORS,
@@ -8,8 +9,8 @@ import {
 import type { IndicatorGroup } from "../../src/lib/indicators/types";
 
 describe("INDICATORS registry", () => {
-  it("defines exactly 15 indicators", () => {
-    expect(INDICATORS).toHaveLength(15);
+  it("defines exactly 18 indicators (15 KESS + 3 폐교, Task 5)", () => {
+    expect(INDICATORS).toHaveLength(18);
   });
 
   it("has unique ids", () => {
@@ -29,12 +30,48 @@ describe("INDICATORS registry", () => {
     }
   });
 
-  it("gives every def a format function, source, and aggregate rule", () => {
+  it("gives every def a format function, source, aggregate rule, and description", () => {
     for (const def of INDICATORS) {
       expect(typeof def.format).toBe("function");
       expect(def.source).toBeTruthy();
-      expect(def.source.name).toContain("KESS");
+      expect(def.source.name.length).toBeGreaterThan(0);
       expect(def.aggregate).toBeTruthy();
+      expect(typeof def.description).toBe("string");
+      expect(def.description.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("sources every KESS-derived indicator (aggregate.kind !== 'external', plus students_change_5y) from KESS", () => {
+    for (const def of INDICATORS) {
+      if (def.aggregate.kind === "external" && def.aggregate.file !== "series/students_total.json") continue; // 폐교 지표 — a different source, see the next test
+      expect(def.source.name).toContain("KESS");
+    }
+  });
+
+  it("sources the 3 폐교 지표 from 전북특별자치도교육청 폐교재산 현황, not KESS", () => {
+    for (const id of ["closed_schools", "closed_schools_unused", "closed_schools_recent"]) {
+      const def = indicatorById(id);
+      expect(def?.source.name).toContain("폐교재산 현황");
+      expect(def?.source.name).not.toContain("KESS");
+    }
+  });
+
+  it("gives every indicator a non-empty description, and only the documented ones a caveat", () => {
+    const idsWithCaveat = new Set([
+      "small_schools",
+      "small_school_share",
+      "special_classes",
+      "special_students",
+      "students_change_5y",
+      "closed_schools",
+      "closed_schools_unused",
+      "closed_schools_recent",
+    ]);
+    for (const def of INDICATORS) {
+      expect(def.description.length).toBeGreaterThan(0);
+      if (idsWithCaveat.has(def.id)) {
+        expect(def.caveat, `${def.id} should have a caveat`).toBeTruthy();
+      }
     }
   });
 
@@ -86,6 +123,40 @@ describe("INDICATORS registry", () => {
       kind: "ratio",
       numerator: "students",
       denominator: "classes",
+    });
+  });
+
+  describe("Task 5 — 폐교 지표(closed_schools*)", () => {
+    it("registers all 3 폐교 지표 in the smallSchool group with higherWorse/count", () => {
+      for (const id of ["closed_schools", "closed_schools_unused", "closed_schools_recent"]) {
+        const def = indicatorById(id);
+        expect(def?.group).toBe("smallSchool");
+        expect(def?.polarity).toBe("higherWorse");
+        expect(def?.kind).toBe("count");
+        expect(def?.unit).toBe("교");
+      }
+    });
+
+    it("gives closed_schools the exact label '폐교 수(누적)' (pinned by the e2e test too)", () => {
+      expect(indicatorById("closed_schools")?.label).toBe("폐교 수(누적)");
+    });
+
+    it("gives each 폐교 지표 an external aggregate over CLOSED_SCHOOLS_AGGREGATE_FILE with a distinct field", () => {
+      expect(indicatorById("closed_schools")?.aggregate).toEqual({
+        kind: "external",
+        file: CLOSED_SCHOOLS_AGGREGATE_FILE,
+        field: "count",
+      });
+      expect(indicatorById("closed_schools_unused")?.aggregate).toEqual({
+        kind: "external",
+        file: CLOSED_SCHOOLS_AGGREGATE_FILE,
+        field: "unused",
+      });
+      expect(indicatorById("closed_schools_recent")?.aggregate).toEqual({
+        kind: "external",
+        file: CLOSED_SCHOOLS_AGGREGATE_FILE,
+        field: "recent",
+      });
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   rank,
   referenceDateLabel,
   regionValues,
+  shareOfProvince,
   trend,
   valueMap,
   vsProvince,
@@ -128,6 +129,56 @@ describe("vsProvince", () => {
   });
 });
 
+describe("shareOfProvince", () => {
+  it("returns value/52000 * 100, on a 0-100 scale", () => {
+    const map = new Map<string, number | null>([
+      ["52110", 25],
+      ["52000", 100],
+    ]);
+    expect(shareOfProvince(map, "52110")).toBe(25);
+  });
+
+  it("handles a region value larger than any single-region share intuition would suggest (still just value/province*100)", () => {
+    const map = new Map<string, number | null>([
+      ["52110", 700],
+      ["52000", 500],
+    ]);
+    expect(shareOfProvince(map, "52110")).toBe(140);
+  });
+
+  it("returns 0 for a region with value 0 (not null — a real, known zero share)", () => {
+    const map = new Map<string, number | null>([
+      ["52110", 0],
+      ["52000", 100],
+    ]);
+    expect(shareOfProvince(map, "52110")).toBe(0);
+  });
+
+  it("returns null when the region's own value is null", () => {
+    const map = new Map<string, number | null>([
+      ["52110", null],
+      ["52000", 100],
+    ]);
+    expect(shareOfProvince(map, "52110")).toBeNull();
+  });
+
+  it("returns null when the province value is null", () => {
+    const map = new Map<string, number | null>([
+      ["52110", 10],
+      ["52000", null],
+    ]);
+    expect(shareOfProvince(map, "52110")).toBeNull();
+  });
+
+  it("returns null when the province value is 0 (avoids Infinity/NaN)", () => {
+    const map = new Map<string, number | null>([
+      ["52110", 10],
+      ["52000", 0],
+    ]);
+    expect(shareOfProvince(map, "52110")).toBeNull();
+  });
+});
+
 function seriesFixture(): SeriesFile {
   return {
     id: "students_total",
@@ -206,6 +257,7 @@ describe("displayLabel", () => {
     format: formatInt,
     source: { name: "KESS", url: "https://example.com", year: 2026 },
     aggregate: { kind: "sum", field: "students" },
+    description: "테스트용 설명",
   };
 
   it("returns def.label unchanged for a normal indicator", () => {
@@ -226,7 +278,7 @@ describe("displayLabel", () => {
 
 describe("referenceDateLabel", () => {
   function manifestFixture(latestYear: number): Manifest {
-    return { latestYear, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z" };
+    return { latestYear, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z", sources: [] };
   }
 
   it("formats as '기준 {year}.{month}.{day}' with no zero-padding", () => {

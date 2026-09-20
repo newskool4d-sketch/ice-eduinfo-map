@@ -8,11 +8,11 @@
  * setup. DeckMap.tsx imports `makeLinesOf` from here instead of defining
  * this logic itself.
  */
-import { formatDecimal, formatInt } from "./format";
-import { isRegionCode, regionName } from "./geo/regions";
+import { formatDecimal, formatInt, formatPercent } from "./format";
+import { isRegionCode, REGION_CODES, regionName } from "./geo/regions";
 import { SCHOOL_LEVEL_LABELS } from "./schoolVisuals";
 import type { School } from "./schools/types";
-import { rank, vsProvince } from "./stats";
+import { rank, shareOfProvince, vsProvince } from "./stats";
 import type { IndicatorDef } from "./indicators/types";
 
 function nameOf(code: string): string {
@@ -40,6 +40,15 @@ export function formatDelta(def: IndicatorDef, delta: number): string {
   return delta < 0 ? `-${formatted}` : `+${formatted}`;
 }
 
+/**
+ * "42.4%" — the count-kind "전북 대비 비중" figure (시군값 / 52000값 × 100,
+ * 소수 1자리). No sign, unlike formatDelta: a share is always >= 0, not a
+ * directional difference (Task 5, Section D).
+ */
+export function formatShare(share: number): string {
+  return formatPercent(share, 1);
+}
+
 export interface LinesOfParams {
   def: IndicatorDef;
   /** Already-resolved display label — displayLabel(def, series) from stats.ts, dynamic for students_change_5y. */
@@ -49,9 +58,10 @@ export interface LinesOfParams {
 
 /**
  * Builds a `(code) => string[]` tooltip-line function for one indicator's
- * currently loaded value map: [name, "label: value 단위", "14개 시군 중
- * n위", "전북 {평균|총계} 대비 ±x"] — or just [name, "label: 자료 없음"]
- * (2 lines) when the region has no data for this indicator.
+ * currently loaded value map: [name, "label: value 단위", "{N}개 시군 중
+ * n위", "전북 평균 대비 ±x" (ratio-kind) 또는 "전북 대비 비중 x%" (count-kind)]
+ * — or just [name, "label: 자료 없음"] (2 lines) when the region has no data
+ * for this indicator.
  *
  * `rank(map)` is computed once here, not per hovered code: the caller
  * (DeckMap.tsx) re-creates this function via useMemo only when
@@ -67,20 +77,23 @@ export function makeLinesOf({ def, label, map }: LinesOfParams): (code: string) 
     }
     const valueLine = `${label}: ${formatWithUnit(def, value)}`;
     const r = ranks.get(code);
-    const rankLine = r !== undefined ? `14개 시군 중 ${r}위` : "순위 없음";
-    const delta = vsProvince(map, code);
-    // vsProvince is always `value - 52000행`, per stats.ts — but the 52000
-    // row is only a true (Σ/Σ) *average* for ratio-kind indicators; for
-    // count-kind indicators it's the province-wide *total* (Σ), so labeling
-    // the comparison "평균 대비" there would misreport what the number is
-    // (e.g. 임실군's students_total delta is -164,634, i.e. against the
-    // total, not a ~11,854 provincial average — "총계 대비" is the honest
-    // label).
-    const deltaNoun = def.kind === "ratio" ? "평균" : "총계";
+    const rankLine = r !== undefined ? `${REGION_CODES.length}개 시군 중 ${r}위` : "순위 없음";
+    // count-kind indicators' 52000 row is a province-wide *total* (Σ), not
+    // an average — "전북 평균 대비 −95,514명" reads as if 52000 were a mean,
+    // which misreports the number. count-kind instead shows "전북 대비 비중"
+    // (시군값 / 52000값 × 100): ratio-kind keeps the original "전북 평균 대비
+    // ±x" subtraction, which IS a true Σ/Σ average (fix-round-2 ruling, Task
+    // 5 Section D — see the orchestrator's screenshot review note).
     const deltaLine =
-      delta === null
-        ? `전북 ${deltaNoun} 대비: 자료 없음`
-        : `전북 ${deltaNoun} 대비 ${formatDelta(def, delta)}`;
+      def.kind === "count"
+        ? (() => {
+            const share = shareOfProvince(map, code);
+            return share === null ? "전북 대비 비중: 자료 없음" : `전북 대비 비중 ${formatShare(share)}`;
+          })()
+        : (() => {
+            const delta = vsProvince(map, code);
+            return delta === null ? "전북 평균 대비: 자료 없음" : `전북 평균 대비 ${formatDelta(def, delta)}`;
+          })();
     return [name, valueLine, rankLine, deltaLine];
   };
 }

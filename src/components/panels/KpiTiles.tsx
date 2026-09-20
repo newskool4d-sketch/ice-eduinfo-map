@@ -8,8 +8,15 @@ import { deltaPrevYear, trend, valueMap } from "@/lib/stats";
  * order it lists them: 학교수 / 학생수 / 교원수 / 소규모학교 수. Unrelated to
  * the map's selected indicator (URL `indicator` param) — these 4 are always
  * shown together regardless of what's selected in IndicatorMenu.
+ *
+ * Exported so TopBar.tsx can anchor its "기준 …" caption to THESE tiles'
+ * own reference date (all 4 are KESS-sourced and share one referenceDate),
+ * rather than the currently-selected map indicator's — Task 5 fix round 1
+ * (coordinator ruling): those two only ever coincided by accident before
+ * Task 5 introduced an indicator (폐교 지표) with a genuinely different
+ * referenceDate.
  */
-const KPI_INDICATOR_IDS = ["schools_total", "students_total", "teachers_total", "small_schools"] as const;
+export const KPI_INDICATOR_IDS = ["schools_total", "students_total", "teachers_total", "small_schools"] as const;
 
 export interface KpiTilesProps {
   indicators: DataBundle["indicators"];

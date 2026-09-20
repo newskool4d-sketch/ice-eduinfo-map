@@ -46,8 +46,13 @@ export default function Legend({
 
   return (
     <div className="flex flex-wrap items-center gap-4 text-xs text-[#e6e9f0]/70">
-      <span className="shrink-0 text-sm font-semibold text-[#e6e9f0]" data-testid="legend-indicator-label">
-        {def.label}
+      <span className="flex shrink-0 flex-col">
+        <span className="text-sm font-semibold text-[#e6e9f0]" data-testid="legend-indicator-label">
+          {def.label}
+        </span>
+        <span className="max-w-[280px] text-[10px] leading-snug text-[#e6e9f0]/45" data-testid="legend-description">
+          {def.description}
+        </span>
       </span>
 
       <div className="flex items-end gap-0.5">

@@ -131,7 +131,45 @@
       "years": [
         2026
       ]
+    },
+    "closed_schools": {
+      "years": [
+        2026
+      ]
+    },
+    "closed_schools_unused": {
+      "years": [
+        2026
+      ]
+    },
+    "closed_schools_recent": {
+      "years": [
+        2026
+      ]
     }
   },
-  "builtAt": "2026-09-20T10:08:58.078Z"
+  "builtAt": "2026-09-20T16:10:05.575Z",
+  "sources": [
+    {
+      "name": "한국교육개발원 교육통계서비스(KESS) 교육기본통계 학교별 데이터셋",
+      "url": "https://kess.kedi.re.kr/contents/dataset",
+      "referenceDate": "2026-04-01"
+    },
+    {
+      "name": "한국교육시설안전원 초중등학교위치 표준데이터",
+      "url": "https://www.data.go.kr/data/15159184/fileData.do",
+      "referenceDate": "2026-03-20"
+    },
+    {
+      "name": "통계청 SGIS 기반 행정동 경계(vuski/admdongkor)",
+      "url": "https://raw.githubusercontent.com/vuski/admdongkor/master/ver20260701/HangJeongDong_ver20260701.geojson",
+      "referenceDate": "2026-07-01"
+    },
+    {
+      "name": "전북특별자치도교육청 폐교재산 현황(공공데이터포털)",
+      "url": "https://www.data.go.kr/data/15021709/fileData.do",
+      "referenceDate": "2026-07-16",
+      "publishedAt": "2026-07-20"
+    }
+  ]
 }

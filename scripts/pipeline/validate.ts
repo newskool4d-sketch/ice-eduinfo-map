@@ -41,6 +41,7 @@ import path from "node:path";
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 import { INDICATOR_IDS, INDICATORS, indicatorById } from "../../src/lib/indicators/registry";
 import type { IndicatorFile, Manifest, SchoolLevel, SeriesFile } from "../../src/lib/indicators/types";
+import type { ClosedSchoolsFile } from "../../src/lib/closedSchools/types";
 import type { RegionFeature } from "../../src/lib/geo/geo";
 import { pointInPolygon } from "./lib/point-in-polygon";
 import type { School } from "./lib/schools";
@@ -59,6 +60,7 @@ const PUBLIC_DATA_DIR = path.resolve(import.meta.dirname, "../../public/data");
 const INDICATORS_DIR = path.join(PUBLIC_DATA_DIR, "indicators");
 const SERIES_DIR = path.join(PUBLIC_DATA_DIR, "series");
 const SCHOOLS_JSON_PATH = path.join(PUBLIC_DATA_DIR, "schools.json");
+const CLOSED_SCHOOLS_JSON_PATH = path.join(PUBLIC_DATA_DIR, "closed-schools.json");
 const REGIONS_GEOJSON_PATH = path.join(PUBLIC_DATA_DIR, "regions.geojson");
 const MATCH_REPORT_PATH = path.resolve(import.meta.dirname, "../../data/interim/schools-match-report.json");
 
@@ -284,6 +286,50 @@ function checkSchools(): void {
   }
 }
 
+/**
+ * Check 7 (Task 5 — 폐교 지표): the 3 closed_schools* indicator files' 14
+ * 시군 sums, and their own 52000 rows, must both equal
+ * public/data/closed-schools.json's row count for that metric (전체 /
+ * 미활용 / 최근 10년 각각) — the pipeline's own aggregateClosedSchools() is
+ * unit-tested in isolation, but this re-checks the actually-PUBLISHED files
+ * end to end, the same way check 6 re-checks schools.json rather than only
+ * trusting lib/schools.ts's unit tests.
+ */
+function checkClosedSchools(indicatorFiles: Map<string, IndicatorFile>): void {
+  const closedSchools = loadJSON<ClosedSchoolsFile>(CLOSED_SCHOOLS_JSON_PATH);
+  if (!closedSchools) {
+    fail("7:file-exists", `missing public/data/closed-schools.json — run: npm run data:indicators`);
+    return;
+  }
+
+  const maxYear = closedSchools.rows.reduce((max, r) => Math.max(max, r.year), -Infinity);
+  const recentThreshold = maxYear - 9;
+  const expectedTotals: Record<string, number> = {
+    closed_schools: closedSchools.rows.length,
+    closed_schools_unused: closedSchools.rows.filter((r) => r.usage === "미활용").length,
+    closed_schools_recent: closedSchools.rows.filter((r) => r.year >= recentThreshold).length,
+  };
+
+  for (const [id, expectedTotal] of Object.entries(expectedTotals)) {
+    const file = indicatorFiles.get(id);
+    if (!file) continue; // already flagged by check (5)
+
+    const regionRows = file.rows.filter((r) => r.level === undefined && r.regionCode !== PROVINCE_CODE);
+    const sum14 = regionRows.reduce((total, r) => total + (r.value ?? 0), 0);
+    if (sum14 !== expectedTotal) {
+      fail(`7:closed-schools[${id}]`, `14개 시군 합계 ${sum14} != closed-schools.json 행수 ${expectedTotal}`);
+    }
+
+    const provinceRow = file.rows.find((r) => r.level === undefined && r.regionCode === PROVINCE_CODE);
+    if (!provinceRow || provinceRow.value !== expectedTotal) {
+      fail(
+        `7:closed-schools[${id}]`,
+        `52000 행 값 ${provinceRow?.value ?? "없음"} != closed-schools.json 행수 ${expectedTotal}`,
+      );
+    }
+  }
+}
+
 function main(): void {
   const expectedRegionCodes = new Set([...REGION_TABLE.map((r) => r.code), PROVINCE_CODE]);
   const indicatorFiles = new Map<string, IndicatorFile>();
@@ -341,6 +387,10 @@ function main(): void {
 
   // (6) schools.json — see checkSchools's own doc comment for (a)-(e).
   checkSchools();
+
+  // (7) closed_schools* indicator files vs closed-schools.json — see
+  // checkClosedSchools's own doc comment.
+  checkClosedSchools(indicatorFiles);
 
   const matchReport = loadJSON<SchoolsMatchReport>(MATCH_REPORT_PATH);
   if (matchReport) {
