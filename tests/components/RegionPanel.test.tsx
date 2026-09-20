@@ -8,6 +8,7 @@ import { REGION_CODES } from "@/lib/geo/regions";
 import { INDICATORS } from "@/lib/indicators/registry";
 import { formatDelta } from "@/lib/tooltipText";
 import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
+import type { School, SchoolsFile } from "@/lib/schools/types";
 
 const REGION = "52110"; // 전주시
 const OTHER_REGION = "52130"; // 군산시
@@ -60,6 +61,55 @@ function manifestFixture(): Manifest {
   return { latestYear: 2026, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z" };
 }
 
+function schoolFixture(overrides: Partial<School> & Pick<School, "id" | "regionCode">): School {
+  return {
+    name: `학교${overrides.id}`,
+    level: "elem",
+    status: "운영",
+    branch: false,
+    lat: 35.8,
+    lng: 127.1,
+    students: 100,
+    classes: 5,
+    teachers: 10,
+    studentsPerClass: 20,
+    small: false,
+    ...overrides,
+  };
+}
+
+const NO_LOCATION_REASON = "특수학교는 위치 표준데이터(2026-03-20)에 없음";
+
+/** 5 schools in REGION (전주시): unsorted by students on purpose, so sort-order assertions are meaningful; one is a 분교장, one is 소규모, levels span elem/mid/high/special. `special1` has no coordinates (lat/lng null + locationMissingReason) — mirrors real data, where every 특수학교 row is like this (fix-round-1). Plus 1 school in OTHER_REGION (must never appear). */
+function schoolsFixture(): SchoolsFile {
+  return {
+    referenceDate: { location: "2026-03-20", stats: "2026-04-01" },
+    source: {
+      location: { name: "한국교육시설안전원 초중등학교위치 표준데이터", url: "https://example.com/location", referenceDate: "2026-03-20" },
+      stats: { name: "KESS", url: "https://example.com/kess", referenceDate: "2026-04-01" },
+    },
+    schools: [
+      schoolFixture({ id: "mid1", regionCode: REGION, name: "전주중학교", level: "mid", students: 300, classes: 12, studentsPerClass: 25 }),
+      schoolFixture({ id: "small1", regionCode: REGION, name: "전주소규모초등학교", level: "elem", students: 40, classes: 4, studentsPerClass: 10, small: true }),
+      schoolFixture({ id: "high1", regionCode: REGION, name: "전주고등학교", level: "high", students: 500, classes: 15, studentsPerClass: 33.3 }),
+      schoolFixture({ id: "branch1", regionCode: REGION, name: "전주분교", level: "elem", branch: true, students: 15, classes: 1, studentsPerClass: 15, small: true }),
+      schoolFixture({
+        id: "special1",
+        regionCode: REGION,
+        name: "전주특수학교",
+        level: "special",
+        students: 80,
+        classes: 8,
+        studentsPerClass: 10,
+        lat: null,
+        lng: null,
+        locationMissingReason: NO_LOCATION_REASON,
+      }),
+      schoolFixture({ id: "other1", regionCode: OTHER_REGION, name: "군산초등학교", level: "elem", students: 999 }),
+    ],
+  };
+}
+
 function bundleFixture() {
   const indicators: Record<string, IndicatorFile> = {};
   const series: Record<string, SeriesFile> = {};
@@ -69,20 +119,32 @@ function bundleFixture() {
       series[def.id] = def.id === "students_total" ? studentsTotalSeries() : { id: def.id, rows: [] };
     }
   }
-  return { indicators, series, manifest: manifestFixture() };
+  return { indicators, series, manifest: manifestFixture(), schools: schoolsFixture() };
 }
 
-function renderSelected(searchParams: string, opts: Parameters<typeof withNuqsTestingAdapter>[0] = {}) {
-  return render(<RegionPanel bundle={bundleFixture()} />, {
-    wrapper: withNuqsTestingAdapter({ searchParams, ...opts }),
-  });
+function renderSelected(
+  searchParams: string,
+  opts: Parameters<typeof withNuqsTestingAdapter>[0] = {},
+  panelProps: { highlightedSchoolId?: string | null; onHighlightSchool?: (id: string | null) => void } = {},
+) {
+  return render(
+    <RegionPanel
+      bundle={bundleFixture()}
+      highlightedSchoolId={panelProps.highlightedSchoolId ?? null}
+      onHighlightSchool={panelProps.onHighlightSchool ?? (() => {})}
+    />,
+    {
+      wrapper: withNuqsTestingAdapter({ searchParams, ...opts }),
+    },
+  );
 }
 
 describe("RegionPanel", () => {
   it("renders nothing when no region is selected (defensive — Dashboard only mounts it once one is)", () => {
-    const { container } = render(<RegionPanel bundle={bundleFixture()} />, {
-      wrapper: withNuqsTestingAdapter({ searchParams: "" }),
-    });
+    const { container } = render(
+      <RegionPanel bundle={bundleFixture()} highlightedSchoolId={null} onHighlightSchool={() => {}} />,
+      { wrapper: withNuqsTestingAdapter({ searchParams: "" }) },
+    );
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -165,9 +227,132 @@ describe("RegionPanel", () => {
     expect(indicatorCalls).toHaveLength(1);
   });
 
-  it("shows the schools-list placeholder (Task 4B replaces this)", () => {
-    renderSelected(`?region=${REGION}`);
-    expect(screen.getByText("학교별 보기는 준비 중")).toBeInTheDocument();
+  describe("학교 목록 (Task 4B)", () => {
+    it("lists only the selected region's schools, sorted by students descending", () => {
+      renderSelected(`?region=${REGION}`);
+      const rows = screen.getAllByTestId(/^school-row-/);
+      expect(rows).toHaveLength(5); // REGION has 5; OTHER_REGION's school must be excluded
+      const names = rows.map((r) => r.textContent);
+      expect(names[0]).toContain("전주고등학교"); // 500
+      expect(names[1]).toContain("전주중학교"); // 300
+      expect(names[2]).toContain("전주특수학교"); // 80
+      expect(names[3]).toContain("전주소규모초등학교"); // 40
+      expect(names[4]).toContain("전주분교"); // 15
+      expect(screen.queryByText("군산초등학교")).not.toBeInTheDocument();
+    });
+
+    it("shows a summary line: 학교 N개 · 소규모 M개", () => {
+      renderSelected(`?region=${REGION}`);
+      // 5 schools total, 2 소규모 (전주소규모초등학교 40명, 전주분교 15명)
+      expect(screen.getByText(/학교 5개/)).toBeInTheDocument();
+      expect(screen.getByText(/소규모 2개/)).toBeInTheDocument();
+    });
+
+    it("shows the 위치 기준 caption from bundle.schools.referenceDate.location", () => {
+      renderSelected(`?region=${REGION}`);
+      expect(screen.getByText(/위치 기준 2026-03-20/)).toBeInTheDocument();
+    });
+
+    it("shows 학교급 filter chips: 전체/초/중/고/특수", () => {
+      renderSelected(`?region=${REGION}`);
+      expect(screen.getByRole("button", { name: "전체" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "초" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "중" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "고" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "특수" })).toBeInTheDocument();
+    });
+
+    it("clicking a filter chip narrows the list to that 학교급 only", async () => {
+      const user = userEvent.setup();
+      renderSelected(`?region=${REGION}`);
+
+      await user.click(screen.getByRole("button", { name: "초" }));
+
+      const rows = screen.getAllByTestId(/^school-row-/);
+      expect(rows).toHaveLength(2); // 전주소규모초등학교 + 전주분교 (both elem)
+      expect(rows.map((r) => r.textContent).join("")).toContain("전주소규모초등학교");
+      expect(rows.map((r) => r.textContent).join("")).toContain("전주분교");
+      expect(screen.queryByText("전주고등학교")).not.toBeInTheDocument();
+      // Summary reflects the filtered set, matching the table below it.
+      expect(screen.getByText(/학교 2개/)).toBeInTheDocument();
+      expect(screen.getByText(/소규모 2개/)).toBeInTheDocument();
+    });
+
+    it("clicking 전체 after a filter restores the full list", async () => {
+      const user = userEvent.setup();
+      renderSelected(`?region=${REGION}`);
+
+      await user.click(screen.getByRole("button", { name: "고" }));
+      expect(screen.getAllByTestId(/^school-row-/)).toHaveLength(1);
+
+      await user.click(screen.getByRole("button", { name: "전체" }));
+      expect(screen.getAllByTestId(/^school-row-/)).toHaveLength(5);
+    });
+
+    it("shows a 급 배지, 소규모 배지, and 분교장 표시 on the relevant rows", () => {
+      renderSelected(`?region=${REGION}`);
+      const branchRow = screen.getByTestId("school-row-branch1");
+      expect(branchRow).toHaveTextContent("분교");
+      const smallRow = screen.getByTestId("school-row-small1");
+      expect(smallRow).toHaveTextContent("소규모");
+      const highRow = screen.getByTestId("school-row-high1");
+      expect(highRow).toHaveTextContent("고");
+    });
+
+    it("clicking a row calls onHighlightSchool with that school's id", async () => {
+      const user = userEvent.setup();
+      const onHighlightSchool = vi.fn();
+      renderSelected(`?region=${REGION}`, {}, { onHighlightSchool });
+
+      await user.click(screen.getByTestId("school-row-high1"));
+
+      expect(onHighlightSchool).toHaveBeenCalledWith("high1");
+    });
+
+    it("clicking the already-highlighted row again calls onHighlightSchool(null) (toggle off)", async () => {
+      const user = userEvent.setup();
+      const onHighlightSchool = vi.fn();
+      renderSelected(`?region=${REGION}`, {}, { highlightedSchoolId: "high1", onHighlightSchool });
+
+      await user.click(screen.getByTestId("school-row-high1"));
+
+      expect(onHighlightSchool).toHaveBeenCalledWith(null);
+    });
+
+    it("visually marks the highlighted row (aria-current)", () => {
+      renderSelected(`?region=${REGION}`, {}, { highlightedSchoolId: "high1" });
+      expect(screen.getByTestId("school-row-high1")).toHaveAttribute("aria-current", "true");
+      expect(screen.getByTestId("school-row-mid1")).not.toHaveAttribute("aria-current");
+    });
+
+    describe("좌표 없는 학교 (특수학교, fix-round-1)", () => {
+      it("shows a 위치 없음 badge on the row, with the reason as its title", () => {
+        renderSelected(`?region=${REGION}`);
+        const row = screen.getByTestId("school-row-special1");
+        const badge = within(row).getByText("위치 없음");
+        expect(badge).toHaveAttribute("title", NO_LOCATION_REASON);
+      });
+
+      it("does not show the badge on a row that has coordinates", () => {
+        renderSelected(`?region=${REGION}`);
+        const row = screen.getByTestId("school-row-high1");
+        expect(within(row).queryByText("위치 없음")).not.toBeInTheDocument();
+      });
+
+      it("summary line adds '위치 없음 K개' when the filtered set includes a no-coordinate school", () => {
+        renderSelected(`?region=${REGION}`); // 전체 filter — includes special1
+        expect(screen.getByText(/위치 없음 1개/)).toBeInTheDocument();
+      });
+
+      it("summary line omits '위치 없음' when the filtered set has no no-coordinate school", async () => {
+        const user = userEvent.setup();
+        renderSelected(`?region=${REGION}`);
+
+        await user.click(screen.getByRole("button", { name: "고" })); // only high1 (has coordinates)
+
+        expect(screen.queryByText(/위치 없음/)).not.toBeInTheDocument();
+      });
+    });
   });
 
   it("shows the source name and reference date (기준 YYYY.M.D, matching TopBar/referenceDateLabel)", () => {

@@ -237,6 +237,91 @@ export const OFFICIAL_TEACHERS_BY_LEVEL: Record<SchoolLevel, number> = {
 export const VALIDATE_TOLERANCE_RATIO = 0.005;
 
 // ---------------------------------------------------------------------------
+// School location CSV (Task 4B — 한국교육시설안전원 초중등학교위치)
+// ---------------------------------------------------------------------------
+
+/**
+ * The location CSV's filename always starts with this prefix and ends with
+ * `_YYYYMMDD.csv` (the 데이터기준일자 baked into the filename itself — see
+ * `referenceDateFromFilename`). build-schools.ts scans `data/raw/` for a
+ * file matching this prefix rather than hardcoding the full filename, so a
+ * future refresh (a new 기준일자) only requires dropping in the new file,
+ * unchanged name aside from its date suffix.
+ */
+export const LOCATION_CSV_PREFIX = "한국교육시설안전원_초중등학교위치_";
+
+const LOCATION_CSV_DATE_RE = /_(\d{8})\.csv$/;
+
+/**
+ * Parses the `_YYYYMMDD.csv` suffix off a location CSV filename into an ISO
+ * `YYYY-MM-DD` date — the "날짜기준 규칙" (사용자 지시): the reference date
+ * baked into the source filename must be carried into the built metadata and
+ * the on-screen source caption, never silently dropped or re-derived from
+ * today's date. Throws (naming the exact expected pattern) when the filename
+ * doesn't match, so a renamed/misnamed source file fails loudly instead of
+ * silently producing a wrong or missing referenceDate.
+ */
+export function referenceDateFromFilename(filename: string): string {
+  const match = LOCATION_CSV_DATE_RE.exec(filename);
+  if (!match) {
+    throw new Error(
+      `파일명에서 기준일자(_YYYYMMDD.csv)를 찾을 수 없습니다: ${JSON.stringify(filename)}. ` +
+        `예상 형식: ${LOCATION_CSV_PREFIX}YYYYMMDD.csv (예: ${LOCATION_CSV_PREFIX}20260320.csv)`,
+    );
+  }
+  const [, ymd] = match;
+  return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
+}
+
+/** public/data/schools.json's `source.location` (referenceDate is filled in by build-schools.ts from the filename). */
+export const LOCATION_SOURCE = {
+  name: "한국교육시설안전원 초중등학교위치 표준데이터",
+  url: "https://www.data.go.kr/data/15159184/fileData.do",
+};
+
+/** public/data/schools.json's `source.stats` (referenceDate is filled in from data/interim/kess-<year>.json). Same dataset as KESS_SOURCE in registry.ts/parse-kess.ts — duplicated here (not imported) to match this codebase's existing precedent of each pipeline entry point owning its own copy of this literal (see parse-kess.ts's local `SOURCE` const). */
+export const KESS_STATS_SOURCE = {
+  name: "한국교육개발원 교육통계서비스(KESS) 교육기본통계 학교별 데이터셋",
+  url: "https://kess.kedi.re.kr/contents/dataset",
+};
+
+/**
+ * The 학교급 values LOCATION_SOURCE actually covers. Verified against the
+ * full national download (12,011 rows, every 시도): the `학교급구분` column's
+ * distinct values are exactly `{초등학교, 중학교, 고등학교}` — **no 특수학교
+ * row exists anywhere in this dataset, for any 시도, not just 전북** (this is
+ * a property of the source itself — "한국교육시설안전원 초중등학교위치"
+ * appears to only ever have covered 초/중/고, not 특수학교 — not a filtering
+ * bug or a 전북-specific gap). Confirmed further: none of 전북 KESS's 11
+ * 특수학교 names appear anywhere in the national file (0 substring matches,
+ * checked against all 12,011 rows) — this isn't "these particular schools
+ * happen to be missing", every 특수학교 nationwide is absent from this
+ * dataset.
+ *
+ * Consequence for build-schools.ts: any INCLUDED_STATUSES KESS row whose
+ * `level` is not in this list can never be matched to a location row no
+ * matter how good the matching logic is — it isn't a matching failure, it's
+ * a structural absence in the source. Those rows are still carried into
+ * `public/data/schools.json` (via `buildNoLocationSchoolRecord`) with
+ * `lat: null, lng: null` and a `locationMissingReason`, but are excluded
+ * from:
+ *  - the KESS↔location match-rate validate.ts requires to be 100%
+ *    (`unmatchedKess` in the match report is scoped to `LOCATION_SOURCE_LEVELS`
+ *    only; the 특수학교 rows are reported separately under `noLocationSource`)
+ *  - validate.ts's per-(region, level) 본교 count comparison against
+ *    schools_total.json (only elem/mid/high are compared; comparing special
+ *    would just be re-testing "did we carry every KESS row through", not
+ *    "did the location-matching logic work" — a structurally different
+ *    question from what that check exists to catch)
+ *
+ * If a future refresh of LOCATION_SOURCE ever starts including 특수학교
+ * rows, this constant (and the 데이터 자체) should be re-verified — nothing
+ * else needs to change: build-schools.ts would then be able to match them
+ * like any other level.
+ */
+export const LOCATION_SOURCE_LEVELS: SchoolLevel[] = ["elem", "mid", "high"];
+
+// ---------------------------------------------------------------------------
 // Header mapping
 // ---------------------------------------------------------------------------
 

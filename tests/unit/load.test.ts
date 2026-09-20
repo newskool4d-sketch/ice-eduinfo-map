@@ -5,6 +5,7 @@ import type { DataBundle } from "@/lib/data/types";
 import { INDICATORS, INDICATOR_IDS } from "@/lib/indicators/registry";
 import { PROVINCE_CODE, REGION_CODES } from "@/lib/geo/regions";
 import type { IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
+import type { SchoolsFile } from "@/lib/schools/types";
 
 function regionsFixture() {
   return {
@@ -54,6 +55,31 @@ function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 404) {
   return { ok, status, json: async () => body } as Response;
 }
 
+function schoolsFixture(): SchoolsFile {
+  return {
+    referenceDate: { location: "2026-03-20", stats: "2026-04-01" },
+    source: {
+      location: { name: "한국교육시설안전원 초중등학교위치 표준데이터", url: "https://example.com/location", referenceDate: "2026-03-20" },
+      stats: { name: "KESS", url: "https://example.com/kess", referenceDate: "2026-04-01" },
+    },
+    schools: REGION_CODES.map((code, i) => ({
+      id: `S${i}`,
+      name: `학교${i}`,
+      level: "elem",
+      status: "운영",
+      branch: false,
+      lat: 35.8,
+      lng: 127.1,
+      regionCode: code,
+      students: 100,
+      classes: 5,
+      teachers: 10,
+      studentsPerClass: 20,
+      small: false,
+    })),
+  };
+}
+
 /** A fetchImpl that resolves every URL this app's DataProvider is expected to request. */
 function fullFakeFetch() {
   const calls: string[] = [];
@@ -63,6 +89,7 @@ function fullFakeFetch() {
     if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
     if (url === "/data/charset.json") return jsonResponse(CHARSET);
     if (url === "/data/manifest.json") return jsonResponse(manifestFixture());
+    if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
     const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
     if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
     const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -81,6 +108,8 @@ describe("loadBundle", () => {
     expect(bundle.neighbors.type).toBe("FeatureCollection");
     expect(bundle.charset).toBe(CHARSET);
     expect(bundle.manifest.latestYear).toBe(2026);
+    expect(bundle.schools.schools.length).toBe(REGION_CODES.length);
+    expect(bundle.schools.referenceDate.location).toBe("2026-03-20");
     for (const id of INDICATOR_IDS) {
       expect(bundle.indicators[id]).toBeTruthy();
       expect(bundle.indicators[id].id).toBe(id);
@@ -109,6 +138,7 @@ describe("loadBundle", () => {
       if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
       if (url === "/data/charset.json") return jsonResponse(CHARSET);
       if (url === "/data/manifest.json") return jsonResponse(manifest);
+      if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
       const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
       if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
       const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -138,6 +168,7 @@ describe("loadBundle", () => {
       if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
       if (url === "/data/charset.json") return jsonResponse(CHARSET);
       if (url === "/data/manifest.json") return jsonResponse(manifest);
+      if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
       const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
       if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
       const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -154,6 +185,7 @@ describe("loadBundle", () => {
       if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
       if (url === "/data/charset.json") return jsonResponse(CHARSET);
       if (url === "/data/manifest.json") return jsonResponse(manifestFixture());
+      if (url === "/data/schools.json") return jsonResponse(schoolsFixture());
       const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
       if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
       const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
@@ -211,6 +243,21 @@ describe("assertBundle", () => {
     const bundle = await validBundle();
     bundle.charset = "";
     expect(() => assertBundle(bundle)).toThrow(/charset/i);
+  });
+
+  it("throws when schools.json has 0 schools", async () => {
+    const bundle = await validBundle();
+    bundle.schools = { ...bundle.schools, schools: [] };
+    expect(() => assertBundle(bundle)).toThrow(/schools/i);
+  });
+
+  it("throws when a school's regionCode is outside the 14 시군", async () => {
+    const bundle = await validBundle();
+    bundle.schools = {
+      ...bundle.schools,
+      schools: [{ ...bundle.schools.schools[0], regionCode: "99999" }],
+    };
+    expect(() => assertBundle(bundle)).toThrow(/regionCode/);
   });
 
   it("reports multiple missing items in a single error", async () => {

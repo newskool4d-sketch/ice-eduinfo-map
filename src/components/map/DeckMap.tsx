@@ -12,7 +12,7 @@ import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/g
 import { unionBbox, type Bbox } from "@/lib/geo/geo";
 import type { RegionFeature } from "@/lib/geo/geo";
 import { lightingEffect } from "@/components/map/lighting";
-import { CONTROLLER, fitOverview, fitRegion } from "@/components/map/camera";
+import { CONTROLLER, fitOverview, fitRegion, VIEW_LIMITS } from "@/components/map/camera";
 import {
   makeFootprintLayer,
   makeNeighborsLayer,
@@ -20,14 +20,21 @@ import {
   makeSelectedRingLayer,
 } from "@/components/map/layers/regionLayers";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
-import { makeTooltip } from "@/components/map/tooltip";
+import { makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
+import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
 import { displayLabel, rank, valueMap } from "@/lib/stats";
 import { makeColorScale } from "@/lib/colors";
 import { makeElevationScale } from "@/lib/scales";
-import { makeLinesOf, formatWithUnit } from "@/lib/tooltipText";
+import { makeSchoolRadiusScale } from "@/lib/schoolVisuals";
+import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipText";
 import { nextRegion, regionRankList, selectionAnnouncement } from "@/lib/selection";
+
+/** zoom≥11 이 되어야 학교명 라벨을 그린다 (브리프 고정값 — DeckMap.tsx 의 onViewStateChange 스로틀 zoom 으로 판단). */
+const SCHOOL_LABEL_MIN_ZOOM = 11;
+/** onViewStateChange 스로틀 간격(ms). */
+const ZOOM_THROTTLE_MS = 100;
 
 // e2e-only bridge (see e2e/select-region.spec.ts): only ever written when
 // NEXT_PUBLIC_E2E=1 (a build-time-inlined env var — see playwright.config.ts's
@@ -72,9 +79,19 @@ export interface DeckMapProps {
   selectedCode: RegionCode | null;
   /** Called with a region code on click/keyboard selection, or null to deselect (Esc / empty-space click). */
   onSelect: (code: RegionCode | null) => void;
+  /** The currently-highlighted school (map point click / RegionPanel row click), or null. Task 4B — owned by Dashboard (not the URL), mirrored by RegionPanel's row highlight. */
+  highlightedSchoolId: string | null;
+  /** Called with a school id to highlight it, or null to clear. DeckMap itself handles the "click the same point again -> clear" toggle before calling this. */
+  onHighlightSchool: (id: string | null) => void;
 }
 
-export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMapProps) {
+export default function DeckMap({
+  indicatorId,
+  selectedCode,
+  onSelect,
+  highlightedSchoolId,
+  onHighlightSchool,
+}: DeckMapProps) {
   const bundle = useBundle();
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef | null>(null);
@@ -106,6 +123,36 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
   // through state instead means neither click/keyboard handler touches a
   // ref at all; only this effect (a safe place to read one) calls `flyTo`.
   const [reselectNonce, setReselectNonce] = useState(0);
+
+  // Task 4B: current zoom, throttled to ZOOM_THROTTLE_MS via onViewStateChange
+  // below — this is the ONLY thing zoom is tracked for (deciding whether
+  // 학교명 라벨 should render, SCHOOL_LABEL_MIN_ZOOM). Not routed through
+  // cameraViewState/`initialViewState` — DeckGL's view stays uncontrolled;
+  // this is a passive read of whatever zoom the user's own pan/scroll
+  // produced. Starts at the overview's minZoom (labels are never visible at
+  // that zoom anyway) rather than undefined, so the very first render
+  // already has a defined, safely-below-threshold value.
+  const [zoom, setZoom] = useState<number>(VIEW_LIMITS.minZoom);
+  const lastZoomUpdateRef = useRef(0);
+  const handleViewStateChange = useCallback(({ viewState }: { viewState: Record<string, unknown> }) => {
+    const now = Date.now();
+    if (now - lastZoomUpdateRef.current < ZOOM_THROTTLE_MS) return;
+    lastZoomUpdateRef.current = now;
+    const nextZoom = viewState.zoom;
+    if (typeof nextZoom !== "number") return;
+    // deck.gl/react's <DeckGL> can invoke onViewStateChange synchronously
+    // from within its OWN render/transition tick (e.g. mid-FlyTo, or a
+    // canvas drag) — calling setState directly from here occasionally lands
+    // while a *different* component (ForwardRef(DeckGLWithRef) itself) is
+    // still rendering, which React flags: "Cannot update a component while
+    // rendering a different component" (confirmed via a real e2e console-
+    // error assertion, not just a lint rule — see e2e/select-region.spec.ts's
+    // canvas-click test). Deferring one microtask moves the update outside
+    // that synchronous call stack (microtasks run after the current script/
+    // render finishes, before the next paint) without adding a
+    // human-perceptible delay the way a setTimeout(0) macrotask would.
+    queueMicrotask(() => setZoom(nextZoom));
+  }, []);
 
   // Font gating: TextLayer caches one SDF atlas per fontFamily, so we must
   // not create it until next/font's family is actually ready to rasterize
@@ -299,7 +346,43 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
 
   const views = useMemo(() => VIEW, []);
 
-  const getTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
+  // Task 4B — 학교 점. radiusOf is scaled over the FULL schools.json list
+  // (bundle.schools, stable across a selection change) so dot sizes never
+  // silently mean something different when the user picks a different 시군
+  // — see makeSchoolRadiusScale's doc comment.
+  const radiusOf = useMemo(() => makeSchoolRadiusScale(bundle.schools.schools), [bundle.schools]);
+
+  // Only the selected 시군's schools are ever handed to the layers/data —
+  // per the task brief, both the point layer and the label layer only ever
+  // render the selected region's schools (`visible` below additionally
+  // gates the whole layer off when nothing is selected at all).
+  const regionSchools = useMemo(
+    () => (selectedCode ? bundle.schools.schools.filter((s) => s.regionCode === selectedCode) : []),
+    [bundle.schools, selectedCode],
+  );
+  const schoolsVisible = !!selectedCode;
+  const schoolLabelsVisible = !!selectedCode && zoom >= SCHOOL_LABEL_MIN_ZOOM;
+
+  // A school point (or its RegionPanel row counterpart) was clicked: toggle
+  // the highlight off if it's already the highlighted one, otherwise select
+  // it. Mirrors handleRegionClick's own "reselect == toggle" shape.
+  const handleSchoolClick = useCallback(
+    (id: string) => {
+      onHighlightSchool(id === highlightedSchoolId ? null : id);
+    },
+    [highlightedSchoolId, onHighlightSchool],
+  );
+
+  const getRegionTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
+  const getSchoolTooltip = useMemo(() => makeSchoolTooltip(schoolTooltipLines), []);
+  // Dispatches by which layer was actually hovered — schools (a
+  // ScatterplotLayer, `info.object` is a plain School row) vs every other
+  // (GeoJsonLayer-backed, `info.object.properties.code`) layer.
+  const getTooltip = useCallback(
+    (info: Parameters<typeof getRegionTooltip>[0]) =>
+      info.layer?.id === "schools" ? getSchoolTooltip(info) : getRegionTooltip(info),
+    [getRegionTooltip, getSchoolTooltip],
+  );
 
   const getCursor = useCallback(
     ({ isDragging, isHovering }: { isDragging: boolean; isHovering: boolean }) =>
@@ -424,6 +507,13 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
   // inputs while focused — must never deselect the map behind it), and is
   // only attached while something is actually selected (nothing to
   // deselect otherwise).
+  //
+  // Task 4B: a highlighted school (highlightedSchoolId) clears FIRST — a
+  // second Escape (now nothing highlighted) deselects the region, same as
+  // before 4B. highlightedSchoolId can only be non-null while a region is
+  // already selected (Dashboard resets it whenever regionCode changes), so
+  // the effect's existing `!selectedCode` guard already covers this case
+  // too — no separate attach condition needed.
   useEffect(() => {
     if (!selectedCode) return;
     function onDocumentKeyDown(event: KeyboardEvent) {
@@ -436,11 +526,15 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
       ) {
         return;
       }
-      onSelect(null);
+      if (highlightedSchoolId !== null) {
+        onHighlightSchool(null);
+      } else {
+        onSelect(null);
+      }
     }
     document.addEventListener("keydown", onDocumentKeyDown);
     return () => document.removeEventListener("keydown", onDocumentKeyDown);
-  }, [selectedCode, onSelect]);
+  }, [selectedCode, onSelect, highlightedSchoolId, onHighlightSchool]);
 
   // 추가 요구 #4: 나침반(bearing/pitch reset) + 전체보기(fit-to-overview)
   // buttons, bottom-left inside the canvas. Both are official deck.gl
@@ -490,6 +584,14 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
         onClick: handleRegionClick,
       }),
       selectedRingLayer,
+      makeSchoolsLayer(regionSchools, {
+        elevationOf,
+        radiusOf,
+        highlightedId: highlightedSchoolId,
+        visible: schoolsVisible,
+        onClick: handleSchoolClick,
+        triggerKey: indicatorId,
+      }),
     ];
     if (fontReady) {
       layerList.push(
@@ -499,6 +601,13 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
           triggerKey: indicatorId,
           fontFamily,
           characterSet,
+        }),
+        makeSchoolLabelsLayer(regionSchools, {
+          elevationOf,
+          visible: schoolLabelsVisible,
+          fontFamily,
+          characterSet,
+          triggerKey: indicatorId,
         }),
       );
     }
@@ -512,6 +621,12 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
     selectedCode,
     handleRegionClick,
     selectedRingLayer,
+    regionSchools,
+    radiusOf,
+    highlightedSchoolId,
+    schoolsVisible,
+    schoolLabelsVisible,
+    handleSchoolClick,
     fontReady,
     labels,
     labelTextOf,
@@ -556,6 +671,7 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
           getCursor={getCursor}
           onAfterRender={handleAfterRender}
           onClick={handleDeckClick}
+          onViewStateChange={handleViewStateChange}
         />
       )}
       <div aria-live="polite" className="sr-only">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import MapShell from "@/components/map/MapShell";
 import Legend from "@/components/panels/Legend";
@@ -54,20 +54,62 @@ function DashboardInner({
   // override before handing it to Legend.
   const legendDef = useMemo(() => ({ ...def, label: displayLabel(def, bundle.series) }), [def, bundle.series]);
 
+  // Task 4B — the highlighted school (map point / RegionPanel row click).
+  // Owned here (not the URL: it's a transient view-state, not something a
+  // shared link should restore) and mirrored to both MapShell (map dot
+  // highlight) and RegionPanel (row highlight) so either side can drive it.
+  // Cleared whenever the selected 시군 itself changes, so a highlighted id
+  // from a previous region never silently survives into the next one (it
+  // would just never match any point there, but a stale value is still
+  // wrong to keep around). Reset-on-prop-change during render (the React-
+  // recommended "adjusting state when a prop changes" pattern —
+  // react.dev/learn/you-might-not-need-an-effect) rather than in a
+  // useEffect, which would cost an extra cascading render for no benefit.
+  const [highlightedSchoolId, setHighlightedSchoolId] = useState<string | null>(null);
+  const [highlightedForRegion, setHighlightedForRegion] = useState(regionCode);
+  if (regionCode !== highlightedForRegion) {
+    setHighlightedForRegion(regionCode);
+    setHighlightedSchoolId(null);
+  }
+
   return (
     <div className="grid grid-rows-[1fr_auto] overflow-hidden">
       <div className="grid grid-cols-[1fr_360px] overflow-hidden">
         <main className="relative min-h-0 min-w-0 overflow-hidden">
-          <MapShell indicatorId={indicatorId} selectedCode={regionCode} onSelect={setRegion} />
+          <MapShell
+            indicatorId={indicatorId}
+            selectedCode={regionCode}
+            onSelect={setRegion}
+            highlightedSchoolId={highlightedSchoolId}
+            onHighlightSchool={setHighlightedSchoolId}
+          />
         </main>
 
         <aside className="w-[360px] overflow-y-auto border-l border-white/10 p-4">
-          {regionCode ? <RegionPanel bundle={bundle} /> : <RegionList bundle={bundle} />}
+          {regionCode ? (
+            <RegionPanel
+              bundle={bundle}
+              highlightedSchoolId={highlightedSchoolId}
+              onHighlightSchool={setHighlightedSchoolId}
+            />
+          ) : (
+            <RegionList bundle={bundle} />
+          )}
         </aside>
       </div>
 
-      <footer className="flex min-h-12 items-center overflow-x-auto border-t border-white/10 px-4 py-2">
-        <Legend def={legendDef} ticks={ticks} palette={palette} hasNull={hasNull} referenceDate={file.referenceDate} />
+      <footer className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-x-auto border-t border-white/10 px-4 py-2">
+        <Legend
+          def={legendDef}
+          ticks={ticks}
+          palette={palette}
+          hasNull={hasNull}
+          referenceDate={file.referenceDate}
+          schoolLevelsVisible={!!regionCode}
+        />
+        <span className="shrink-0 text-xs text-[#e6e9f0]/40">
+          {bundle.schools.source.location.name} · 학교 위치 기준 {bundle.schools.referenceDate.location}
+        </span>
       </footer>
     </div>
   );

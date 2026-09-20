@@ -1,0 +1,154 @@
+{
+  "locationSourceLevels": [
+    "elem",
+    "mid",
+    "high"
+  ],
+  "matchRate": 1,
+  "totalKessIncluded": 742,
+  "totalKessAll": 753,
+  "matchedCount": 742,
+  "byStage": {
+    "exact": 738,
+    "suffix": 0,
+    "alias": 4
+  },
+  "unmatchedKess": [],
+  "noLocationSource": [
+    {
+      "name": "동암차돌학교",
+      "regionCode": "52110",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "전주선화학교",
+      "regionCode": "52110",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "전주유화학교",
+      "regionCode": "52110",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "전주은화학교",
+      "regionCode": "52110",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "군산명화학교",
+      "regionCode": "52130",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "전북맹아학교",
+      "regionCode": "52140",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "전북혜화학교",
+      "regionCode": "52140",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "다솜학교",
+      "regionCode": "52180",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "한울학교",
+      "regionCode": "52190",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "전북푸른학교",
+      "regionCode": "52710",
+      "level": "special",
+      "branch": false,
+      "status": "기존"
+    },
+    {
+      "name": "덕유샘학교",
+      "regionCode": "52740",
+      "level": "special",
+      "branch": false,
+      "status": "신설"
+    }
+  ],
+  "locationOnly": [
+    {
+      "id": "B000022449",
+      "name": "진북고등공민학교",
+      "levelRaw": "중학교",
+      "regionCode": "52110",
+      "branch": false,
+      "status": "운영",
+      "kessStatus": null
+    },
+    {
+      "id": "B000006240",
+      "name": "비룡초등학교",
+      "levelRaw": "초등학교",
+      "regionCode": "52210",
+      "branch": false,
+      "status": "운영",
+      "kessStatus": "폐교"
+    },
+    {
+      "id": "B000013043",
+      "name": "무풍고등학교",
+      "levelRaw": "고등학교",
+      "regionCode": "52730",
+      "branch": false,
+      "status": "운영",
+      "kessStatus": "폐교"
+    },
+    {
+      "id": "B000006294",
+      "name": "부당초등학교",
+      "levelRaw": "초등학교",
+      "regionCode": "52730",
+      "branch": false,
+      "status": "운영",
+      "kessStatus": "폐교"
+    },
+    {
+      "id": "B000022899",
+      "name": "마사고등학교실습지",
+      "levelRaw": "고등학교",
+      "regionCode": "52740",
+      "branch": false,
+      "status": "운영",
+      "kessStatus": null
+    },
+    {
+      "id": "B000006369",
+      "name": "상서초등학교",
+      "levelRaw": "초등학교",
+      "regionCode": "52800",
+      "branch": false,
+      "status": "운영",
+      "kessStatus": "폐교"
+    }
+  ],
+  "regionParseFailures": [],
+  "ambiguous": []
+}

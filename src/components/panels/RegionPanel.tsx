@@ -1,17 +1,38 @@
 "use client";
 
+import { useState } from "react";
+
 import Sparkline from "@/components/ui/Sparkline";
 import type { DataBundle } from "@/lib/data/types";
 import { REGION_CODES, regionName } from "@/lib/geo/regions";
 import { GROUP_LABELS, GROUP_ORDER } from "@/lib/indicators/groups";
 import { indicatorById, INDICATORS } from "@/lib/indicators/registry";
-import type { IndicatorGroup } from "@/lib/indicators/types";
+import type { IndicatorGroup, SchoolLevel } from "@/lib/indicators/types";
+import { SCHOOL_LEVEL_LABELS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
+import type { School } from "@/lib/schools/types";
 import { displayLabel, rank, referenceDateLabel, trend, valueMap, vsProvince } from "@/lib/stats";
 import { useMapQuery } from "@/lib/state/urlState";
 import { formatDelta } from "@/lib/tooltipText";
 
 export interface RegionPanelProps {
-  bundle: Pick<DataBundle, "indicators" | "series" | "manifest">;
+  bundle: Pick<DataBundle, "indicators" | "series" | "manifest" | "schools">;
+  /** The currently-highlighted school (map point click / this panel's own row click), or null. Owned by Dashboard, mirrored to DeckMap so either side can drive it. */
+  highlightedSchoolId: string | null;
+  /** Called with a school id to highlight it, or null to clear. This component does its own "click the same row again -> clear" toggle before calling it (mirroring DeckMap's point-click handler). */
+  onHighlightSchool: (id: string | null) => void;
+}
+
+type LevelFilter = SchoolLevel | "all";
+
+const LEVEL_FILTERS: LevelFilter[] = ["all", ...SCHOOL_LEVEL_ORDER];
+const LEVEL_FILTER_LABELS: Record<LevelFilter, string> = { all: "전체", ...SCHOOL_LEVEL_LABELS };
+
+/** desc by students; a null student count (rare — 자료 없음) sorts last rather than first/undefined-ordered. */
+function byStudentsDesc(a: School, b: School): number {
+  if (a.students === b.students) return 0;
+  if (a.students === null) return 1;
+  if (b.students === null) return -1;
+  return b.students - a.students;
 }
 
 interface OtherIndicatorRow {
@@ -32,8 +53,9 @@ interface OtherIndicatorRow {
  * at all once `regionCode` is set — the `!regionCode` guard below is a
  * defensive fallback, not the primary gate).
  */
-export default function RegionPanel({ bundle }: RegionPanelProps) {
+export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSchool }: RegionPanelProps) {
   const { indicatorId, regionCode, setIndicator, setRegion } = useMapQuery();
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
 
   if (!regionCode) return null;
 
@@ -52,6 +74,18 @@ export default function RegionPanel({ bundle }: RegionPanelProps) {
   // Same warning-tone rule as KpiTiles: an INCREASE is only ever flagged when
   // higher reads as worse.
   const isWarnDelta = delta !== null && delta > 0 && def.polarity === "higherWorse";
+
+  // Task 4B — 학교 목록: the selected 시군's schools, then the 학교급 chip
+  // filter, sorted by students desc. The summary line ("학교 N개 · 소규모
+  // M개") intentionally reflects THIS filtered set (not the region's full
+  // count) so it always matches what the table below actually shows.
+  const regionSchools = bundle.schools.schools.filter((s) => s.regionCode === regionCode);
+  const filteredSchools = (levelFilter === "all" ? regionSchools : regionSchools.filter((s) => s.level === levelFilter))
+    .slice()
+    .sort(byStudentsDesc);
+  const smallCount = filteredSchools.filter((s) => s.small).length;
+  // fix-round-1: 특수학교 rows carry no coordinate (see School.locationMissingReason) — surfaced in the summary line whenever the current filter includes any.
+  const noLocationCount = filteredSchools.filter((s) => s.lat === null).length;
 
   const seriesFile = bundle.series[indicatorId];
   const trendRows = seriesFile ? trend(seriesFile, regionCode) : [];
@@ -179,7 +213,83 @@ export default function RegionPanel({ bundle }: RegionPanelProps) {
         </table>
       </section>
 
-      <section className="mb-2 text-xs text-[#e6e9f0]/50">학교별 보기는 준비 중</section>
+      <section className="mb-4">
+        <div className="mb-2 flex items-baseline justify-between gap-2">
+          <p className="text-xs text-[#e6e9f0]/60">
+            학교 {filteredSchools.length}개 · 소규모 {smallCount}개
+            {noLocationCount > 0 && <> · 위치 없음 {noLocationCount}개</>}
+          </p>
+          <p className="text-[10px] text-[#e6e9f0]/40">위치 기준 {bundle.schools.referenceDate.location}</p>
+        </div>
+
+        <div className="mb-2 flex flex-wrap gap-1">
+          {LEVEL_FILTERS.map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() => setLevelFilter(level)}
+              aria-pressed={levelFilter === level}
+              className={`rounded px-2 py-0.5 text-xs ${
+                levelFilter === level ? "bg-white/20 font-semibold text-[#e6e9f0]" : "text-[#e6e9f0]/60 hover:bg-white/10"
+              }`}
+            >
+              {LEVEL_FILTER_LABELS[level]}
+            </button>
+          ))}
+        </div>
+
+        {filteredSchools.length === 0 ? (
+          <p className="text-xs text-[#e6e9f0]/50">해당 학교급의 학교가 없습니다</p>
+        ) : (
+          <table className="w-full border-collapse text-xs">
+            <tbody>
+              {filteredSchools.map((school) => {
+                const isHighlighted = school.id === highlightedSchoolId;
+                return (
+                  <tr
+                    key={school.id}
+                    data-testid={`school-row-${school.id}`}
+                    aria-current={isHighlighted ? "true" : undefined}
+                    onClick={() => onHighlightSchool(isHighlighted ? null : school.id)}
+                    className={`cursor-pointer ${isHighlighted ? "bg-white/15" : "hover:bg-white/5"}`}
+                  >
+                    <td className="py-0.5 pr-1">
+                      <span className="mr-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/70">
+                        {SCHOOL_LEVEL_LABELS[school.level]}
+                      </span>
+                      {school.name}
+                      {school.branch && (
+                        <span className="ml-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/50">
+                          분교장
+                        </span>
+                      )}
+                      {school.small && (
+                        <span className="ml-1 inline-block rounded bg-orange-400/20 px-1 text-[10px] text-orange-300">
+                          소규모
+                        </span>
+                      )}
+                      {school.lat === null && (
+                        <span
+                          className="ml-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/50"
+                          title={school.locationMissingReason}
+                        >
+                          위치 없음
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-0.5 text-right tabular-nums text-[#e6e9f0]/80">
+                      {school.students === null ? "자료 없음" : `${school.students.toLocaleString("ko-KR")}명`}
+                    </td>
+                    <td className="py-0.5 pl-2 text-right tabular-nums text-[#e6e9f0]/50">
+                      {school.studentsPerClass === null ? "–" : school.studentsPerClass.toFixed(1)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
 
       <footer className="text-[10px] text-[#e6e9f0]/40">
         {def.source.name} · {referenceDateLabel(bundle.manifest, file)}

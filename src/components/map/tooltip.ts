@@ -1,5 +1,7 @@
 import type { PickingInfo } from "@deck.gl/core";
 
+import type { School } from "@/lib/schools/types";
+
 export interface TooltipResult {
   html: string;
   style: Partial<CSSStyleDeclaration>;
@@ -26,15 +28,23 @@ function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
 }
 
+/** Shared line-list -> tooltip HTML assembly: the first line renders bold as the title, every subsequent line as its own `<div>` (a single line with an embedded "\n" can't be split into separate HTML lines, hence the list shape instead of one formatted string). */
+function renderLines(lines: string[]): TooltipResult {
+  const [title, ...rest] = lines;
+  const body = rest.map((line) => `<div>${escapeHtml(line)}</div>`).join("");
+  return {
+    html: `<div><strong>${escapeHtml(title)}</strong>${body}</div>`,
+    style: TOOLTIP_STYLE,
+  };
+}
+
 /**
- * Builds a deck.gl `getTooltip` callback. `linesOf` is the injection point
- * (like the layer factories' `elevationOf`/`fillColorOf`): DeckMap.tsx
- * builds [name, "label: value 단위", "14개 시군 중 n위", "전북 평균 대비 ±x"]
- * for the real indicator. The first line renders bold as the tooltip's
- * title, every subsequent line as its own `<div>` — a single line with an
- * embedded "\n" can't be split into separate HTML lines, hence the list
- * shape instead of a single formatted string. `linesOf` returning null (or
- * an empty array) suppresses the tooltip, same as no code being hovered.
+ * Builds a deck.gl `getTooltip` callback for the region (GeoJsonLayer)
+ * layers. `linesOf` is the injection point (like the layer factories'
+ * `elevationOf`/`fillColorOf`): DeckMap.tsx builds [name, "label: value
+ * 단위", "14개 시군 중 n위", "전북 평균 대비 ±x"] for the real indicator.
+ * `linesOf` returning null (or an empty array) suppresses the tooltip, same
+ * as no code being hovered.
  */
 export function makeTooltip(linesOf: (code: string) => string[] | null) {
   return (info: PickingInfo): TooltipResult | null => {
@@ -42,11 +52,23 @@ export function makeTooltip(linesOf: (code: string) => string[] | null) {
     if (!code) return null;
     const lines = linesOf(code);
     if (!lines || lines.length === 0) return null;
-    const [title, ...rest] = lines;
-    const body = rest.map((line) => `<div>${escapeHtml(line)}</div>`).join("");
-    return {
-      html: `<div><strong>${escapeHtml(title)}</strong>${body}</div>`,
-      style: TOOLTIP_STYLE,
-    };
+    return renderLines(lines);
+  };
+}
+
+/**
+ * Builds a deck.gl `getTooltip` callback for the `schools` ScatterplotLayer
+ * — `info.object` is a plain `School` row (no `.properties` wrapper, unlike
+ * the GeoJsonLayer-backed region tooltip above), so it needs its own
+ * picking-info reader. `linesOf` is `schoolTooltipLines` from
+ * src/lib/tooltipText.ts (pure, unit tested there).
+ */
+export function makeSchoolTooltip(linesOf: (school: School) => string[]) {
+  return (info: PickingInfo): TooltipResult | null => {
+    const school = info.object as School | undefined;
+    if (!school) return null;
+    const lines = linesOf(school);
+    if (lines.length === 0) return null;
+    return renderLines(lines);
   };
 }
