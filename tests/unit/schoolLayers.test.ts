@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Color, Position } from "@deck.gl/core";
 
-import { makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
+import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
 import { makeSchoolRadiusScale, SCHOOL_LEVEL_COLORS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
 import type { School } from "@/lib/schools/types";
 
@@ -238,53 +238,74 @@ describe("makeSchoolLabelsLayer", () => {
   });
 });
 
-// fix-round-1: a 특수학교 row has lat/lng: null (no location-source coordinate
-// — see School.locationMissingReason). Neither layer has anywhere to plot
-// such a school, so both must drop it rather than crash or render at (0,0)/NaN.
-describe("schools without coordinates are excluded from both layers (fix-round-1)", () => {
-  const withCoords = school({ id: "a", regionCode: "52110", lat: 35.8, lng: 127.1 });
-  const noCoords = school({
-    id: "b",
-    regionCode: "52110",
-    level: "special",
-    lat: null,
-    lng: null,
-    locationMissingReason: "특수학교는 위치 표준데이터(2026-03-20)에 없음",
+// fix-round-2 (review finding #1): a 특수학교 row has lat/lng: null (no
+// location-source coordinate — see School.locationMissingReason). Neither
+// layer has anywhere to plot such a school. Dropping it is no longer the
+// FACTORY's job (see below) — it's now a type-guard the caller (DeckMap.tsx)
+// applies once, so this just verifies the predicate itself.
+describe("hasCoordinates (fix-round-2, review finding #1)", () => {
+  it("is true for a school with both lat and lng set", () => {
+    const s = school({ id: "a", regionCode: "52110", lat: 35.8, lng: 127.1 });
+    expect(hasCoordinates(s)).toBe(true);
   });
-  const mixed = [withCoords, noCoords];
 
-  it("makeSchoolsLayer drops the no-coordinate school from data, keeps the positioned one", () => {
-    const layer = makeSchoolsLayer(mixed, {
-      elevationOf: () => 1000,
-      radiusOf: () => 5,
-      visible: true,
-      triggerKey: "v1",
+  it("is false for a school with lat/lng null (특수학교 — see locationMissingReason)", () => {
+    const s = school({
+      id: "b",
+      regionCode: "52110",
+      level: "special",
+      lat: null,
+      lng: null,
+      locationMissingReason: "특수학교는 위치 표준데이터(2026-03-20)에 없음",
     });
-    const data = layer.props.data as School[];
-    expect(data).toHaveLength(1);
-    expect(data[0].id).toBe("a");
+    expect(hasCoordinates(s)).toBe(false);
+  });
+});
+
+// fix-round-2 (review finding #1): makeSchoolsLayer/makeSchoolLabelsLayer
+// used to call an internal `withCoordinates()` filter on EVERY invocation,
+// which allocated a brand-new `data` array each time — reference-unequal to
+// the previous one even with byte-for-byte identical contents. Since both
+// factories are called inside DeckMap's `layers` useMemo (whose deps include
+// highlightedSchoolId/handleSchoolClick), every highlight click handed
+// deck.gl a new `data` identity, which deck.gl treats as "the whole dataset
+// changed" (`invalidateAll()`) — defeating the layers' own scoped
+// `updateTriggers` (getLineColor/getLineWidth only). The fix moves filtering
+// to DeckMap.tsx's own `useMemo(() => regionSchools.filter(hasCoordinates), [regionSchools])`,
+// computed once and handed to both factories; the factories below now just
+// assign `data: schools` — no filtering, no new allocation, no matter how
+// many times or how often they're called with the SAME input array.
+describe("makeSchoolsLayer / makeSchoolLabelsLayer — data reference stability (fix-round-2, review finding #1)", () => {
+  const positioned = [school({ id: "a", regionCode: "52110", lat: 35.8, lng: 127.1 })].filter(hasCoordinates);
+
+  it("makeSchoolsLayer's data is the exact same array reference it was given, not a re-filtered copy", () => {
+    const layer = makeSchoolsLayer(positioned, { elevationOf: () => 1000, radiusOf: () => 5, visible: true, triggerKey: "v1" });
+    expect(layer.props.data).toBe(positioned);
   });
 
-  it("makeSchoolLabelsLayer drops the no-coordinate school from data, keeps the positioned one", () => {
-    const layer = makeSchoolLabelsLayer(mixed, {
+  it("makeSchoolLabelsLayer's data is the exact same array reference it was given, not a re-filtered copy", () => {
+    const layer = makeSchoolLabelsLayer(positioned, {
       elevationOf: () => 1000,
       visible: true,
       fontFamily: "Test Font",
       characterSet: ["a"],
       triggerKey: "v1",
     });
-    const data = layer.props.data as School[];
-    expect(data).toHaveLength(1);
-    expect(data[0].id).toBe("a");
+    expect(layer.props.data).toBe(positioned);
   });
 
-  it("a school list of ONLY no-coordinate schools renders an empty (not crashing) layer", () => {
-    const layer = makeSchoolsLayer([noCoords], {
-      elevationOf: () => 1000,
-      radiusOf: () => 5,
-      visible: true,
-      triggerKey: "v1",
-    });
-    expect(layer.props.data).toEqual([]);
+  it("calling makeSchoolsLayer twice with the SAME input array yields the SAME data reference both times", () => {
+    const opts = { elevationOf: () => 1000, radiusOf: () => 5, visible: true, triggerKey: "v1" };
+    const layer1 = makeSchoolsLayer(positioned, opts);
+    const layer2 = makeSchoolsLayer(positioned, opts);
+    expect(layer1.props.data).toBe(layer2.props.data);
+  });
+
+  it("changing only highlightedId does not change data identity (the bug this fix addresses)", () => {
+    const opts = { elevationOf: () => 1000, radiusOf: () => 5, visible: true, triggerKey: "v1" };
+    const notHighlighted = makeSchoolsLayer(positioned, { ...opts, highlightedId: null });
+    const highlighted = makeSchoolsLayer(positioned, { ...opts, highlightedId: "a" });
+    expect(notHighlighted.props.data).toBe(highlighted.props.data);
+    expect(notHighlighted.props.data).toBe(positioned);
   });
 });

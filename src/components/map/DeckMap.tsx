@@ -20,7 +20,7 @@ import {
   makeSelectedRingLayer,
 } from "@/components/map/layers/regionLayers";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
-import { makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
+import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
@@ -360,6 +360,21 @@ export default function DeckMap({
     () => (selectedCode ? bundle.schools.schools.filter((s) => s.regionCode === selectedCode) : []),
     [bundle.schools, selectedCode],
   );
+  // fix-round-2 (review finding #1): coordinate-filtering used to happen
+  // INSIDE makeSchoolsLayer/makeSchoolLabelsLayer themselves, on every call —
+  // which allocated a brand-new array identity every time `layers` below
+  // recomputed, including for reasons unrelated to which schools are
+  // selected (e.g. a highlight click; `highlightedSchoolId` is one of
+  // `layers`' own deps). deck.gl treats a new `data` array as "everything
+  // changed" and rebuilds every attribute buffer (`invalidateAll()`),
+  // defeating the layers' own scoped `updateTriggers` (getLineColor/
+  // getLineWidth only). Filtering HERE instead, keyed only on
+  // `regionSchools`, keeps this array's identity — and therefore both
+  // layers' `data` identity, since they're both handed this SAME array —
+  // stable across a highlight-only re-render; it only changes when the
+  // selected region's school set itself actually changes. See
+  // tests/unit/schoolLayers.test.ts's "data reference stability" block.
+  const positionedRegionSchools = useMemo(() => regionSchools.filter(hasCoordinates), [regionSchools]);
   const schoolsVisible = !!selectedCode;
   const schoolLabelsVisible = !!selectedCode && zoom >= SCHOOL_LABEL_MIN_ZOOM;
 
@@ -584,7 +599,7 @@ export default function DeckMap({
         onClick: handleRegionClick,
       }),
       selectedRingLayer,
-      makeSchoolsLayer(regionSchools, {
+      makeSchoolsLayer(positionedRegionSchools, {
         elevationOf,
         radiusOf,
         highlightedId: highlightedSchoolId,
@@ -602,7 +617,7 @@ export default function DeckMap({
           fontFamily,
           characterSet,
         }),
-        makeSchoolLabelsLayer(regionSchools, {
+        makeSchoolLabelsLayer(positionedRegionSchools, {
           elevationOf,
           visible: schoolLabelsVisible,
           fontFamily,
@@ -621,7 +636,7 @@ export default function DeckMap({
     selectedCode,
     handleRegionClick,
     selectedRingLayer,
-    regionSchools,
+    positionedRegionSchools,
     radiusOf,
     highlightedSchoolId,
     schoolsVisible,

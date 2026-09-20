@@ -19,6 +19,8 @@ export interface LegendProps {
   referenceDate: string;
   /** Task 4B — true whenever a 시군 is selected (the school layer is then visible on the map), adding the 4 학교급 color swatches to the legend. Defaults to false (no school layer without a selection). */
   schoolLevelsVisible?: boolean;
+  /** fix round, review finding #4 — true only when the SELECTED region itself has at least one school with no coordinate (lat == null, i.e. a 특수학교 row — see School.locationMissingReason). Gates the "(특수학교는 위치 자료 없음)" caveat so it isn't shown for a region where every school actually has a point on the map. Defaults to false. */
+  hasSchoolsWithoutLocation?: boolean;
 }
 
 function rgbCss([r, g, b]: readonly number[]): string {
@@ -26,7 +28,15 @@ function rgbCss([r, g, b]: readonly number[]): string {
 }
 
 /** Bottom-bar legend: 5 color swatches + boundary values, a missing-data swatch, a one-line scale caveat, and the data source/reference date. When `schoolLevelsVisible`, also shows the 4 학교급 point colors (Task 4B). */
-export default function Legend({ def, ticks, palette, hasNull, referenceDate, schoolLevelsVisible = false }: LegendProps) {
+export default function Legend({
+  def,
+  ticks,
+  palette,
+  hasNull,
+  referenceDate,
+  schoolLevelsVisible = false,
+  hasSchoolsWithoutLocation = false,
+}: LegendProps) {
   const notes: string[] = ["높이·색 모두 값에 비례"];
   if (def.scale === "sqrt") notes.push("제곱근 스케일");
   // Covers both of the brief's sub-conditions (an explicit def.domain override,
@@ -90,7 +100,9 @@ export default function Legend({ def, ticks, palette, hasNull, referenceDate, sc
               </span>
             );
           })}
-          <span className="text-[10px] text-[#e6e9f0]/40">(특수학교는 위치 자료 없음)</span>
+          {hasSchoolsWithoutLocation && (
+            <span className="text-[10px] text-[#e6e9f0]/40">(특수학교는 위치 자료 없음)</span>
+          )}
         </div>
       )}
 

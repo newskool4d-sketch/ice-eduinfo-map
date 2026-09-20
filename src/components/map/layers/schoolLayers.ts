@@ -10,11 +10,28 @@ const LINE_WIDTH_NORMAL = 1;
 const LINE_WIDTH_HIGHLIGHTED = 2;
 
 /** A school with a real location match (see fix-round-1: a 특수학교 row has `lat`/`lng: null` and can never be plotted). */
-type PositionedSchool = School & { lat: number; lng: number };
+export type PositionedSchool = School & { lat: number; lng: number };
 
-/** Both layer factories are only ever handed a school's real coordinate — a school without one (locationMissingReason set) has nothing to plot and is dropped here rather than the caller having to remember to pre-filter. */
-function withCoordinates(schools: School[]): PositionedSchool[] {
-  return schools.filter((s): s is PositionedSchool => s.lat !== null && s.lng !== null);
+/**
+ * Type guard for a school with a real coordinate. fix-round-2 (review
+ * finding #1): this used to be a `withCoordinates()` HELPER that both layer
+ * factories called on every invocation, re-filtering (and re-allocating a
+ * brand-new array) each time — even when the input hadn't changed at all.
+ * Since both factories are built inside DeckMap's `layers` useMemo (whose
+ * deps include highlightedSchoolId/handleSchoolClick), that meant every
+ * highlight click handed deck.gl a new `data` array identity, which deck.gl
+ * treats as "the whole dataset changed" (`invalidateAll()`), defeating the
+ * layers' own scoped `updateTriggers` (getLineColor/getLineWidth only).
+ * DeckMap.tsx now calls this predicate itself, ONCE, inside its own
+ * `useMemo(() => regionSchools.filter(hasCoordinates), [regionSchools])` —
+ * that array's identity (and therefore both layers' `data` identity, since
+ * they're both handed this SAME array) only changes when the selected
+ * region's school set actually changes, never on a highlight-only
+ * re-render. See `tests/unit/schoolLayers.test.ts`'s "data reference
+ * stability" describe block.
+ */
+export function hasCoordinates(school: School): school is PositionedSchool {
+  return school.lat !== null && school.lng !== null;
 }
 
 export interface SchoolsLayerOptions {
@@ -30,13 +47,13 @@ export interface SchoolsLayerOptions {
   triggerKey: string | number;
 }
 
-/** The 학교 point layer — only ever fed the selected 시군's schools by the caller (DeckMap); `visible` additionally gates the whole layer (e.g. off entirely when nothing is selected). Schools with no coordinates (특수학교 — see PositionedSchool) are silently dropped before rendering, not just hidden; see `tests/unit/schoolLayers.test.ts`. */
-export function makeSchoolsLayer(schools: School[], opts: SchoolsLayerOptions) {
+/** The 학교 point layer — only ever fed the selected 시군's schools by the caller (DeckMap); `visible` additionally gates the whole layer (e.g. off entirely when nothing is selected). `schools` must already be pre-filtered to real coordinates (see `hasCoordinates`) — this factory does NOT filter or reallocate `data` itself (fix-round-2, review finding #1: that used to happen here, defeating `data` reference stability across re-renders); the `PositionedSchool[]` parameter type enforces this at compile time, not just by convention. See `tests/unit/schoolLayers.test.ts`. */
+export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayerOptions) {
   const highlightedId = opts.highlightedId ?? null;
 
   return new ScatterplotLayer<PositionedSchool>({
     id: "schools",
-    data: withCoordinates(schools),
+    data: schools,
     visible: opts.visible,
     pickable: true,
     autoHighlight: true,
@@ -80,11 +97,11 @@ export interface SchoolLabelsLayerOptions {
   triggerKey: string | number;
 }
 
-/** 학교명 라벨 — billboarded text just above each school's point marker. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. Schools with no coordinates are dropped, same as makeSchoolsLayer (there's no point position to label). */
-export function makeSchoolLabelsLayer(schools: School[], opts: SchoolLabelsLayerOptions) {
+/** 학교명 라벨 — billboarded text just above each school's point marker. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. `schools` must already be pre-filtered to real coordinates, same as makeSchoolsLayer — see its doc comment (fix-round-2, review finding #1). */
+export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolLabelsLayerOptions) {
   return new TextLayer<PositionedSchool>({
     id: "school-labels",
-    data: withCoordinates(schools),
+    data: schools,
     visible: opts.visible,
     // +50 to sit level with the point marker (same offset makeSchoolsLayer
     // uses), +30 more so the label floats just above the dot instead of
