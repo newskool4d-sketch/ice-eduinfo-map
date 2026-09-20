@@ -234,7 +234,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           onKeyUp={handlePopoverKeyUp}
           className="absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-[640px] overflow-y-auto rounded-lg border border-white/10 bg-[#121826] p-3 shadow-xl"
         >
-          <IndicatorPicker value={indicatorId} onChange={handleChange} />
+          <IndicatorPicker value={indicatorId} onChange={handleChange} series={series} />
         </div>
       )}
     </div>

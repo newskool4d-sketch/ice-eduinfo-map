@@ -8,7 +8,7 @@
  * both redundant and wrong for ratio-kind indicators.
  */
 import { PROVINCE_CODE } from "./geo/regions";
-import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "./indicators/types";
+import type { IndicatorDef, IndicatorFile, SeriesFile } from "./indicators/types";
 
 /**
  * Extracts a region-code -> value map from an indicator file, keeping only
@@ -161,16 +161,22 @@ export function displayLabel(def: IndicatorDef, series: Record<string, SeriesFil
 }
 
 /**
- * The top bar's "기준 YYYY.M.D" caption (TopBar). The year comes from
- * `manifest.latestYear` — the dataset's single authoritative "as of" year —
- * while month/day come from the given indicator file's own `referenceDate`
- * (e.g. "2026-04-01"). Every indicator file currently shares the same
- * referenceDate, but this keeps the caption tied to whichever file the
- * caller is actually displaying rather than assuming that will always hold.
- * No zero-padding (2026.4.1, not 2026.04.01), per the task brief's literal
- * example.
+ * RegionPanel's footer "기준 YYYY.M.D" caption. Year, month and day are ALL
+ * read from the given indicator file's own `referenceDate` (e.g.
+ * "2026-04-01") — never from manifest.latestYear. No zero-padding
+ * (2026.4.1, not 2026.04.01), per the task brief's literal example.
+ *
+ * Fix round 2, finding 2 — this used to take the YEAR from
+ * `manifest.latestYear` while month/day came from THIS file's own
+ * referenceDate: two different sources of truth mixed into one caption.
+ * That mismatch is real, not hypothetical — e.g. a KESS refresh bumping
+ * manifest.latestYear to 2027 while closed-schools.json's own referenceDate
+ * stayed "2026-07-16" (폐교재산 현황's real, independent 기준일) would have
+ * printed "기준 2027.7.16", a combination that never actually occurred in
+ * either source. The manifest parameter is dropped entirely (not just
+ * unused) so this can't regress back into mixing two files' dates again.
  */
-export function referenceDateLabel(manifest: Manifest, file: IndicatorFile): string {
-  const [, month, day] = file.referenceDate.split("-").map(Number);
-  return `기준 ${manifest.latestYear}.${month}.${day}`;
+export function referenceDateLabel(file: IndicatorFile): string {
+  const [year, month, day] = file.referenceDate.split("-").map(Number);
+  return `기준 ${year}.${month}.${day}`;
 }

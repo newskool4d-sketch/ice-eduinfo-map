@@ -30,6 +30,27 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Fix round 2, finding 3 — manifest.json is the one file load.ts
+      // hard-throws on when a registry indicator id is missing from it (see
+      // its own doc comment). Under the 1h stale-while-revalidate policy
+      // above, a returning visitor can get a freshly-deployed JS bundle
+      // (referencing new registry ids) paired with a STALE cached
+      // manifest.json for up to an hour after a data-refresh deploy,
+      // hitting that error needlessly. This entry must stay ordered AFTER
+      // the `/data/:path*` wildcard above — Next.js applies matching header
+      // sets in array order, and when two entries set the SAME header key
+      // for the same request, the LATER entry wins; putting this more
+      // specific source first would leave manifest.json silently governed
+      // by the wildcard's 1h policy instead.
+      {
+        source: "/data/manifest.json",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, must-revalidate",
+          },
+        ],
+      },
     ];
   },
 };

@@ -58,11 +58,22 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
   // (or a silently-undefined bundle entry) partway through the Promise.all
   // below. The reverse — a manifest id with no matching registry entry,
   // e.g. a retired indicator — is fine and deliberately not checked here.
+  // Fix round 2, finding 3 — public/data/** (including manifest.json) is
+  // cached for up to 1h (see next.config.ts's headers()); a returning
+  // visitor can briefly get a fresh JS bundle paired with a stale cached
+  // manifest right after a data-refresh deploy, hitting this branch even
+  // though nothing is actually broken. The THROWN message must therefore be
+  // the ordinary, temporary-sounding user-facing string DataProvider's error
+  // UI shows (never a raw indicator id list or an npm command, which would
+  // confuse/alarm an end user) — the full developer diagnosis goes to
+  // console.error instead, where it's still there for a developer actually
+  // debugging a genuinely stale build.
   const missingFromManifest = indicatorIds.filter((id) => !(id in manifest.indicators));
   if (missingFromManifest.length > 0) {
-    throw new Error(
-      `manifest.json 에 없는 지표: ${missingFromManifest.join(", ")} — npm run data:build 를 다시 실행하세요`,
+    console.error(
+      `loadBundle: manifest.json 에 없는 지표: ${missingFromManifest.join(", ")} — npm run data:build 를 다시 실행하세요`,
     );
+    throw new Error("데이터가 갱신 중입니다. 잠시 후 새로고침해 주세요.");
   }
 
   const seriesIds = INDICATORS.filter((d) => d.aggregate.kind !== "external").map((d) => d.id);

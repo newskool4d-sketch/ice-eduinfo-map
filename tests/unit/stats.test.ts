@@ -12,7 +12,7 @@ import {
   valueMap,
   vsProvince,
 } from "@/lib/stats";
-import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
+import type { IndicatorDef, IndicatorFile, SeriesFile } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
 
 function fileFixture(): IndicatorFile {
@@ -277,24 +277,30 @@ describe("displayLabel", () => {
 });
 
 describe("referenceDateLabel", () => {
-  function manifestFixture(latestYear: number): Manifest {
-    return { latestYear, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z", sources: [] };
-  }
-
   it("formats as '기준 {year}.{month}.{day}' with no zero-padding", () => {
     const file: IndicatorFile = { ...fileFixture(), referenceDate: "2026-04-01" };
-    expect(referenceDateLabel(manifestFixture(2026), file)).toBe("기준 2026.4.1");
-  });
-
-  it("takes the year from manifest.latestYear, not from the file's own year field", () => {
-    // A deliberately mismatched year on the file — the caption always
-    // reflects the manifest's authoritative latestYear.
-    const file: IndicatorFile = { ...fileFixture(), year: 2099, referenceDate: "2026-04-01" };
-    expect(referenceDateLabel(manifestFixture(2026), file)).toBe("기준 2026.4.1");
+    expect(referenceDateLabel(file)).toBe("기준 2026.4.1");
   });
 
   it("takes month/day from the file's own referenceDate", () => {
     const file: IndicatorFile = { ...fileFixture(), referenceDate: "2026-12-25" };
-    expect(referenceDateLabel(manifestFixture(2026), file)).toBe("기준 2026.12.25");
+    expect(referenceDateLabel(file)).toBe("기준 2026.12.25");
+  });
+
+  // Fix round 2, finding 2 — the OLD implementation took the displayed YEAR
+  // from manifest.latestYear while month/day came from a DIFFERENT source
+  // (the file actually being displayed)'s own referenceDate, which could
+  // assemble a year/month/day combination that never actually occurred
+  // together: a KESS refresh bumping manifest.latestYear to 2027 while
+  // closed-schools.json's own referenceDate stayed "2026-07-16" (폐교재산
+  // 현황's real 기준일) would have printed "기준 2027.7.16" — a date that
+  // doesn't exist in either source. referenceDateLabel no longer takes a
+  // manifest argument AT ALL (dropped, not just unused) — this regression
+  // test pins down the actual guarantee: every part of the caption comes
+  // from the ONE file actually being displayed, even when that file's own
+  // (unrelated) `year` field disagrees with its referenceDate's year.
+  it("never lets a different year leak in — year/month/day all come from the same file.referenceDate (simulates the KESS-2027-vs-폐교-2026-07-16 scenario)", () => {
+    const file: IndicatorFile = { ...fileFixture(), year: 2027, referenceDate: "2026-07-16" };
+    expect(referenceDateLabel(file)).toBe("기준 2026.7.16");
   });
 });

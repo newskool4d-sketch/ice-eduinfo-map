@@ -15,7 +15,7 @@ import { useMapQuery } from "@/lib/state/urlState";
 import { formatDelta, formatShare } from "@/lib/tooltipText";
 
 export interface RegionPanelProps {
-  bundle: Pick<DataBundle, "indicators" | "series" | "manifest" | "schools" | "closedSchools">;
+  bundle: Pick<DataBundle, "indicators" | "series" | "schools" | "closedSchools">;
   /** The currently-highlighted school (map point click / this panel's own row click), or null. Owned by Dashboard, mirrored to DeckMap so either side can drive it. */
   highlightedSchoolId: string | null;
   /** Called with a school id to highlight it, or null to clear. This component does its own "click the same row again -> clear" toggle before calling it (mirroring DeckMap's point-click handler). */
@@ -125,7 +125,12 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
     return {
       group: otherDef.group,
       id: otherDef.id,
-      label: otherDef.label,
+      // Fix round 2, finding 4 — this used to be raw `otherDef.label`, so
+      // students_change_5y showed the static "학생수 5년 증감률" here while
+      // the menu button/Legend/current-indicator header above (which all
+      // already call displayLabel()) showed the dynamic "학생수 2022→2026
+      // 증감률" for the very same indicator.
+      label: displayLabel(otherDef, bundle.series),
       valueText: otherValue === null || otherValue === undefined ? "자료 없음" : otherDef.format(otherValue),
       rankText: otherRank !== null ? `${otherRank}위` : "–",
       isCurrent: otherDef.id === indicatorId,
@@ -379,7 +384,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
       </section>
 
       <footer className="text-[10px] text-[#e6e9f0]/50">
-        {def.source.name} · {referenceDateLabel(bundle.manifest, file)}
+        {def.source.name} · {referenceDateLabel(file)}
       </footer>
     </div>
   );

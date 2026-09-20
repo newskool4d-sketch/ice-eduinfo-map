@@ -2,10 +2,22 @@
 
 import { INDICATORS } from "@/lib/indicators/registry";
 import { GROUP_LABELS, GROUP_ORDER } from "@/lib/indicators/groups";
+import type { SeriesFile } from "@/lib/indicators/types";
+import { displayLabel } from "@/lib/stats";
 
 export interface IndicatorPickerProps {
   value: string;
   onChange: (id: string) => void;
+  /**
+   * bundle.series, used only to compute students_change_5y's dynamic
+   * "{minYear}→{maxYear}" label span via displayLabel() (fix round 2,
+   * finding 4) — matching what the menu button/Legend/RegionPanel header
+   * already show for the same indicator. Optional and defaults to {}
+   * (displayLabel() falls back to the static registry label when a series
+   * is unavailable), mirroring IndicatorMenuProps.series's own default —
+   * see its doc comment for why this stays optional.
+   */
+  series?: Record<string, SeriesFile>;
 }
 
 // One shared `name` across every group's radios (not per-fieldset): native
@@ -15,7 +27,7 @@ export interface IndicatorPickerProps {
 const RADIO_GROUP_NAME = "indicator";
 
 /** Top-bar indicator selector: 4 grouped, keyboard-accessible radio sets (one radio per registered indicator). */
-export default function IndicatorPicker({ value, onChange }: IndicatorPickerProps) {
+export default function IndicatorPicker({ value, onChange, series = {} }: IndicatorPickerProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
       {GROUP_ORDER.map((group) => {
@@ -57,7 +69,7 @@ export default function IndicatorPicker({ value, onChange }: IndicatorPickerProp
                       aria-describedby={descriptionId}
                       className="mr-1 align-middle"
                     />
-                    {def.label}
+                    {displayLabel(def, series)}
                   </label>
                   <span id={descriptionId} className="max-w-[220px] pl-2 text-[10px] leading-snug text-[#e6e9f0]/50">
                     {def.description}

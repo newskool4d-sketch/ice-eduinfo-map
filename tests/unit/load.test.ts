@@ -149,7 +149,7 @@ describe("loadBundle", () => {
     expect(bundle.series.students_total).toBeTruthy();
   });
 
-  it("throws naming ids missing from manifest.indicators, before fetching any indicator/series file", async () => {
+  it("throws the Korean user-facing message and logs developer diagnostics (missing ids, npm run data:build hint) to console.error separately, before fetching any indicator/series file", async () => {
     const manifest = manifestFixture();
     const missingId = INDICATOR_IDS[0];
     delete manifest.indicators[missingId];
@@ -168,6 +168,7 @@ describe("loadBundle", () => {
       if (seriesMatch) return jsonResponse(seriesFileFixture(seriesMatch[1]));
       throw new Error(`unexpected url ${url}`);
     });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
     let caught: Error | undefined;
     try {
@@ -177,10 +178,23 @@ describe("loadBundle", () => {
     }
 
     expect(caught).toBeDefined();
-    expect(caught?.message).toContain(missingId);
-    expect(caught?.message).toContain("manifest.json");
+    // Fix round 2, finding 3 — the thrown Error's message is exactly the
+    // user-facing string DataProvider's error UI shows (never developer-only
+    // detail like ids or an npm command); those go to console.error instead,
+    // where a developer debugging a stale-manifest deploy can still find
+    // them (browser devtools console), but a real end user never sees them.
+    expect(caught?.message).toBe("데이터가 갱신 중입니다. 잠시 후 새로고침해 주세요.");
+
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    const loggedMessage = String(consoleError.mock.calls[0]?.[0]);
+    expect(loggedMessage).toContain(missingId);
+    expect(loggedMessage).toContain("manifest.json");
+    expect(loggedMessage).toContain("data:build");
+
     expect(calls.filter((u) => u.startsWith("/data/indicators/"))).toHaveLength(0);
     expect(calls.filter((u) => u.startsWith("/data/series/"))).toHaveLength(0);
+
+    consoleError.mockRestore();
   });
 
   it("does not throw when the manifest lists extra ids beyond the registry (registry ⊆ manifest is the only requirement)", async () => {

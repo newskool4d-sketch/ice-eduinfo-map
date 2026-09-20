@@ -255,6 +255,18 @@ describe("RegionPanel", () => {
     expect(rows).toHaveLength(18);
   });
 
+  // Fix round 2, finding 4 — this table used to render raw `otherDef.label`,
+  // so students_change_5y showed the static "학생수 5년 증감률" here while the
+  // menu button/Legend/current-indicator header (all of which already called
+  // displayLabel()) showed the dynamic "학생수 2022→2026 증감률" for the same
+  // indicator. bundleFixture()'s students_total series spans 2022-2026.
+  it("shows the dynamic students_change_5y label (via displayLabel) in the 다른 지표 table, not the static '5년' label", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    const row = screen.getByTestId("other-indicator-students_change_5y");
+    expect(row).toHaveTextContent("학생수 2022→2026 증감률");
+    expect(row).not.toHaveTextContent("학생수 5년 증감률");
+  });
+
   it("highlights the current indicator's row in the 다른 지표 table", () => {
     renderSelected(`?region=${REGION}&indicator=students_total`);
     expect(screen.getByTestId("other-indicator-students_total")).toHaveAttribute("aria-current", "true");
