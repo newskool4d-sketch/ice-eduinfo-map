@@ -416,3 +416,65 @@ export const HEADER_MAP: Record<number, HeaderLabels> = {
   2025: { ...COMMON_HEADER_LABELS, kediCode: "학교코드(KEDI)" },
   2026: { ...COMMON_HEADER_LABELS, kediCode: "학교코드(KEDI)" },
 };
+
+// ---------------------------------------------------------------------------
+// 폐교재산 현황 CSV (Task 5 — 전북특별자치도교육청 폐교재산 현황)
+// ---------------------------------------------------------------------------
+
+/**
+ * The 폐교재산 현황 CSV's filename always starts with this prefix and ends
+ * with `_YYYYMMDD.csv` — same `referenceDateFromFilename` suffix convention
+ * as LOCATION_CSV_PREFIX above, so build-closed-schools.ts reuses that
+ * function unchanged. build-closed-schools.ts scans data/raw/ for a file
+ * matching this prefix rather than hardcoding the full filename.
+ */
+export const CLOSED_SCHOOLS_CSV_PREFIX = "전북특별자치도교육청_폐교재산 현황_";
+
+/**
+ * "날짜기준 규칙" (사용자 지시): the 폐교재산 CSV's own filename date
+ * (`referenceDateFromFilename`, 2026-07-16 as of the current file) and its
+ * 공공데이터포털 게시(갱신)일 are two different dates and must both be
+ * recorded, never conflated. The 게시일 isn't embedded anywhere in the CSV
+ * itself (unlike referenceDate, which is derivable from the filename), so it
+ * is a plain constant here — update it if/when a refreshed CSV is dropped in
+ * with a new 게시일 노출.
+ */
+export const CLOSED_SCHOOLS_PUBLISHED_AT = "2026-07-20";
+
+/** public/data/closed-schools.json + data/interim/closed-schools-*.json's `source`, and the 3 closed_schools* indicators' registry `source` (registry.ts keeps its own independent copy of this literal — see this file's KESS_STATS_SOURCE comment for why). */
+export const CLOSED_SCHOOLS_SOURCE = {
+  name: "전북특별자치도교육청 폐교재산 현황(공공데이터포털)",
+  url: "https://www.data.go.kr/data/15021709/fileData.do",
+  year: 2026,
+};
+
+// ---------------------------------------------------------------------------
+// 경계 (region boundary) source — Task 5, Section C (Footer 출처 목록)
+// ---------------------------------------------------------------------------
+
+/**
+ * Duplicates build-regions.ts's own `SOURCE_URL` (not imported — importing
+ * build-regions.ts would drag its `mapshaper` dependency into
+ * build-indicators.ts's module graph for a single string; this file already
+ * follows the "each pipeline entry point owns its own copy" precedent for
+ * KESS_STATS_SOURCE above). Keep this in sync with build-regions.ts's
+ * SOURCE_URL by hand if that source is ever re-pinned to a new admdongkor
+ * version.
+ */
+export const BOUNDARY_SOURCE = {
+  name: "통계청 SGIS 기반 행정동 경계(vuski/admdongkor)",
+  url: "https://raw.githubusercontent.com/vuski/admdongkor/master/ver20260701/HangJeongDong_ver20260701.geojson",
+};
+
+const BOUNDARY_VERSION_RE = /ver(\d{4})(\d{2})(\d{2})/;
+const boundaryVersionMatch = BOUNDARY_VERSION_RE.exec(BOUNDARY_SOURCE.url);
+if (!boundaryVersionMatch) {
+  throw new Error(`BOUNDARY_SOURCE.url 에서 verYYYYMMDD 버전을 찾을 수 없습니다: ${BOUNDARY_SOURCE.url}`);
+}
+/**
+ * The boundary source's reference date, parsed out of BOUNDARY_SOURCE.url's
+ * own `verYYYYMMDD` segment (2026-07-01) rather than typed as a second,
+ * independent date literal — "날짜기준 규칙": one string owns the date, never
+ * two that could drift apart.
+ */
+export const BOUNDARY_REFERENCE_DATE = `${boundaryVersionMatch[1]}-${boundaryVersionMatch[2]}-${boundaryVersionMatch[3]}`;
