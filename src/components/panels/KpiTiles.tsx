@@ -49,10 +49,18 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
         // alone, per the brief's accessibility note) — only an increase on
         // a higherWorse-polarity indicator (currently: small_schools) gets
         // the warning tone; every other case (including a decrease on that
-        // same indicator) is neutral. A zero or missing delta shows "—".
+        // same indicator, and an exact-zero delta) is neutral.
+        //
+        // "—" (no arrow, no title) means no prior-year data exists at all
+        // (delta === null: e.g. teachers_total's single-year fixture case).
+        // "±0" (fix round 1) means a prior year DOES exist and the value is
+        // unchanged (delta === 0) — a distinct, real fact from "no data",
+        // so it gets its own symbol and an explanatory title rather than
+        // collapsing into the same "—" the null case uses.
         const isWarn = delta !== null && delta > 0 && def.polarity === "higherWorse";
         const deltaText =
-          delta === null || delta === 0 ? "—" : `${delta > 0 ? "▲" : "▼"} ${def.format(Math.abs(delta))}`;
+          delta === null ? "—" : delta === 0 ? "±0" : `${delta > 0 ? "▲" : "▼"} ${def.format(Math.abs(delta))}`;
+        const deltaTitle = delta === 0 ? "전년과 동일" : undefined;
 
         return (
           <div
@@ -71,6 +79,7 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
             <dd
               data-testid={`kpi-delta-${id}`}
               data-tone={isWarn ? "warn" : "neutral"}
+              title={deltaTitle}
               className={`tabular-nums text-[10px] ${isWarn ? "text-orange-400" : "text-[#e6e9f0]/70"}`}
             >
               {deltaText}

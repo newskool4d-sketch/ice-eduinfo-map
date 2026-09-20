@@ -62,6 +62,29 @@ function fixture() {
   };
 }
 
+/**
+ * Same shape as fixture(), except schools_total's 52000 value is unchanged
+ * year over year (751 -> 751) — an exact-zero delta, distinct from
+ * teachers_total's null (no prior year at all) case above.
+ */
+function fixtureWithZeroDelta() {
+  const base = fixture();
+  return {
+    ...base,
+    indicators: {
+      ...base.indicators,
+      schools_total: indicatorFile("schools_total", 751),
+    },
+    series: {
+      ...base.series,
+      schools_total: seriesFile("schools_total", [
+        { year: 2025, value: 751 },
+        { year: 2026, value: 751 },
+      ]),
+    },
+  };
+}
+
 describe("KpiTiles", () => {
   it("renders all 4 fixed KPI tiles with their labels", () => {
     render(<KpiTiles {...fixture()} />);
@@ -115,5 +138,14 @@ describe("KpiTiles", () => {
   it("omits the tooltip when there is no previous year to compare against", () => {
     render(<KpiTiles {...fixture()} />);
     expect(screen.getByTestId("kpi-tile-teachers_total")).not.toHaveAttribute("title");
+  });
+
+  it("shows ±0 (distinct from — for no-data) with a '전년과 동일' title when the delta is exactly zero", () => {
+    render(<KpiTiles {...fixtureWithZeroDelta()} />);
+    const delta = screen.getByTestId("kpi-delta-schools_total");
+    expect(delta).toHaveTextContent("±0");
+    expect(delta).not.toHaveTextContent("—");
+    expect(delta).toHaveAttribute("data-tone", "neutral");
+    expect(delta).toHaveAttribute("title", "전년과 동일");
   });
 });

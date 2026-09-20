@@ -53,6 +53,54 @@ describe("IndicatorMenu", () => {
     });
   });
 
+  it("ArrowDown navigates radios live (URL updates each time) without closing the popover", async () => {
+    const user = userEvent.setup();
+    const onUrlUpdate = vi.fn();
+    render(<IndicatorMenu />, { wrapper: withNuqsTestingAdapter({ onUrlUpdate, hasMemory: true }) });
+
+    await user.click(screen.getByRole("button", { name: MENU_BUTTON_NAME }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    // First radio (규모 그룹의 학생수, DEFAULT_INDICATOR_ID) is focused on open (see the
+    // preceding test) — arrowing moves to the next radio in the same native
+    // radio group (schools_total, then classes_total) and previews it live.
+    await user.keyboard("{ArrowDown}");
+    await waitFor(() => {
+      expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get("indicator")).toBe("schools_total");
+    });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.keyboard("{ArrowDown}");
+    await waitFor(() => {
+      expect(onUrlUpdate.mock.calls.at(-1)?.[0].searchParams.get("indicator")).toBe("classes_total");
+    });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("Enter on the focused radio closes the popover", async () => {
+    const user = userEvent.setup();
+    render(<IndicatorMenu />, { wrapper: withNuqsTestingAdapter() });
+
+    await user.click(screen.getByRole("button", { name: MENU_BUTTON_NAME }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("Space on the focused radio closes the popover", async () => {
+    const user = userEvent.setup();
+    render(<IndicatorMenu />, { wrapper: withNuqsTestingAdapter() });
+
+    await user.click(screen.getByRole("button", { name: MENU_BUTTON_NAME }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.keyboard(" ");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("closes on Escape and returns focus to the button", async () => {
     const user = userEvent.setup();
     render(<IndicatorMenu />, { wrapper: withNuqsTestingAdapter() });

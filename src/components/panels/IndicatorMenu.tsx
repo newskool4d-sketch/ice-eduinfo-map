@@ -75,9 +75,68 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     };
   }, [open]);
 
-  function handleSelect(id: string) {
+  // Applies live as the user arrows through the radios — closing is handled
+  // separately, only on an explicit "commit" gesture (see below), per the
+  // fix-round-1 ruling: arrowing must preview, not close.
+  function handleChange(id: string) {
     setIndicator(id);
+  }
+
+  function isRadioInput(target: EventTarget | null): target is HTMLInputElement {
+    return target instanceof HTMLInputElement && target.type === "radio";
+  }
+
+  // Native same-`name` radio-group arrow-key navigation moves focus to the
+  // next/previous radio AND fires a `click` on it as part of activating the
+  // new selection (confirmed empirically against this repo's installed
+  // @testing-library/user-event, which mirrors real browser activation
+  // behavior here — NOT the `change`-without-`click` behavior a first read
+  // of the spec might suggest). That means a plain "close on any click
+  // hitting a radio" handler cannot tell an arrow-key move apart from an
+  // explicit click: both are `click` events on the target radio. This ref
+  // bridges the two: the keydown handler below sets it for exactly the one
+  // click an arrow key is about to synthesize, and the click handler
+  // consumes it (clears it, does not close) instead of treating it as a
+  // commit gesture.
+  const suppressNextClickRef = useRef(false);
+
+  // A real mouse click on a radio (or on its wrapping <label> — the browser
+  // re-dispatches a second click with target = the input via native
+  // label-activation) closes the popover, unless it's the synthetic click
+  // that just followed an arrow key (suppressed above).
+  function handlePopoverClick(event: React.MouseEvent<HTMLDivElement>) {
+    if (!isRadioInput(event.target)) return;
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      return;
+    }
     setOpen(false);
+  }
+
+  function handlePopoverKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (isRadioInput(event.target) && event.key.startsWith("Arrow")) {
+      suppressNextClickRef.current = true;
+    }
+  }
+
+  // Enter/Space close on keyUP, not keydown — found empirically while
+  // writing this fix (see IndicatorMenu.test.tsx): closing moves focus back
+  // to the button (the lifecycle effect's cleanup below), and if that
+  // happens on keydown, the SAME physical key press's still-pending keyup
+  // can land on the now-focused <button> instead of the radio — native
+  // buttons treat both Enter and Space as activation keys too, so that
+  // stray keyup silently re-opens the menu (confirmed via a temporary
+  // console.log trace: open flips false→true within the same interaction).
+  // Closing on keyup instead lets the radio's own full keydown+keyup pair
+  // finish targeting the radio before focus ever moves. Enter never
+  // dispatches a click on a bare radio (no <form> ancestor here for it to
+  // submit), so it needs this explicit handler regardless; Space also
+  // dispatches a native click, but relying on keyup here rather than that
+  // click keeps both keys on the same safe, race-free path.
+  function handlePopoverKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (isRadioInput(event.target) && (event.key === "Enter" || event.key === " ")) {
+      setOpen(false);
+    }
   }
 
   return (
@@ -100,9 +159,12 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           id="indicator-menu-popover"
           role="dialog"
           aria-label="조건별 맵 선택"
+          onClick={handlePopoverClick}
+          onKeyDown={handlePopoverKeyDown}
+          onKeyUp={handlePopoverKeyUp}
           className="absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-[640px] overflow-y-auto rounded-lg border border-white/10 bg-[#121826] p-3 shadow-xl"
         >
-          <IndicatorPicker value={indicatorId} onChange={handleSelect} />
+          <IndicatorPicker value={indicatorId} onChange={handleChange} />
         </div>
       )}
     </div>
