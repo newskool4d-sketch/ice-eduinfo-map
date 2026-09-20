@@ -59,7 +59,7 @@ export default function IndicatorPicker({ value, onChange }: IndicatorPickerProp
                     />
                     {def.label}
                   </label>
-                  <span id={descriptionId} className="max-w-[220px] pl-2 text-[10px] leading-snug text-[#e6e9f0]/45">
+                  <span id={descriptionId} className="max-w-[220px] pl-2 text-[10px] leading-snug text-[#e6e9f0]/50">
                     {def.description}
                   </span>
                 </div>
