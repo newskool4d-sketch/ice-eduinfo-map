@@ -3,8 +3,8 @@
 import { useMemo, type ReactNode } from "react";
 
 import MapShell from "@/components/map/MapShell";
-import IndicatorPicker from "@/components/panels/IndicatorPicker";
 import Legend from "@/components/panels/Legend";
+import TopBar from "@/components/panels/TopBar";
 import { DataProvider, useData } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
 import { indicatorById } from "@/lib/indicators/registry";
@@ -20,13 +20,7 @@ function CenteredMessage({ children }: { children: ReactNode }) {
   );
 }
 
-interface DashboardInnerProps {
-  bundle: DataBundle;
-  indicatorId: string;
-  setIndicator: (id: string) => void;
-}
-
-function DashboardInner({ bundle, indicatorId, setIndicator }: DashboardInnerProps) {
+function DashboardInner({ bundle, indicatorId }: { bundle: DataBundle; indicatorId: string }) {
   const def = indicatorById(indicatorId);
   if (!def) throw new Error(`Dashboard: unknown indicatorId "${indicatorId}"`);
   const file = bundle.indicators[indicatorId];
@@ -48,12 +42,7 @@ function DashboardInner({ bundle, indicatorId, setIndicator }: DashboardInnerPro
   const legendDef = useMemo(() => ({ ...def, label: displayLabel(def, bundle.series) }), [def, bundle.series]);
 
   return (
-    <div className="grid h-full grid-rows-[auto_1fr_auto] bg-[#0b0f19] text-[#e6e9f0]">
-      <header className="flex min-h-14 flex-wrap items-center gap-x-6 gap-y-2 border-b border-white/10 px-4 py-2">
-        <span className="shrink-0 text-base font-semibold">전북교육지도</span>
-        <IndicatorPicker value={indicatorId} onChange={setIndicator} />
-      </header>
-
+    <div className="grid grid-rows-[1fr_auto] overflow-hidden">
       <div className="grid grid-cols-[1fr_360px] overflow-hidden">
         <main className="relative min-h-0 min-w-0 overflow-hidden">
           <MapShell indicatorId={indicatorId} />
@@ -74,17 +63,22 @@ function DashboardInner({ bundle, indicatorId, setIndicator }: DashboardInnerPro
 function DashboardBody() {
   // URL is the source of truth for indicatorId (nuqs) — this replaces Task
   // 2's local useState. Called unconditionally here (not inside the
-  // status === "ready" branch below) so the URL is established immediately,
-  // before the data bundle finishes loading.
-  const { indicatorId, setIndicator } = useMapQuery();
+  // status === "ready" branch below), so the URL is established immediately
+  // and TopBar (rendered regardless of load status) always has it.
+  const { indicatorId } = useMapQuery();
   const state = useData();
-  if (state.status === "loading") {
-    return <CenteredMessage>데이터 불러오는 중…</CenteredMessage>;
-  }
-  if (state.status === "error") {
-    return <CenteredMessage>데이터를 불러오지 못했습니다: {state.error}</CenteredMessage>;
-  }
-  return <DashboardInner bundle={state.bundle} indicatorId={indicatorId} setIndicator={setIndicator} />;
+  const bundle = state.status === "ready" ? state.bundle : null;
+
+  return (
+    <div className="grid h-full grid-rows-[56px_1fr] bg-[#0b0f19] text-[#e6e9f0]">
+      <TopBar indicatorId={indicatorId} bundle={bundle} />
+      {state.status === "loading" && <CenteredMessage>데이터 불러오는 중…</CenteredMessage>}
+      {state.status === "error" && (
+        <CenteredMessage>데이터를 불러오지 못했습니다: {state.error}</CenteredMessage>
+      )}
+      {state.status === "ready" && <DashboardInner bundle={state.bundle} indicatorId={indicatorId} />}
+    </div>
+  );
 }
 
 export default function Dashboard() {
