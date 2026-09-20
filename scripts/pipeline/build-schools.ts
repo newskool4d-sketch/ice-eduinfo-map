@@ -45,6 +45,30 @@ function findLocationCsvFile(): string {
   return candidates[candidates.length - 1];
 }
 
+/**
+ * Reads data/manual/school-aliases.json (`"kessName|regionCode": "학교ID"`).
+ * As of the 2026-03-20 위치 CSV, this file has exactly 4 entries — every one
+ * a case-by-case name mismatch verified by an EXACT match on 도로명주소
+ * between the KESS row's own `address` field and the location row's road
+ * address (not a guess: same street + building number = same physical
+ * school under a different recorded name):
+ *
+ *   | KESS 학교명            | regionCode | 위치 CSV 학교명(학교ID)                     | 도로명주소 (양쪽 동일)                              |
+ *   |-------------------------|------------|-----------------------------------------------|-------------------------------------------------------|
+ *   | 남원서진고등학교        | 52190      | 남원서진여자고등학교 (B000013025)              | 전북특별자치도 남원시 낙현길 17-14                     |
+ *   | 수소에너지고등학교      | 52710      | 전북하이텍고등학교 (B000011639)                | 전북특별자치도 완주군 삼례읍 삼례역로 41-1              |
+ *   | 전북자동차고등학교      | 52800      | 줄포자동차공업고등학교 (B000011650)            | 전북특별자치도 부안군 줄포면 우포로 10                  |
+ *   | 전주여자상업고등학교    | 52110      | 전주상업정보고등학교 (B000011623)              | 전북특별자치도 전주시 완산구 따박골2길 21               |
+ *
+ * See task-4B-report.md for the full derivation. New entries must carry the
+ * same kind of independent evidence (address match, founding-date match,
+ * etc.) — never a guess based purely on being the only unmatched KESS/
+ * location row left in a given region+level. (Separately: when a KESS row's
+ * key matches 2+ location candidates, matchSchools reports that as
+ * `ambiguous` and leaves it unmatched rather than picking one — a different
+ * failure mode from these 4, which had ZERO name-based candidates and were
+ * only resolved by this file.)
+ */
 function readAliases(): Record<string, string> {
   if (!existsSync(ALIASES_PATH)) return {};
   return JSON.parse(readFileSync(ALIASES_PATH, "utf8")) as Record<string, string>;
