@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import Sparkline from "@/components/ui/Sparkline";
 import type { DataBundle } from "@/lib/data/types";
-import { regionName } from "@/lib/geo/regions";
+import { REGION_CODES, regionName } from "@/lib/geo/regions";
 import { GROUP_LABELS, GROUP_ORDER } from "@/lib/indicators/groups";
 import { indicatorById, INDICATORS } from "@/lib/indicators/registry";
 import type { IndicatorGroup, SchoolLevel } from "@/lib/indicators/types";
@@ -136,7 +136,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
           <span className="ml-1 text-sm text-[#e6e9f0]/50">{def.unit}</span>
         </p>
         <p className="mt-1 text-xs text-[#e6e9f0]/70">
-          {regionRank !== null ? `14개 시군 중 ${regionRank}위` : "순위 없음"}
+          {regionRank !== null ? `${REGION_CODES.length}개 시군 중 ${regionRank}위` : "순위 없음"}
         </p>
         <p
           data-testid="region-panel-delta"
@@ -168,15 +168,33 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                     {GROUP_LABELS[group]}
                   </th>
                 </tr>,
+                // The whole row activates the indicator switch (fix round 1,
+                // review finding #3) — only the label cell used to. The
+                // <button> stays the sole keyboard/a11y affordance (tab
+                // stop, accessible name); the <tr>'s own onClick is a
+                // mouse-only convenience for the rest of the row. The
+                // button's handler stops propagation so a click ON the
+                // button doesn't ALSO fire the row's handler (it would
+                // bubble there otherwise — same setIndicator(row.id) call,
+                // so a double-fire would be silently idempotent rather than
+                // visibly broken, but the guard makes that explicit instead
+                // of accidental).
                 ...items.map((row) => (
-                  <tr key={row.id}>
+                  <tr
+                    key={row.id}
+                    onClick={() => setIndicator(row.id)}
+                    className="cursor-pointer hover:bg-white/5"
+                  >
                     <td className="py-0.5">
                       <button
                         type="button"
                         data-testid={`other-indicator-${row.id}`}
                         aria-current={row.isCurrent ? "true" : undefined}
-                        onClick={() => setIndicator(row.id)}
-                        className={`w-full rounded px-1 py-0.5 text-left hover:bg-white/5 ${
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setIndicator(row.id);
+                        }}
+                        className={`w-full rounded px-1 py-0.5 text-left ${
                           row.isCurrent ? "bg-white/10 font-semibold" : ""
                         }`}
                       >

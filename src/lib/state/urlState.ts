@@ -41,7 +41,15 @@ export interface MapQuery {
   regionCode: RegionCode | null;
   /** Replaces the current history entry — switching indicators doesn't clutter back/forward. */
   setIndicator: (id: string) => void;
-  /** Pushes a new history entry — back/forward toggles the 시군 selection, per the task brief. */
+  /**
+   * A transition to/from "nothing selected" (null <-> code) pushes a new
+   * history entry — Back after Esc/✕ restores the prior selection, and Back
+   * after the first selection returns to the unselected list, per the task
+   * brief. A transition BETWEEN two selected regions (arrow-key cycling, a
+   * canvas click on a different region, …) instead REPLACES the current
+   * entry, so cycling doesn't push one history entry per step (fix round 1,
+   * review finding #2) — see the history-mode branch inside useMapQuery.
+   */
   setRegion: (code: RegionCode | null) => void;
 }
 
@@ -64,7 +72,18 @@ export function useMapQuery(): MapQuery {
       void setQuery({ indicator: id });
     },
     setRegion(code) {
-      void setQuery({ region: code }, { history: "push" });
+      // History semantics (fix round 1, review finding #2): only a
+      // transition to/from "nothing selected" pushes — a transition between
+      // two selected regions (any path: arrow keys, a list click while
+      // already selected, a canvas click on a different region, ...)
+      // replaces instead, so e.g. cycling ←/→ through several regions
+      // doesn't push one history entry per step (which would make a single
+      // Back only undo the last step, instead of leaving the map). `region`
+      // here is the CURRENT value from this render's useQueryStates()
+      // destructure above, so this always compares against the selection
+      // being replaced, not a stale snapshot.
+      const history = code === null || region === null ? "push" : "replace";
+      void setQuery({ region: code }, { history });
     },
   };
 }

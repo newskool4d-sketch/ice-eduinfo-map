@@ -431,8 +431,11 @@ export default function DeckMap({
   // `orderedCodes` and commit immediately (selection IS the URL — no
   // separate "focused but not selected" state to keep in sync with it).
   // Enter with nothing selected picks rank 1; Enter on the already-selected
-  // region re-flies (same "reselect" case as a canvas re-click). Esc
-  // deselects.
+  // region re-flies (same "reselect" case as a canvas re-click). No "Escape"
+  // case here (Fix round 1, review finding #1) — deselecting on Escape is
+  // now owned entirely by the document-level listener below, which (unlike
+  // this handler) still fires when a mouse-driven selection has left focus
+  // off the wrapper.
   const handleWrapperKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       // The compass/전체보기 widget buttons deck.gl renders are DOM
@@ -467,23 +470,71 @@ export default function DeckMap({
           }
           break;
         }
-        case "Escape": {
-          event.preventDefault();
-          // A highlighted school (Task 4B) clears first — a second Escape
-          // (now nothing highlighted) deselects the region, same as before.
-          if (highlightedSchoolId !== null) {
-            onHighlightSchool(null);
-          } else if (selectedCode !== null) {
-            onSelect(null);
-          }
-          break;
-        }
         default:
           break;
       }
     },
-    [orderedCodes, selectedCode, onSelect, highlightedSchoolId, onHighlightSchool],
+    [orderedCodes, selectedCode, onSelect],
   );
+
+  // Escape-to-deselect via a document-level listener (Fix round 1, review
+  // finding #1): a MOUSE-driven selection leaves focus off the wrapper — a
+  // RegionList click's clicked <button> unmounts once the panel swaps to
+  // RegionPanel (focus reverts to <body>), and a canvas click never moves
+  // focus onto the wrapper div either (mjolnir.js doesn't request it) — so
+  // a keydown in either case never reaches handleWrapperKeyDown above at
+  // all (React's delegated listener only fires for events whose target is
+  // the wrapper itself or one of ITS descendants; <body> is an ANCESTOR of
+  // the wrapper, not a descendant, so the event bubbles straight past it to
+  // document without ever visiting the wrapper). Listening on `document`
+  // catches Escape regardless of focus.
+  //
+  // Deliberately BUBBLE phase, not capture: IndicatorMenu registers its own
+  // Escape handler on `document` in the CAPTURE phase and now calls
+  // preventDefault() when it closes the menu (see IndicatorMenu.tsx). Every
+  // capture-phase listener on a node runs before ANY bubble-phase listener
+  // on that SAME node, for every event dispatch — a DOM invariant, true
+  // regardless of which effect happened to attach first. That's what makes
+  // the `defaultPrevented` check below reliable even though registration
+  // order between these two components' effects is otherwise
+  // nondeterministic (`onSelect` is a new function identity every render,
+  // so this effect can re-attach on renders unrelated to IndicatorMenu's
+  // own open/close state). Net effect: a single Escape with the indicator
+  // menu open closes only the menu, never both.
+  //
+  // Also ignores a target inside a text-editing control (typing Escape in
+  // an <input>/<textarea>/contenteditable — e.g. IndicatorMenu's own radio
+  // inputs while focused — must never deselect the map behind it), and is
+  // only attached while something is actually selected (nothing to
+  // deselect otherwise).
+  //
+  // Task 4B: a highlighted school (highlightedSchoolId) clears FIRST — a
+  // second Escape (now nothing highlighted) deselects the region, same as
+  // before 4B. highlightedSchoolId can only be non-null while a region is
+  // already selected (Dashboard resets it whenever regionCode changes), so
+  // the effect's existing `!selectedCode` guard already covers this case
+  // too — no separate attach condition needed.
+  useEffect(() => {
+    if (!selectedCode) return;
+    function onDocumentKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (event.defaultPrevented) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      ) {
+        return;
+      }
+      if (highlightedSchoolId !== null) {
+        onHighlightSchool(null);
+      } else {
+        onSelect(null);
+      }
+    }
+    document.addEventListener("keydown", onDocumentKeyDown);
+    return () => document.removeEventListener("keydown", onDocumentKeyDown);
+  }, [selectedCode, onSelect, highlightedSchoolId, onHighlightSchool]);
 
   // 추가 요구 #4: 나침반(bearing/pitch reset) + 전체보기(fit-to-overview)
   // buttons, bottom-left inside the canvas. Both are official deck.gl

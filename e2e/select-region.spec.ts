@@ -79,21 +79,56 @@ test.describe("시군 선택", () => {
 
     await page.screenshot({ path: "test-results/select-region-after.png" });
 
-    // Esc deselects — scoped to the map wrapper (tabIndex=0), so focus it first.
-    await page.getByLabel(MAP_WRAPPER_LABEL).focus();
+    // Esc deselects WITHOUT ever focusing the map wrapper first (fix round
+    // 1, review finding #1): the just-clicked RegionList <button> unmounts
+    // once the panel swaps to RegionPanel, which leaves focus on <body> —
+    // confirmed below — not on the wrapper. A document-level listener (see
+    // DeckMap.tsx) is what actually catches this Escape, not the wrapper's
+    // own onKeyDown.
+    await expect(page.getByLabel(MAP_WRAPPER_LABEL)).not.toBeFocused();
     await page.keyboard.press("Escape");
 
     await expect(page).not.toHaveURL(/[?&]region=/);
     await expect(page.getByText("시군을 클릭하거나 목록에서 선택하세요")).toBeVisible();
 
-    // setRegion always pushes a history entry (even to null — see
-    // urlState.ts) — the stack is [no region] -> [region=52110] ->
-    // [no region], so going back ONE step restores the selection.
+    // A transition to/from "nothing selected" always pushes a history entry
+    // (see urlState.ts's setRegion) — the stack is [no region] ->
+    // [region=52110] -> [no region], so going back ONE step restores the
+    // selection.
     await page.goBack();
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
+  });
+
+  test("화살표로 시군을 두 번 이동해도 뒤로가기 한 번이면 선택이 사라진다", async ({ page }) => {
+    // Fix round 1, review finding #2: code -> a different code REPLACES the
+    // history entry (doesn't push), so cycling ←/→ through several regions
+    // still leaves only ONE pushed entry (from the initial list-click
+    // selection) — a single Back undoes the whole cycle at once, landing on
+    // "nothing selected," not one arrow-step back.
+    await page.goto("/");
+    await waitForMapReady(page);
+
+    await page.getByRole("button", { name: /전주시/ }).click();
+    await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
+
+    // ←/→ cycling is scoped to the map wrapper (handleWrapperKeyDown).
+    await page.getByLabel(MAP_WRAPPER_LABEL).focus();
+
+    const afterSelect = page.url();
+    await page.keyboard.press("ArrowRight");
+    await expect(page).toHaveURL(/[?&]region=\d{5}(&|$)/);
+    await expect(page).not.toHaveURL(afterSelect);
+    const afterFirstArrow = page.url();
+
+    await page.keyboard.press("ArrowRight");
+    await expect(page).toHaveURL(/[?&]region=\d{5}(&|$)/);
+    await expect(page).not.toHaveURL(afterFirstArrow);
+
+    await page.goBack();
+    await expect(page).not.toHaveURL(/[?&]region=/);
   });
 
   test("캔버스에서 전주시를 직접 클릭해도 선택된다", async ({ page }) => {
@@ -132,5 +167,12 @@ test.describe("시군 선택", () => {
 
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+
+    // Esc deselects here too, without ever focusing the wrapper (fix round
+    // 1, review finding #1) — after a canvas click, deck.gl/mjolnir.js
+    // doesn't move focus onto the wrapper div either.
+    await expect(page.getByLabel(MAP_WRAPPER_LABEL)).not.toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page).not.toHaveURL(/[?&]region=/);
   });
 });

@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 
 import RegionPanel from "@/components/panels/RegionPanel";
+import { REGION_CODES } from "@/lib/geo/regions";
 import { INDICATORS } from "@/lib/indicators/registry";
 import { formatDelta } from "@/lib/tooltipText";
 import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
@@ -146,9 +147,9 @@ describe("RegionPanel", () => {
     expect(screen.getByText("명")).toBeInTheDocument();
   });
 
-  it("shows the rank out of 14 시군", () => {
+  it("shows the rank out of 14 시군, derived from REGION_CODES.length (fix round 1, review finding #4 — not hardcoded)", () => {
     renderSelected(`?region=${REGION}&indicator=students_total`);
-    expect(screen.getByText("14개 시군 중 1위")).toBeInTheDocument();
+    expect(screen.getByText(`${REGION_CODES.length}개 시군 중 1위`)).toBeInTheDocument();
   });
 
   it("shows the 전북 대비 delta with sign, using formatDelta (총계, since students_total is count-kind)", () => {
@@ -183,17 +184,34 @@ describe("RegionPanel", () => {
     expect(screen.getByTestId("other-indicator-schools_total")).not.toHaveAttribute("aria-current");
   });
 
-  it("clicking another indicator's row in the table switches the map indicator (URL updates)", async () => {
+  it("clicking the value cell (not just the label button) switches the map indicator — the whole row is clickable (fix round 1, review finding #3)", async () => {
+    const user = userEvent.setup();
+    const onUrlUpdate = vi.fn();
+    renderSelected(`?region=${REGION}&indicator=students_total`, { onUrlUpdate, hasMemory: true });
+
+    const row = screen.getByTestId("other-indicator-schools_total").closest("tr");
+    if (!row) throw new Error("other-indicator-schools_total row not found");
+    const valueCell = within(row).getAllByRole("cell")[1]; // [label (button), value, rank]
+
+    await user.click(valueCell);
+
+    const lastCall = onUrlUpdate.mock.calls.at(-1)?.[0];
+    expect(lastCall?.searchParams.get("indicator")).toBe("schools_total");
+    // setIndicator replaces the history entry (doesn't clutter back/forward).
+    expect(lastCall?.options.history).toBe("replace");
+  });
+
+  it("clicking the label button itself still updates exactly once (its handler stops propagation so the row's own onClick doesn't also fire)", async () => {
     const user = userEvent.setup();
     const onUrlUpdate = vi.fn();
     renderSelected(`?region=${REGION}&indicator=students_total`, { onUrlUpdate, hasMemory: true });
 
     await user.click(screen.getByTestId("other-indicator-schools_total"));
 
-    const lastCall = onUrlUpdate.mock.calls.at(-1)?.[0];
-    expect(lastCall?.searchParams.get("indicator")).toBe("schools_total");
-    // setIndicator replaces the history entry (doesn't clutter back/forward).
-    expect(lastCall?.options.history).toBe("replace");
+    const indicatorCalls = onUrlUpdate.mock.calls.filter(
+      (call) => call[0].searchParams.get("indicator") === "schools_total",
+    );
+    expect(indicatorCalls).toHaveLength(1);
   });
 
   describe("학교 목록 (Task 4B)", () => {
