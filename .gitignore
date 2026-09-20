@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# data pipeline (raw sources are downloaded, not committed)
+data/raw/*
+!data/raw/.gitkeep
+
+# superpowers / agent scratch state
+.superpowers/
+
+# playwright
+playwright-report/
+test-results/
+
+# local env overrides
+.env*.local
