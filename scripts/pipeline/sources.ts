@@ -237,6 +237,55 @@ export const OFFICIAL_TEACHERS_BY_LEVEL: Record<SchoolLevel, number> = {
 export const VALIDATE_TOLERANCE_RATIO = 0.005;
 
 // ---------------------------------------------------------------------------
+// School location CSV (Task 4B — 한국교육시설안전원 초중등학교위치)
+// ---------------------------------------------------------------------------
+
+/**
+ * The location CSV's filename always starts with this prefix and ends with
+ * `_YYYYMMDD.csv` (the 데이터기준일자 baked into the filename itself — see
+ * `referenceDateFromFilename`). build-schools.ts scans `data/raw/` for a
+ * file matching this prefix rather than hardcoding the full filename, so a
+ * future refresh (a new 기준일자) only requires dropping in the new file,
+ * unchanged name aside from its date suffix.
+ */
+export const LOCATION_CSV_PREFIX = "한국교육시설안전원_초중등학교위치_";
+
+const LOCATION_CSV_DATE_RE = /_(\d{8})\.csv$/;
+
+/**
+ * Parses the `_YYYYMMDD.csv` suffix off a location CSV filename into an ISO
+ * `YYYY-MM-DD` date — the "날짜기준 규칙" (사용자 지시): the reference date
+ * baked into the source filename must be carried into the built metadata and
+ * the on-screen source caption, never silently dropped or re-derived from
+ * today's date. Throws (naming the exact expected pattern) when the filename
+ * doesn't match, so a renamed/misnamed source file fails loudly instead of
+ * silently producing a wrong or missing referenceDate.
+ */
+export function referenceDateFromFilename(filename: string): string {
+  const match = LOCATION_CSV_DATE_RE.exec(filename);
+  if (!match) {
+    throw new Error(
+      `파일명에서 기준일자(_YYYYMMDD.csv)를 찾을 수 없습니다: ${JSON.stringify(filename)}. ` +
+        `예상 형식: ${LOCATION_CSV_PREFIX}YYYYMMDD.csv (예: ${LOCATION_CSV_PREFIX}20260320.csv)`,
+    );
+  }
+  const [, ymd] = match;
+  return `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
+}
+
+/** public/data/schools.json's `source.location` (referenceDate is filled in by build-schools.ts from the filename). */
+export const LOCATION_SOURCE = {
+  name: "한국교육시설안전원 초중등학교위치 표준데이터",
+  url: "https://www.data.go.kr/data/15159184/fileData.do",
+};
+
+/** public/data/schools.json's `source.stats` (referenceDate is filled in from data/interim/kess-<year>.json). Same dataset as KESS_SOURCE in registry.ts/parse-kess.ts — duplicated here (not imported) to match this codebase's existing precedent of each pipeline entry point owning its own copy of this literal (see parse-kess.ts's local `SOURCE` const). */
+export const KESS_STATS_SOURCE = {
+  name: "한국교육개발원 교육통계서비스(KESS) 교육기본통계 학교별 데이터셋",
+  url: "https://kess.kedi.re.kr/contents/dataset",
+};
+
+// ---------------------------------------------------------------------------
 // Header mapping
 // ---------------------------------------------------------------------------
 

@@ -32,8 +32,22 @@
 | `npm run data:validate` | 생성된 데이터 검증 |
 | `npm run data:build` | regions → kess → indicators → charset → validate 순으로 데이터 파이프라인 전체 실행 |
 
-데이터 파이프라인 스크립트(`scripts/pipeline/*.ts`)는 이후 태스크에서 구현됩니다.
+### 전체 데이터 파이프라인 실행 순서 (학교 점 포함)
+
+`data:build` 는 `data:schools` 를 포함하지 않습니다(`package.json` 은 수정하지 않는다는 제약). 학교 점 레이어까지 최신으로 만들려면 아래 순서로 직접 실행하세요:
+
+```
+npm run data:regions
+npm run data:kess
+npm run data:schools     # data/raw/한국교육시설안전원_초중등학교위치_YYYYMMDD.csv 필요 — data:kess 다음, data:indicators/data:charset 이전
+npm run data:indicators
+npm run data:charset     # public/data/schools.json 이 있어야 학교명이 라벨 문자셋에 포함됨
+npm run data:validate    # schools.json 의 좌표/매칭률/시군별 학교수 정합성까지 함께 검증
+```
+
+`data:schools` 는 `data/raw/` 에서 `한국교육시설안전원_초중등학교위치_` 로 시작하는 CSV 파일을 찾습니다(파일명 끝의 `_YYYYMMDD.csv` 가 위치 데이터의 기준일자입니다). 파일이 없으면 필요한 파일명을 알려주고 실패합니다. 수동 매칭 보정은 `data/manual/school-aliases.json` (`"KESS 학교명|시군코드": "위치 CSV 학교ID"`)에 근거(주소 일치 등)가 있는 경우에만 추가합니다.
 
 ## 데이터 출처
 
-- 출처·기준일은 추후 이 섹션과 화면 하단 범례에 표기 예정입니다 (예: KESS 교육통계, 기준일 2026.4.1).
+- KESS 교육기본통계 학교별 데이터셋(한국교육개발원 교육통계서비스) — 지표(학생수/학교수/교원수 등), 기준일은 화면 하단 범례에 표기.
+- 한국교육시설안전원 초중등학교위치 표준데이터(data.go.kr) — 학교 점 위치(위도/경도). 시군 선택 시 지도 우측 패널과 화면 하단에 "학교 위치 기준 YYYY-MM-DD" 로 기준일을 표기합니다. 전국 데이터셋 특성상 초·중·고등학교만 포함되어 있고 특수학교 위치는 제공되지 않습니다(자세한 내용은 `data/interim/schools-match-report.json` 참고).
