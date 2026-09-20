@@ -1,13 +1,20 @@
 {
-  "matchRate": 0.9853917662682603,
-  "totalKessIncluded": 753,
+  "locationSourceLevels": [
+    "elem",
+    "mid",
+    "high"
+  ],
+  "matchRate": 1,
+  "totalKessIncluded": 742,
+  "totalKessAll": 753,
   "matchedCount": 742,
   "byStage": {
     "exact": 738,
     "suffix": 0,
     "alias": 4
   },
-  "unmatchedKess": [
+  "unmatchedKess": [],
+  "noLocationSource": [
     {
       "name": "동암차돌학교",
       "regionCode": "52110",

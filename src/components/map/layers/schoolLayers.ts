@@ -9,6 +9,14 @@ const LINE_COLOR_HIGHLIGHTED: [number, number, number, number] = [255, 255, 255,
 const LINE_WIDTH_NORMAL = 1;
 const LINE_WIDTH_HIGHLIGHTED = 2;
 
+/** A school with a real location match (see fix-round-1: a 특수학교 row has `lat`/`lng: null` and can never be plotted). */
+type PositionedSchool = School & { lat: number; lng: number };
+
+/** Both layer factories are only ever handed a school's real coordinate — a school without one (locationMissingReason set) has nothing to plot and is dropped here rather than the caller having to remember to pre-filter. */
+function withCoordinates(schools: School[]): PositionedSchool[] {
+  return schools.filter((s): s is PositionedSchool => s.lat !== null && s.lng !== null);
+}
+
 export interface SchoolsLayerOptions {
   /** Same injection point as makeRegionsLayer's elevationOf — schools sit on their region's top face. */
   elevationOf: (regionCode: string) => number;
@@ -22,13 +30,13 @@ export interface SchoolsLayerOptions {
   triggerKey: string | number;
 }
 
-/** The 학교 point layer — only ever fed the selected 시군's schools by the caller (DeckMap); `visible` additionally gates the whole layer (e.g. off entirely when nothing is selected). */
+/** The 학교 point layer — only ever fed the selected 시군's schools by the caller (DeckMap); `visible` additionally gates the whole layer (e.g. off entirely when nothing is selected). Schools with no coordinates (특수학교 — see PositionedSchool) are silently dropped before rendering, not just hidden; see `tests/unit/schoolLayers.test.ts`. */
 export function makeSchoolsLayer(schools: School[], opts: SchoolsLayerOptions) {
   const highlightedId = opts.highlightedId ?? null;
 
-  return new ScatterplotLayer<School>({
+  return new ScatterplotLayer<PositionedSchool>({
     id: "schools",
-    data: schools,
+    data: withCoordinates(schools),
     visible: opts.visible,
     pickable: true,
     autoHighlight: true,
@@ -56,7 +64,7 @@ export function makeSchoolsLayer(schools: School[], opts: SchoolsLayerOptions) {
       getPosition: 600,
     },
     onClick: opts.onClick
-      ? (info: PickingInfo<School>) => {
+      ? (info: PickingInfo<PositionedSchool>) => {
           if (info.object) opts.onClick?.(info.object.id);
         }
       : undefined,
@@ -72,11 +80,11 @@ export interface SchoolLabelsLayerOptions {
   triggerKey: string | number;
 }
 
-/** 학교명 라벨 — billboarded text just above each school's point marker. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. */
+/** 학교명 라벨 — billboarded text just above each school's point marker. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. Schools with no coordinates are dropped, same as makeSchoolsLayer (there's no point position to label). */
 export function makeSchoolLabelsLayer(schools: School[], opts: SchoolLabelsLayerOptions) {
-  return new TextLayer<School>({
+  return new TextLayer<PositionedSchool>({
     id: "school-labels",
-    data: schools,
+    data: withCoordinates(schools),
     visible: opts.visible,
     // +50 to sit level with the point marker (same offset makeSchoolsLayer
     // uses), +30 more so the label floats just above the dot instead of

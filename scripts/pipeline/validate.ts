@@ -7,16 +7,33 @@
  *  4. manifest.json years match each series file's years
  *  5. every registry indicator has an indicators/<id>.json (and, unless it's
  *     an 'external' aggregate, a series/<id>.json)
- *  6. schools.json (Task 4B):
- *     (a) every school has a finite lat/lng inside a broad Korea bounding box
- *     (b) point-in-polygon: the school's (lng,lat) falls inside its claimed
- *         regionCode's polygon in regions.geojson (ray casting, MultiPolygon
- *         support) — a failure inside the region's own bbox ±0.05° is
- *         rescued (서해 도서/simplification), but still flagged as a concern
- *         when the point actually lands inside a DIFFERENT region's polygon
- *     (c) data/interim/schools-match-report.json's matchRate >= 99%
+ *  6. schools.json (Task 4B, fix-round-1 revised):
+ *     (a) every school WITH coordinates has a finite lat/lng inside a broad
+ *         Korea bounding box (a school without coordinates — see (e) — is
+ *         skipped here, not a coordinate-validity failure)
+ *     (b) point-in-polygon: a school WITH coordinates' (lng,lat) falls inside
+ *         its claimed regionCode's polygon in regions.geojson (ray casting,
+ *         MultiPolygon support) — a failure inside the region's own bbox
+ *         ±0.05° is rescued (서해 도서/simplification), but still flagged as
+ *         a concern when the point actually lands inside a DIFFERENT
+ *         region's polygon
+ *     (c) data/interim/schools-match-report.json's `unmatchedKess` (already
+ *         scoped to LOCATION_SOURCE_LEVELS — see sources.ts) must be empty:
+ *         every KESS row whose 학교급 the location source covers must have
+ *         matched (100%, not merely ≥99% — the only KESS rows that can ever
+ *         legitimately have no location match are ones outside
+ *         LOCATION_SOURCE_LEVELS entirely, which never reach this check at
+ *         all — see (e))
  *     (d) per (regionCode, level) 본교 counts in schools.json match
- *         indicators/schools_total.json's byLevel rows exactly (분교 제외)
+ *         indicators/schools_total.json's byLevel rows exactly (분교 제외),
+ *         for LOCATION_SOURCE_LEVELS only (특수학교 is structurally excluded
+ *         — see sources.ts's LOCATION_SOURCE_LEVELS doc comment)
+ *     (e) every school WITHOUT coordinates has `level` outside
+ *         LOCATION_SOURCE_LEVELS and a non-empty `locationMissingReason`
+ *         (and, symmetrically, no school WITH coordinates carries that
+ *         field) — this is what actually validates the "특수학교 rows are
+ *         legitimately coordinate-less, not silently dropped or broken"
+ *         property that (a)-(d) deliberately skip past.
  * Exits 1 and prints a table of every mismatch if any check fails.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -29,6 +46,7 @@ import { pointInPolygon } from "./lib/point-in-polygon";
 import type { School } from "./lib/schools";
 import type { SchoolsMatchReport } from "./lib/schools";
 import {
+  LOCATION_SOURCE_LEVELS,
   OFFICIAL_SCHOOLS_BY_LEVEL,
   OFFICIAL_STUDENTS_BY_LEVEL,
   OFFICIAL_TEACHERS_BY_LEVEL,
@@ -46,7 +64,6 @@ const MATCH_REPORT_PATH = path.resolve(import.meta.dirname, "../../data/interim/
 
 /** The bbox rescue margin (서해 도서 등 지도 단순화로 좌표가 폴리곤 밖에 살짝 나가는 경우 허용). */
 const PIP_RESCUE_MARGIN_DEG = 0.05;
-const MATCH_RATE_TARGET = 0.99;
 
 interface Failure {
   check: string;
@@ -138,17 +155,22 @@ function checkSchools(): void {
 
   const { schools } = schoolsFile;
   const regionByCode = new Map(regions.features.map((f) => [f.properties.code, f]));
+  const locationSourceLevels = new Set<SchoolLevel>(LOCATION_SOURCE_LEVELS);
 
-  // (a) every school has a finite lat/lng inside a broad Korea bbox.
+  // (a) every school WITH coordinates has a finite lat/lng inside a broad
+  // Korea bbox. A school with no coordinates at all (lat/lng null) is
+  // intentionally skipped here — validated instead by (e), which confirms
+  // *why* it has none rather than treating "none" as an invalid value.
   for (const school of schools) {
     const { lat, lng } = school;
+    if (lat === null && lng === null) continue;
     const finite = Number.isFinite(lat) && Number.isFinite(lng);
     const inKorea =
       finite &&
-      lat >= KOREA_BBOX.minLat &&
-      lat <= KOREA_BBOX.maxLat &&
-      lng >= KOREA_BBOX.minLng &&
-      lng <= KOREA_BBOX.maxLng;
+      lat! >= KOREA_BBOX.minLat &&
+      lat! <= KOREA_BBOX.maxLat &&
+      lng! >= KOREA_BBOX.minLng &&
+      lng! <= KOREA_BBOX.maxLng;
     if (!inKorea) {
       fail("6a:coordinates", `${school.name}(${school.id}): 유효하지 않은 좌표 lat=${lat}, lng=${lng}`);
     }
@@ -156,7 +178,9 @@ function checkSchools(): void {
 
   // (b) point-in-polygon against the school's claimed regionCode, with a
   // bbox ±0.05° rescue for boundary-simplification misses (서해 도서 등).
+  // Schools with no coordinates are skipped (see (a)'s comment / (e)).
   for (const school of schools) {
+    if (school.lat === null || school.lng === null) continue;
     if (!Number.isFinite(school.lat) || !Number.isFinite(school.lng)) continue; // already flagged by (a)
     const feature = regionByCode.get(school.regionCode);
     if (!feature) {
@@ -188,26 +212,36 @@ function checkSchools(): void {
     }
   }
 
-  // (c) match rate target.
-  if (report.matchRate < MATCH_RATE_TARGET) {
+  // (c) fix-round-1 ruling: KESS rows in a 학교급 the location source covers
+  // must be 100% matched — report.unmatchedKess is already scoped to
+  // LOCATION_SOURCE_LEVELS (see buildMatchReport in lib/schools.ts), so
+  // "empty" here really does mean "no matching failures", not "no matching
+  // failures other than the ones we've decided not to count".
+  if (report.unmatchedKess.length > 0) {
     fail(
       "6c:match-rate",
-      `${(report.matchRate * 100).toFixed(2)}% (${report.matchedCount}/${report.totalKessIncluded}) < 목표 ${(MATCH_RATE_TARGET * 100).toFixed(0)}% ` +
-        `— 미매칭 ${report.unmatchedKess.length}건은 근거 없는 추정 매칭을 하지 않고 data/interim/schools-match-report.json 에 남김`,
+      `위치 자료가 있는 학교급(${report.locationSourceLevels.join("/")})에서 ${report.unmatchedKess.length}건 미매칭 ` +
+        `(${(report.matchRate * 100).toFixed(2)}%, ${report.matchedCount}/${report.totalKessIncluded}) — 목표 100%. ` +
+        `근거 없는 추정 매칭을 하지 않고 data/interim/schools-match-report.json 에 남김`,
     );
   }
 
   // (d) per (regionCode, level) 본교 counts vs schools_total's byLevel rows,
   // 분교 제외 (분교 rows never counted here or in schools_total's own
-  // isMain-gated aggregate). Deliberately per-LEVEL (not one combined
-  // per-region total): this is strictly more precise than the brief's literal
-  // "시군별 학교수 합" — every discrepancy the combined total would catch is
-  // still caught here, plus each failure is attributed to the exact level
-  // responsible instead of one opaque per-region number.
-  const LEVELS: SchoolLevel[] = ["elem", "mid", "high", "special"];
+  // isMain-gated aggregate). LOCATION_SOURCE_LEVELS only (특수학교 is
+  // structurally excluded from this comparison — see sources.ts's doc
+  // comment on LOCATION_SOURCE_LEVELS: comparing a level the location source
+  // never covers would just re-test "did every KESS row survive the
+  // pass-through into schools.json", not "did the location matching work",
+  // a different question from what this check exists to catch). Deliberately
+  // per-LEVEL (not one combined per-region total): this is strictly more
+  // precise than the brief's literal "시군별 학교수 합" — every discrepancy
+  // the combined total would catch is still caught here, plus each failure
+  // is attributed to the exact level responsible instead of one opaque
+  // per-region number.
   const mainSchools = schools.filter((s) => !s.branch);
   for (const region of REGION_TABLE) {
-    for (const level of LEVELS) {
+    for (const level of LOCATION_SOURCE_LEVELS) {
       const builtCount = mainSchools.filter((s) => s.regionCode === region.code && s.level === level).length;
       const officialRow = schoolsTotal.rows.find((r) => r.regionCode === region.code && r.level === level);
       const officialCount = officialRow?.value ?? null;
@@ -216,15 +250,36 @@ function checkSchools(): void {
         continue;
       }
       if (builtCount !== officialCount) {
-        const cause =
-          level === "special"
-            ? " — 알려진 원인: 위치 CSV(한국교육시설안전원_초중등학교위치)에 특수학교 행이 전국적으로 0건이라 schools.json 에 특수학교를 실을 수 없음(추정 좌표 없이는 해결 불가, task-4B-report.md 참고)"
-            : "";
         fail(
           `6d:schools-count[${region.code}/${level}]`,
-          `schools.json 본교 ${builtCount}개 vs schools_total.json ${officialCount}개${cause}`,
+          `schools.json 본교 ${builtCount}개 vs schools_total.json ${officialCount}개`,
         );
       }
+    }
+  }
+
+  // (e) fix-round-1 ruling: every school WITHOUT coordinates must be outside
+  // LOCATION_SOURCE_LEVELS (currently: only 특수학교 can legitimately have no
+  // coordinates) and must carry a non-empty locationMissingReason explaining
+  // why — and, symmetrically, a school WITH coordinates must never carry
+  // that field (it would contradict having a real location match).
+  for (const school of schools) {
+    const hasCoords = school.lat !== null && school.lng !== null;
+    if (!hasCoords) {
+      if (locationSourceLevels.has(school.level)) {
+        fail(
+          "6e:no-location",
+          `${school.name}(${school.id}): 좌표가 없는데 학교급이 ${school.level} — 위치 자료가 있는 학교급은 좌표가 없을 수 없음`,
+        );
+      }
+      if (!school.locationMissingReason) {
+        fail("6e:no-location", `${school.name}(${school.id}): 좌표가 없는데 locationMissingReason 이 없음`);
+      }
+    } else if (school.locationMissingReason) {
+      fail(
+        "6e:no-location",
+        `${school.name}(${school.id}): 좌표가 있는데 locationMissingReason 이 설정됨("${school.locationMissingReason}") — 모순`,
+      );
     }
   }
 }
@@ -284,15 +339,17 @@ function main(): void {
     }
   }
 
-  // (6) schools.json — see checkSchools's own doc comment for (a)-(d).
+  // (6) schools.json — see checkSchools's own doc comment for (a)-(e).
   checkSchools();
 
   const matchReport = loadJSON<SchoolsMatchReport>(MATCH_REPORT_PATH);
   if (matchReport) {
     console.log(
-      `[validate] 학교 매칭 리포트: ${matchReport.matchedCount}/${matchReport.totalKessIncluded} = ` +
+      `[validate] 학교 매칭 리포트(위치 자료 있는 학교급 ${matchReport.locationSourceLevels.join("/")}): ` +
+        `${matchReport.matchedCount}/${matchReport.totalKessIncluded} = ` +
         `${(matchReport.matchRate * 100).toFixed(2)}% (exact ${matchReport.byStage.exact}, suffix ${matchReport.byStage.suffix}, alias ${matchReport.byStage.alias}) — ` +
-        `미매칭 ${matchReport.unmatchedKess.length}, 위치 전용 ${matchReport.locationOnly.length}, 시군 배정 실패 ${matchReport.regionParseFailures.length}\n`,
+        `미매칭 ${matchReport.unmatchedKess.length}, 위치 자료 없는 학교급(특수) ${matchReport.noLocationSource.length}건 ` +
+        `(좌표 없이 포함), 위치 전용 ${matchReport.locationOnly.length}, 시군 배정 실패 ${matchReport.regionParseFailures.length}\n`,
     );
   }
 

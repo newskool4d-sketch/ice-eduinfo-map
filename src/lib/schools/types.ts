@@ -12,12 +12,13 @@ export interface School {
   id: string;
   name: string;
   level: SchoolLevel;
-  /** 운영상태 — the location source's own value (e.g. "운영"), NOT a KESS 상태 code. */
+  /** 운영상태 — the location source's own value (e.g. "운영") when the school has a location match, otherwise the raw KESS 상태 (e.g. "기존"/"신설") for a `locationMissingReason` row (see below) that has no location row to read this from. */
   status: string;
   /** true for 분교장. */
   branch: boolean;
-  lat: number;
-  lng: number;
+  /** null only for a school whose 학교급 the location source doesn't cover at all (see `locationMissingReason`) — never null for a genuine match. */
+  lat: number | null;
+  lng: number | null;
   regionCode: string;
   students: number | null;
   classes: number | null;
@@ -25,6 +26,13 @@ export interface School {
   studentsPerClass: number | null;
   small: boolean;
   kediCode?: string;
+  /**
+   * Set (and lat/lng both null) only when this school's 학교급 isn't covered
+   * by LOCATION_SOURCE_LEVELS at all (currently: 특수학교 — the location
+   * source has zero rows for that level nationwide, not a per-school
+   * matching failure). Absent for every school with real coordinates.
+   */
+  locationMissingReason?: string;
 }
 
 export interface SchoolSourceInfo {

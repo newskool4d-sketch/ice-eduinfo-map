@@ -84,6 +84,8 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
     .slice()
     .sort(byStudentsDesc);
   const smallCount = filteredSchools.filter((s) => s.small).length;
+  // fix-round-1: 특수학교 rows carry no coordinate (see School.locationMissingReason) — surfaced in the summary line whenever the current filter includes any.
+  const noLocationCount = filteredSchools.filter((s) => s.lat === null).length;
 
   const seriesFile = bundle.series[indicatorId];
   const trendRows = seriesFile ? trend(seriesFile, regionCode) : [];
@@ -215,6 +217,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <p className="text-xs text-[#e6e9f0]/60">
             학교 {filteredSchools.length}개 · 소규모 {smallCount}개
+            {noLocationCount > 0 && <> · 위치 없음 {noLocationCount}개</>}
           </p>
           <p className="text-[10px] text-[#e6e9f0]/40">위치 기준 {bundle.schools.referenceDate.location}</p>
         </div>
@@ -263,6 +266,14 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                       {school.small && (
                         <span className="ml-1 inline-block rounded bg-orange-400/20 px-1 text-[10px] text-orange-300">
                           소규모
+                        </span>
+                      )}
+                      {school.lat === null && (
+                        <span
+                          className="ml-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/50"
+                          title={school.locationMissingReason}
+                        >
+                          위치 없음
                         </span>
                       )}
                     </td>

@@ -13,10 +13,12 @@ import path from "node:path";
 import type { SchoolRow } from "./lib/kess-xlsx";
 import {
   buildMatchReport,
+  buildNoLocationSchoolRecord,
   buildSchoolRecord,
   includedKessRows,
   matchSchools,
   parseLocationCsv,
+  partitionUnmatched,
   type School,
 } from "./lib/schools";
 import { KESS_STATS_SOURCE, LOCATION_CSV_PREFIX, LOCATION_SOURCE, referenceDateFromFilename } from "./sources";
@@ -110,9 +112,18 @@ async function main(): Promise<void> {
   const aliases = readAliases();
   const result = matchSchools(locationRows, kessIncluded, aliases);
 
-  const schools: School[] = result.matched
-    .map(buildSchoolRecord)
-    .sort((a, b) => a.id.localeCompare(b.id));
+  // fix-round-1 ruling: a KESS row whose 학교급 the location source doesn't
+  // cover at all (currently: 특수학교, see sources.ts's LOCATION_SOURCE_LEVELS)
+  // is not a matching failure — still include it in schools.json, just
+  // without coordinates, rather than silently dropping it from the map data
+  // entirely.
+  const { noLocationSource } = partitionUnmatched(result.unmatchedKess);
+  const locationMissingReason = `특수학교는 위치 표준데이터(${locationReferenceDate})에 없음`;
+
+  const schools: School[] = [
+    ...result.matched.map(buildSchoolRecord),
+    ...noLocationSource.map((kess) => buildNoLocationSchoolRecord(kess, locationMissingReason)),
+  ].sort((a, b) => a.id.localeCompare(b.id));
 
   const schoolsFile = {
     referenceDate: { location: locationReferenceDate, stats: kessInterim.referenceDate },
@@ -135,15 +146,20 @@ async function main(): Promise<void> {
 
   const pct = (report.matchRate * 100).toFixed(2);
   console.log(
-    `[build-schools] 매칭률: ${report.matchedCount}/${report.totalKessIncluded} = ${pct}% ` +
+    `[build-schools] 매칭률(위치 자료 있는 학교급 ${report.locationSourceLevels.join("/")}): ` +
+      `${report.matchedCount}/${report.totalKessIncluded} = ${pct}% ` +
       `(exact ${report.byStage.exact}, suffix ${report.byStage.suffix}, alias ${report.byStage.alias}); ` +
       `미매칭 KESS ${report.unmatchedKess.length}, 위치 전용 ${report.locationOnly.length}, ` +
       `시군 배정 실패 ${report.regionParseFailures.length}, 모호 ${report.ambiguous.length}`,
   );
-  if (report.matchRate < 0.99) {
+  console.log(
+    `[build-schools] 위치 자료 없는 학교급(전북 특수학교) ${noLocationSource.length}건은 좌표 없이 ` +
+      `schools.json 에 포함(locationMissingReason 설정) — 매칭률 분모에서는 제외.`,
+  );
+  if (report.unmatchedKess.length > 0) {
     console.warn(
-      `[build-schools] 경고: 매칭률(${pct}%)이 목표(99%) 미달입니다 — 근거 없는 추정 매칭 없이 남은 미매칭은 ` +
-        `${path.relative(ROOT, reportPath)} 에 표로 남겼습니다.`,
+      `[build-schools] 경고: 위치 자료가 있는 학교급에서 매칭률 ${pct}% (< 100%) — 근거 없는 추정 매칭 없이 ` +
+        `남은 미매칭 ${report.unmatchedKess.length}건은 ${path.relative(ROOT, reportPath)} 에 표로 남겼습니다.`,
     );
   }
   console.log(`[build-schools] wrote ${path.relative(ROOT, reportPath)}`);

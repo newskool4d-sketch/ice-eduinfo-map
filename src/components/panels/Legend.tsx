@@ -85,6 +85,7 @@ export default function Legend({ def, ticks, palette, hasNull, referenceDate, sc
               </span>
             );
           })}
+          <span className="text-[10px] text-[#e6e9f0]/40">(특수학교는 위치 자료 없음)</span>
         </div>
       )}
 

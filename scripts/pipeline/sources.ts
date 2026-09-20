@@ -285,6 +285,42 @@ export const KESS_STATS_SOURCE = {
   url: "https://kess.kedi.re.kr/contents/dataset",
 };
 
+/**
+ * The 학교급 values LOCATION_SOURCE actually covers. Verified against the
+ * full national download (12,011 rows, every 시도): the `학교급구분` column's
+ * distinct values are exactly `{초등학교, 중학교, 고등학교}` — **no 특수학교
+ * row exists anywhere in this dataset, for any 시도, not just 전북** (this is
+ * a property of the source itself — "한국교육시설안전원 초중등학교위치"
+ * appears to only ever have covered 초/중/고, not 특수학교 — not a filtering
+ * bug or a 전북-specific gap). Confirmed further: none of 전북 KESS's 11
+ * 특수학교 names appear anywhere in the national file (0 substring matches,
+ * checked against all 12,011 rows) — this isn't "these particular schools
+ * happen to be missing", every 특수학교 nationwide is absent from this
+ * dataset.
+ *
+ * Consequence for build-schools.ts: any INCLUDED_STATUSES KESS row whose
+ * `level` is not in this list can never be matched to a location row no
+ * matter how good the matching logic is — it isn't a matching failure, it's
+ * a structural absence in the source. Those rows are still carried into
+ * `public/data/schools.json` (via `buildNoLocationSchoolRecord`) with
+ * `lat: null, lng: null` and a `locationMissingReason`, but are excluded
+ * from:
+ *  - the KESS↔location match-rate validate.ts requires to be 100%
+ *    (`unmatchedKess` in the match report is scoped to `LOCATION_SOURCE_LEVELS`
+ *    only; the 특수학교 rows are reported separately under `noLocationSource`)
+ *  - validate.ts's per-(region, level) 본교 count comparison against
+ *    schools_total.json (only elem/mid/high are compared; comparing special
+ *    would just be re-testing "did we carry every KESS row through", not
+ *    "did the location-matching logic work" — a structurally different
+ *    question from what that check exists to catch)
+ *
+ * If a future refresh of LOCATION_SOURCE ever starts including 특수학교
+ * rows, this constant (and the 데이터 자체) should be re-verified — nothing
+ * else needs to change: build-schools.ts would then be able to match them
+ * like any other level.
+ */
+export const LOCATION_SOURCE_LEVELS: SchoolLevel[] = ["elem", "mid", "high"];
+
 // ---------------------------------------------------------------------------
 // Header mapping
 // ---------------------------------------------------------------------------

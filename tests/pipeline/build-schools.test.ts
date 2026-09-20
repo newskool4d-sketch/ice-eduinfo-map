@@ -4,11 +4,13 @@ import { parseCsv } from "../../scripts/pipeline/lib/csv";
 import type { SchoolRow } from "../../scripts/pipeline/lib/kess-xlsx";
 import {
   buildMatchReport,
+  buildNoLocationSchoolRecord,
   buildSchoolRecord,
   includedKessRows,
   matchSchools,
   normalizeSchoolName,
   parseLocationCsv,
+  partitionUnmatched,
   regionCodeFromAddress,
   stripLevelSuffix,
 } from "../../scripts/pipeline/lib/schools";
@@ -456,5 +458,116 @@ describe("buildMatchReport", () => {
     const report = buildMatchReport(result, kessIncluded, kessIncluded.length, []);
     const oedan = report.locationOnly.find((r) => r.id === "L05");
     expect(oedan?.kessStatus).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fix-round-1: 특수학교 (no-location-source levels) — a KESS row whose 학교급
+// the location source doesn't cover at all is not a "matching failure".
+// ---------------------------------------------------------------------------
+
+describe("partitionUnmatched", () => {
+  it("puts a level covered by sourceLevels into genuinelyUnmatched", () => {
+    const kess = kessRow({ name: "미매칭중학교", regionCode: "52110", level: "mid" });
+    const { genuinelyUnmatched, noLocationSource } = partitionUnmatched([kess], ["elem", "mid", "high"]);
+    expect(genuinelyUnmatched).toEqual([kess]);
+    expect(noLocationSource).toEqual([]);
+  });
+
+  it("puts a level NOT covered by sourceLevels into noLocationSource", () => {
+    const kess = kessRow({ name: "전북특수학교", regionCode: "52110", level: "special" });
+    const { genuinelyUnmatched, noLocationSource } = partitionUnmatched([kess], ["elem", "mid", "high"]);
+    expect(genuinelyUnmatched).toEqual([]);
+    expect(noLocationSource).toEqual([kess]);
+  });
+
+  it("defaults sourceLevels to LOCATION_SOURCE_LEVELS (elem/mid/high) when omitted", () => {
+    const special = kessRow({ name: "전북특수학교", regionCode: "52110", level: "special" });
+    const elem = kessRow({ name: "미매칭초등학교", regionCode: "52110", level: "elem" });
+    const { genuinelyUnmatched, noLocationSource } = partitionUnmatched([special, elem]);
+    expect(noLocationSource).toEqual([special]);
+    expect(genuinelyUnmatched).toEqual([elem]);
+  });
+});
+
+describe("buildNoLocationSchoolRecord", () => {
+  it("uses kedi:<kediCode> as id, null lat/lng, and the given reason", () => {
+    const kess = kessRow({
+      name: "전북특수학교",
+      regionCode: "52110",
+      level: "special",
+      kediCode: "450099999",
+      students: 80,
+      classes: 8,
+      status: "기존",
+    });
+    const record = buildNoLocationSchoolRecord(kess, "특수학교는 위치 표준데이터(2026-03-20)에 없음");
+    expect(record).toMatchObject({
+      id: "kedi:450099999",
+      name: "전북특수학교",
+      level: "special",
+      status: "기존",
+      branch: false,
+      lat: null,
+      lng: null,
+      regionCode: "52110",
+      students: 80,
+      classes: 8,
+      studentsPerClass: 10,
+      locationMissingReason: "특수학교는 위치 표준데이터(2026-03-20)에 없음",
+      kediCode: "450099999",
+    });
+  });
+
+  it("falls back to a deterministic synthetic id when kediCode is absent", () => {
+    const kess = kessRow({ name: "코드없는특수학교", regionCode: "52190", level: "special", kediCode: undefined });
+    const record1 = buildNoLocationSchoolRecord(kess, "reason");
+    const record2 = buildNoLocationSchoolRecord(kess, "reason");
+    expect(record1.id).not.toMatch(/^kedi:/);
+    expect(record1.id).toBe(record2.id); // deterministic, not random
+    expect(record1.kediCode).toBeUndefined();
+  });
+
+  it("computes small the same way buildSchoolRecord does", () => {
+    const smallKess = kessRow({ name: "작은특수학교", regionCode: "52110", level: "special", students: 30 });
+    const bigKess = kessRow({ name: "큰특수학교", regionCode: "52110", level: "special", students: 200 });
+    expect(buildNoLocationSchoolRecord(smallKess, "r").small).toBe(true);
+    expect(buildNoLocationSchoolRecord(bigKess, "r").small).toBe(false);
+  });
+});
+
+describe("buildMatchReport — 특수학교 no-location-source handling", () => {
+  it("excludes noLocationSource rows from unmatchedKess/matchRate, and lists them separately", () => {
+    const { rows: locationRows } = parseLocationCsv(LOCATION_CSV_WITH_BOM);
+    const covered = kessFixtureRows(); // 8 rows: 5 matched, 3 genuinely unmatched (none are special)
+    const special = kessRow({ name: "전북특수학교", regionCode: "52110", level: "special" });
+    const allIncluded = [...covered, special];
+
+    const result = matchSchools(locationRows, allIncluded, {});
+    const report = buildMatchReport(result, allIncluded, allIncluded.length, []);
+
+    expect(report.locationSourceLevels).toEqual(["elem", "mid", "high"]);
+    expect(report.noLocationSource).toHaveLength(1);
+    expect(report.noLocationSource[0]).toMatchObject({ name: "전북특수학교", level: "special" });
+    // The special row must NOT appear in unmatchedKess (it's not a matching failure).
+    expect(report.unmatchedKess.some((r) => r.name === "전북특수학교")).toBe(false);
+    // totalKessIncluded is scoped to covered levels only: 8 (all of kessFixtureRows), not 9.
+    expect(report.totalKessIncluded).toBe(8);
+    expect(report.totalKessAll).toBe(9);
+    expect(report.matchRate).toBeCloseTo(5 / 8, 10);
+  });
+
+  it("matchRate is 100% (1) when every covered-level row matched, even with unmatched specials present", () => {
+    const { rows: locationRows } = parseLocationCsv(LOCATION_CSV_WITH_BOM);
+    const matched = [kessRow({ name: "정읍고등학교", regionCode: "52180", level: "high" })]; // matches L08
+    const special = kessRow({ name: "전북특수학교", regionCode: "52110", level: "special" });
+    const allIncluded = [...matched, special];
+
+    const result = matchSchools(locationRows, allIncluded, {});
+    const report = buildMatchReport(result, allIncluded, allIncluded.length, []);
+
+    expect(report.unmatchedKess).toEqual([]);
+    expect(report.matchRate).toBe(1);
+    expect(report.noLocationSource).toHaveLength(1);
   });
 });

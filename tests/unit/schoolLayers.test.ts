@@ -237,3 +237,54 @@ describe("makeSchoolLabelsLayer", () => {
     expect(layer.props.parameters).toMatchObject({ depthCompare: "always", depthWriteEnabled: false });
   });
 });
+
+// fix-round-1: a 특수학교 row has lat/lng: null (no location-source coordinate
+// — see School.locationMissingReason). Neither layer has anywhere to plot
+// such a school, so both must drop it rather than crash or render at (0,0)/NaN.
+describe("schools without coordinates are excluded from both layers (fix-round-1)", () => {
+  const withCoords = school({ id: "a", regionCode: "52110", lat: 35.8, lng: 127.1 });
+  const noCoords = school({
+    id: "b",
+    regionCode: "52110",
+    level: "special",
+    lat: null,
+    lng: null,
+    locationMissingReason: "특수학교는 위치 표준데이터(2026-03-20)에 없음",
+  });
+  const mixed = [withCoords, noCoords];
+
+  it("makeSchoolsLayer drops the no-coordinate school from data, keeps the positioned one", () => {
+    const layer = makeSchoolsLayer(mixed, {
+      elevationOf: () => 1000,
+      radiusOf: () => 5,
+      visible: true,
+      triggerKey: "v1",
+    });
+    const data = layer.props.data as School[];
+    expect(data).toHaveLength(1);
+    expect(data[0].id).toBe("a");
+  });
+
+  it("makeSchoolLabelsLayer drops the no-coordinate school from data, keeps the positioned one", () => {
+    const layer = makeSchoolLabelsLayer(mixed, {
+      elevationOf: () => 1000,
+      visible: true,
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      triggerKey: "v1",
+    });
+    const data = layer.props.data as School[];
+    expect(data).toHaveLength(1);
+    expect(data[0].id).toBe("a");
+  });
+
+  it("a school list of ONLY no-coordinate schools renders an empty (not crashing) layer", () => {
+    const layer = makeSchoolsLayer([noCoords], {
+      elevationOf: () => 1000,
+      radiusOf: () => 5,
+      visible: true,
+      triggerKey: "v1",
+    });
+    expect(layer.props.data).toEqual([]);
+  });
+});

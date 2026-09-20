@@ -10,7 +10,14 @@ import type { SchoolLevel } from "../../../src/lib/indicators/types";
 import type { School } from "../../../src/lib/schools/types";
 import { parseCsv } from "./csv";
 import type { SchoolRow } from "./kess-xlsx";
-import { INCLUDED_STATUSES, LEVEL_MAP, REGION_TABLE, SMALL_SCHOOL_MAX_STUDENTS, type SchoolStatus } from "../sources";
+import {
+  INCLUDED_STATUSES,
+  LEVEL_MAP,
+  LOCATION_SOURCE_LEVELS,
+  REGION_TABLE,
+  SMALL_SCHOOL_MAX_STUDENTS,
+  type SchoolStatus,
+} from "../sources";
 
 // ---------------------------------------------------------------------------
 // Location CSV parsing
@@ -319,6 +326,32 @@ export function includedKessRows(rows: SchoolRow[]): SchoolRow[] {
   return rows.filter((r) => included.includes(r.status));
 }
 
+/**
+ * Splits `matchSchools()`'s `unmatchedKess` into two structurally different
+ * cases (fix-round-1 ruling — see task-4B-report.md):
+ *  - `genuinelyUnmatched`: the row's 학교급 IS covered by the location
+ *    source, so a location row could in principle have matched it — this
+ *    really is a matching failure. Expected to be empty against the real
+ *    2026-03-20 data (every 초/중/고 KESS row matches); validate.ts requires
+ *    it to stay empty.
+ *  - `noLocationSource`: the row's 학교급 isn't in `sourceLevels` at all
+ *    (currently: 특수학교) — there is no location row it COULD have matched,
+ *    so this isn't a matching failure. These still get a schools.json entry
+ *    (via `buildNoLocationSchoolRecord`), just without coordinates.
+ */
+export function partitionUnmatched(
+  unmatchedKess: SchoolRow[],
+  sourceLevels: readonly SchoolLevel[] = LOCATION_SOURCE_LEVELS,
+): { genuinelyUnmatched: SchoolRow[]; noLocationSource: SchoolRow[] } {
+  const covered = new Set<SchoolLevel>(sourceLevels);
+  const genuinelyUnmatched: SchoolRow[] = [];
+  const noLocationSource: SchoolRow[] = [];
+  for (const kess of unmatchedKess) {
+    (covered.has(kess.level) ? genuinelyUnmatched : noLocationSource).push(kess);
+  }
+  return { genuinelyUnmatched, noLocationSource };
+}
+
 // ---------------------------------------------------------------------------
 // schools.json row shape (School itself is defined in src/lib/schools/types.ts
 // — this pipeline is a producer of that shape, not its owner; see that
@@ -369,6 +402,48 @@ export function buildSchoolRecord({ location, kess }: MatchedSchool): School {
   return record;
 }
 
+/** `kedi:<kediCode>` when the KESS row has one (every current 특수학교 row does); otherwise a deterministic fallback derived from the row's own key fields — still stable across pipeline runs, just not as short/recognizable as a real KEDI code. */
+function syntheticNoLocationId(kess: SchoolRow): string {
+  return `no-loc:${kess.regionCode}:${normalizeSchoolName(kess.name)}:${kess.level}:${kess.branch}`;
+}
+
+/**
+ * Builds a schools.json row for a KESS row whose 학교급 the location source
+ * doesn't cover at all (fix-round-1 ruling — `partitionUnmatched`'s
+ * `noLocationSource` bucket, currently only 특수학교). Carries every KESS
+ * stat through exactly like `buildSchoolRecord`, but:
+ *  - `lat`/`lng` are null (no location row exists to take coordinates from)
+ *  - `status` falls back to the KESS row's own 상태 (기존/신설/휴교) instead
+ *    of a location row's 운영상태 — it's the only status this row has
+ *  - `id` prefers `kedi:<kediCode>` (stable, already unique) over the
+ *    synthetic fallback, which only fires for the rare KESS row with no
+ *    kediCode at all (2022/2023 rows never carried one — see kess-xlsx.ts)
+ *  - `locationMissingReason` is set (and only ever set for a row like this)
+ */
+export function buildNoLocationSchoolRecord(kess: SchoolRow, reason: string): School {
+  const studentsPerClass =
+    kess.students != null && kess.classes != null && kess.classes > 0 ? round2(kess.students / kess.classes) : null;
+
+  const record: School = {
+    id: kess.kediCode ? `kedi:${kess.kediCode}` : syntheticNoLocationId(kess),
+    name: kess.name,
+    level: kess.level,
+    status: kess.status,
+    branch: kess.branch,
+    lat: null,
+    lng: null,
+    regionCode: kess.regionCode,
+    students: kess.students,
+    classes: kess.classes,
+    teachers: kess.teachers,
+    studentsPerClass,
+    small: kess.students != null && kess.students <= SMALL_SCHOOL_MAX_STUDENTS,
+    locationMissingReason: reason,
+  };
+  if (kess.kediCode) record.kediCode = kess.kediCode;
+  return record;
+}
+
 // ---------------------------------------------------------------------------
 // Match report
 // ---------------------------------------------------------------------------
@@ -393,11 +468,20 @@ export interface MatchReportLocationRow {
 }
 
 export interface SchoolsMatchReport {
+  /** 학교급 the location source covers — mirrors sources.ts's LOCATION_SOURCE_LEVELS. */
+  locationSourceLevels: SchoolLevel[];
+  /** matched / totalKessIncluded, computed ONLY over locationSourceLevels — validate.ts requires this to be exactly 1 (100%; fix-round-1 ruling). */
   matchRate: number;
+  /** KESS included rows whose 학교급 IS in locationSourceLevels — the only rows a location match was ever possible for. */
   totalKessIncluded: number;
+  /** All KESS included rows, every 학교급 (= totalKessIncluded + noLocationSource.length) — kept for context/transparency. */
+  totalKessAll: number;
   matchedCount: number;
   byStage: Record<MatchStage, number>;
+  /** Genuine match failures within locationSourceLevels — expected empty against real data. */
   unmatchedKess: MatchReportKessRow[];
+  /** KESS rows whose 학교급 the location source doesn't cover at all (currently 특수학교) — not a matching failure, see sources.ts's LOCATION_SOURCE_LEVELS doc comment. These still get a public/data/schools.json row (via buildNoLocationSchoolRecord), just without coordinates. */
+  noLocationSource: MatchReportKessRow[];
   locationOnly: MatchReportLocationRow[];
   regionParseFailures: RegionParseFailure[];
   ambiguous: { kessName: string; regionCode: string; level: SchoolLevel; stage: string; candidateIds: string[] }[];
@@ -409,24 +493,41 @@ function findKessStatusFor(loc: LocationRow, allKessRows: SchoolRow[]): SchoolSt
   return hit ? hit.status : null;
 }
 
-/** Assembles data/interim/schools-match-report.json's contents from a matchSchools() result. `allKessRows` (status-unfiltered) is only used to annotate `locationOnly[].kessStatus`. */
+function toMatchReportKessRow(k: SchoolRow): MatchReportKessRow {
+  return { name: k.name, regionCode: k.regionCode, level: k.level, branch: k.branch, status: k.status };
+}
+const byRegionThenName = <T extends { regionCode: string; name: string }>(a: T, b: T): number =>
+  a.regionCode.localeCompare(b.regionCode) || a.name.localeCompare(b.name);
+
+/**
+ * Assembles data/interim/schools-match-report.json's contents from a
+ * matchSchools() result. `allKessRows` (status-unfiltered) is only used to
+ * annotate `locationOnly[].kessStatus`. `totalKessIncludedAll` is the FULL
+ * (every 학교급) included-KESS-row count — this function subtracts the
+ * partitioned `noLocationSource` count from it to get `totalKessIncluded`
+ * (the covered-levels-only denominator `matchRate` uses).
+ */
 export function buildMatchReport(
   result: MatchSchoolsResult,
   allKessRows: SchoolRow[],
-  totalKessIncluded: number,
+  totalKessIncludedAll: number,
   regionParseFailures: RegionParseFailure[],
 ): SchoolsMatchReport {
   const byStage: Record<MatchStage, number> = { exact: 0, suffix: 0, alias: 0 };
   for (const m of result.matched) byStage[m.stage]++;
 
+  const { genuinelyUnmatched, noLocationSource } = partitionUnmatched(result.unmatchedKess);
+  const totalKessIncluded = totalKessIncludedAll - noLocationSource.length;
+
   return {
+    locationSourceLevels: [...LOCATION_SOURCE_LEVELS],
     matchRate: totalKessIncluded > 0 ? result.matched.length / totalKessIncluded : 1,
     totalKessIncluded,
+    totalKessAll: totalKessIncludedAll,
     matchedCount: result.matched.length,
     byStage,
-    unmatchedKess: result.unmatchedKess
-      .map((k) => ({ name: k.name, regionCode: k.regionCode, level: k.level, branch: k.branch, status: k.status }))
-      .sort((a, b) => a.regionCode.localeCompare(b.regionCode) || a.name.localeCompare(b.name)),
+    unmatchedKess: genuinelyUnmatched.map(toMatchReportKessRow).sort(byRegionThenName),
+    noLocationSource: noLocationSource.map(toMatchReportKessRow).sort(byRegionThenName),
     locationOnly: result.unmatchedLocation
       .map((r) => ({
         id: r.id,
@@ -437,7 +538,7 @@ export function buildMatchReport(
         status: r.status,
         kessStatus: findKessStatusFor(r, allKessRows),
       }))
-      .sort((a, b) => a.regionCode.localeCompare(b.regionCode) || a.name.localeCompare(b.name)),
+      .sort(byRegionThenName),
     regionParseFailures,
     ambiguous: result.ambiguous.map((a) => ({
       kessName: a.kess.name,
