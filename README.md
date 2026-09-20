@@ -32,10 +32,14 @@
 | `npm run data:validate` | 생성된 데이터 검증 |
 | `npm run data:build` | `regions → kess → schools → indicators → charset → validate` 순으로 데이터 파이프라인 전체 실행 (학교 점 레이어 포함) |
 
+## CI
+
+GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`data:validate`)·typecheck·lint·단위 테스트·build를 `build` 잡에서, e2e(Playwright)를 이어지는 `e2e` 잡에서 실행합니다. 첫 푸시 시 GitHub Actions 로그를 확인하세요 (원격 저장소 연결 후 첫 실행).
+
 ## 배포 (Vercel)
 
 1. Vercel 대시보드에서 "Add New Project" → 이 저장소(GitHub)를 import 합니다.
-2. 빌드 설정은 기본값을 그대로 씁니다 — Framework Preset이 자동으로 "Next.js"로 인식되고, Build Command(`next build` = `npm run build`)·Output Directory·Install Command(`npm ci`) 모두 손댈 필요가 없습니다. Node.js 버전은 `.nvmrc`(22)를 Vercel이 자동으로 읽습니다.
+2. 빌드 설정은 기본값을 그대로 씁니다 — Framework Preset이 자동으로 "Next.js"로 인식되고, Build Command(`next build` = `npm run build`)·Output Directory·Install Command(`npm ci`) 모두 손댈 필요가 없습니다. Node.js 버전은 Vercel이 `package.json`의 `engines.node`(프로젝트 설정에서도 지정 가능)를 기준으로 선택합니다 — `.nvmrc`는 로컬 `nvm use` 전용이며 Vercel은 이를 읽지 않습니다.
 3. 환경변수는 필요 없습니다 — 지도는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고, 런타임에 외부 API 키나 서버 비밀값을 쓰지 않습니다. (`NEXT_PUBLIC_E2E` 는 Playwright e2e 전용으로 `playwright.config.ts` 가 테스트 실행 시에만 주입하며, 배포본에는 전혀 관여하지 않습니다.)
 4. Deploy를 누르면 끝입니다. 이후 `main`(또는 배포 대상 브랜치)에 푸시할 때마다 Vercel이 자동으로 재배포합니다.
 5. 데이터를 갱신했다면(아래 "데이터 갱신 절차" 참고) 재빌드된 `public/data/**` 를 포함한 커밋을 푸시하는 것만으로 배포본에도 반영됩니다 — 별도의 배포 시점 데이터 빌드 단계는 없습니다(파이프라인은 로컬/CI에서 미리 실행해 결과 JSON을 커밋하는 방식).

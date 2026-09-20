@@ -175,4 +175,29 @@ test.describe("시군 선택", () => {
     await page.keyboard.press("Escape");
     await expect(page).not.toHaveURL(/[?&]region=/);
   });
+
+  // Fix round 2, finding 5 — cross-component Escape contract, previously
+  // untested end to end: IndicatorMenu's own Escape handler calls
+  // preventDefault() specifically so DeckMap's document-level
+  // Escape-to-deselect listener (registered in the bubble phase — see
+  // DeckMap.tsx's own comment, and useRegionKeyboardNav.ts) can tell "the
+  // menu already handled this Escape" apart from "nothing did" and skip
+  // deselecting the region. A single Escape with the menu open must close
+  // ONLY the menu — the region selection (and its URL param) must survive.
+  test("지표 메뉴가 열린 상태에서 Esc → 메뉴만 닫히고 시군 선택(URL의 region)은 유지된다", async ({ page }) => {
+    await page.goto("/?region=52110");
+    await waitForMapReady(page);
+    await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
+    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+
+    await page.getByRole("button", { name: /^조건별 맵/ }).click();
+    const dialog = page.getByRole("dialog", { name: "조건별 맵 선택" });
+    await expect(dialog).toBeVisible();
+
+    await page.keyboard.press("Escape");
+
+    await expect(dialog).not.toBeVisible();
+    await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
+    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+  });
 });

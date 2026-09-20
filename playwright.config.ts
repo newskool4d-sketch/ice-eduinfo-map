@@ -59,7 +59,18 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         viewport: { width: 1600, height: 900 },
         deviceScaleFactor: 1,
-        ...(process.env.CI
+        // Fix round 2, finding 6 — these swiftshader/ANGLE flags force
+        // software GL rendering for headless Chromium on a GPU-less CI
+        // runner (GitHub Actions' ubuntu-latest). They're Linux-specific:
+        // applying them unconditionally under `CI=1` would also fire during
+        // a LOCAL `CI=1 npm run e2e` run on macOS/Windows, where they can
+        // break WebGL2 rendering instead of fixing it (there's no swiftshader
+        // ANGLE backend to select there). Gated on `process.platform ===
+        // "linux"` in addition to `process.env.CI` so a local `CI=1` run
+        // still exercises the CI webServer/retries/workers config (Section
+        // E's orchestrator ruling) without also inheriting a Linux-only
+        // workaround that doesn't apply on this machine.
+        ...(process.env.CI && process.platform === "linux"
           ? {
               launchOptions: {
                 args: ["--use-gl=angle", "--use-angle=swiftshader", "--ignore-gpu-blocklist"],

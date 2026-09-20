@@ -20,6 +20,11 @@ test("뷰포트가 768px 미만이면 지도 대신 표를 보여준다", async 
   await expect(page.getByRole("table")).toBeVisible();
   await expect(page.locator("canvas")).toHaveCount(0);
 
+  // Fix round 2, finding 12 — this spec had no screenshot coverage at all;
+  // captures the 600px fallback-table state alongside the other specs'
+  // overview/select-region/schools screenshots.
+  await page.screenshot({ path: "test-results/fallback-viewport-600.png" });
+
   expect(consoleErrors).toEqual([]);
 });
 
