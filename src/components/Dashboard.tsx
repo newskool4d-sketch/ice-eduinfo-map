@@ -4,9 +4,12 @@ import { useMemo, type ReactNode } from "react";
 
 import MapShell from "@/components/map/MapShell";
 import Legend from "@/components/panels/Legend";
+import RegionList from "@/components/panels/RegionList";
+import RegionPanel from "@/components/panels/RegionPanel";
 import TopBar from "@/components/panels/TopBar";
 import { DataProvider, useData } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
+import type { RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
 import { makeColorScale, paletteFor } from "@/lib/colors";
 import { displayLabel, regionValues, valueMap } from "@/lib/stats";
@@ -20,7 +23,17 @@ function CenteredMessage({ children }: { children: ReactNode }) {
   );
 }
 
-function DashboardInner({ bundle, indicatorId }: { bundle: DataBundle; indicatorId: string }) {
+function DashboardInner({
+  bundle,
+  indicatorId,
+  regionCode,
+  setRegion,
+}: {
+  bundle: DataBundle;
+  indicatorId: string;
+  regionCode: RegionCode | null;
+  setRegion: (code: RegionCode | null) => void;
+}) {
   const def = indicatorById(indicatorId);
   if (!def) throw new Error(`Dashboard: unknown indicatorId "${indicatorId}"`);
   const file = bundle.indicators[indicatorId];
@@ -45,11 +58,11 @@ function DashboardInner({ bundle, indicatorId }: { bundle: DataBundle; indicator
     <div className="grid grid-rows-[1fr_auto] overflow-hidden">
       <div className="grid grid-cols-[1fr_360px] overflow-hidden">
         <main className="relative min-h-0 min-w-0 overflow-hidden">
-          <MapShell indicatorId={indicatorId} />
+          <MapShell indicatorId={indicatorId} selectedCode={regionCode} onSelect={setRegion} />
         </main>
 
         <aside className="w-[360px] overflow-y-auto border-l border-white/10 p-4">
-          <p className="text-sm text-[#e6e9f0]/50">시군을 선택하세요</p>
+          {regionCode ? <RegionPanel bundle={bundle} /> : <RegionList bundle={bundle} />}
         </aside>
       </div>
 
@@ -65,7 +78,7 @@ function DashboardBody() {
   // 2's local useState. Called unconditionally here (not inside the
   // status === "ready" branch below), so the URL is established immediately
   // and TopBar (rendered regardless of load status) always has it.
-  const { indicatorId } = useMapQuery();
+  const { indicatorId, regionCode, setRegion } = useMapQuery();
   const state = useData();
   const bundle = state.status === "ready" ? state.bundle : null;
 
@@ -76,7 +89,14 @@ function DashboardBody() {
       {state.status === "error" && (
         <CenteredMessage>데이터를 불러오지 못했습니다: {state.error}</CenteredMessage>
       )}
-      {state.status === "ready" && <DashboardInner bundle={state.bundle} indicatorId={indicatorId} />}
+      {state.status === "ready" && (
+        <DashboardInner
+          bundle={state.bundle}
+          indicatorId={indicatorId}
+          regionCode={regionCode}
+          setRegion={setRegion}
+        />
+      )}
     </div>
   );
 }

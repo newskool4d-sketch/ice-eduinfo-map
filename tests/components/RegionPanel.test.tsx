@@ -1,0 +1,173 @@
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
+
+import RegionPanel from "@/components/panels/RegionPanel";
+import { INDICATORS } from "@/lib/indicators/registry";
+import { formatDelta } from "@/lib/tooltipText";
+import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
+
+const REGION = "52110"; // 전주시
+const OTHER_REGION = "52130"; // 군산시
+const PROVINCE = "52000";
+
+function genericFile(id: string): IndicatorFile {
+  return {
+    id,
+    year: 2026,
+    referenceDate: "2026-04-01",
+    source: { name: `${id} 출처`, url: `https://example.com/${id}`, year: 2026 },
+    rows: [
+      { regionCode: REGION, value: 100 },
+      { regionCode: OTHER_REGION, value: 40 },
+      { regionCode: PROVINCE, value: 140 },
+    ],
+  };
+}
+
+/** students_total mirrors the task brief's own aria-live example (70,851명, 1위) — 전주시 is the largest of the 3 fixture regions. */
+function studentsTotalFile(): IndicatorFile {
+  return {
+    id: "students_total",
+    year: 2026,
+    referenceDate: "2026-04-01",
+    source: { name: "한국교육개발원 교육통계서비스(KESS) 교육기본통계 학교별 데이터셋", url: "https://kess.kedi.re.kr/contents/dataset", year: 2026 },
+    rows: [
+      { regionCode: REGION, value: 70851 },
+      { regionCode: OTHER_REGION, value: 50000 },
+      { regionCode: "52140", value: 30000 },
+      { regionCode: PROVINCE, value: 150851 },
+    ],
+  };
+}
+
+function studentsTotalSeries(): SeriesFile {
+  return {
+    id: "students_total",
+    rows: [
+      { regionCode: REGION, year: 2022, value: 74000 },
+      { regionCode: REGION, year: 2023, value: 73000 },
+      { regionCode: REGION, year: 2024, value: 72000 },
+      { regionCode: REGION, year: 2025, value: 71500 },
+      { regionCode: REGION, year: 2026, value: 70851 },
+    ],
+  };
+}
+
+function manifestFixture(): Manifest {
+  return { latestYear: 2026, indicators: {}, builtAt: "2026-01-01T00:00:00.000Z" };
+}
+
+function bundleFixture() {
+  const indicators: Record<string, IndicatorFile> = {};
+  const series: Record<string, SeriesFile> = {};
+  for (const def of INDICATORS as IndicatorDef[]) {
+    indicators[def.id] = def.id === "students_total" ? studentsTotalFile() : genericFile(def.id);
+    if (def.aggregate.kind !== "external") {
+      series[def.id] = def.id === "students_total" ? studentsTotalSeries() : { id: def.id, rows: [] };
+    }
+  }
+  return { indicators, series, manifest: manifestFixture() };
+}
+
+function renderSelected(searchParams: string, opts: Parameters<typeof withNuqsTestingAdapter>[0] = {}) {
+  return render(<RegionPanel bundle={bundleFixture()} />, {
+    wrapper: withNuqsTestingAdapter({ searchParams, ...opts }),
+  });
+}
+
+describe("RegionPanel", () => {
+  it("renders nothing when no region is selected (defensive — Dashboard only mounts it once one is)", () => {
+    const { container } = render(<RegionPanel bundle={bundleFixture()} />, {
+      wrapper: withNuqsTestingAdapter({ searchParams: "" }),
+    });
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("shows the region name as a heading", () => {
+    renderSelected(`?region=${REGION}`);
+    expect(screen.getByRole("heading", { name: "전주시" })).toBeInTheDocument();
+  });
+
+  it("shows the current indicator's label, formatted value, and unit", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    expect(screen.getByTestId("region-panel-current-label")).toHaveTextContent("학생수");
+    expect(screen.getByTestId("region-panel-current-value")).toHaveTextContent("70,851");
+    expect(screen.getByText("명")).toBeInTheDocument();
+  });
+
+  it("shows the rank out of 14 시군", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    expect(screen.getByText("14개 시군 중 1위")).toBeInTheDocument();
+  });
+
+  it("shows the 전북 대비 delta with sign, using formatDelta (총계, since students_total is count-kind)", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    const def = INDICATORS.find((d) => d.id === "students_total")!;
+    // 70851 - 150851 = -80000
+    const expectedDelta = formatDelta(def, 70851 - 150851);
+    expect(screen.getByTestId("region-panel-delta")).toHaveTextContent(`전북 총계 대비 ${expectedDelta}`);
+  });
+
+  it("renders a sparkline trend when a series file exists for the current indicator", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    expect(screen.getByRole("img", { name: /2022년부터 2026년까지/ })).toBeInTheDocument();
+    expect(screen.queryByText("추이 없음")).not.toBeInTheDocument();
+  });
+
+  it("shows '추이 없음' for an indicator with no series file (students_change_5y)", () => {
+    renderSelected(`?region=${REGION}&indicator=students_change_5y`);
+    expect(screen.getByText("추이 없음")).toBeInTheDocument();
+  });
+
+  it("lists all 15 registry indicators in the 다른 지표 table", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    const rows = screen.getAllByTestId(/^other-indicator-/);
+    expect(rows).toHaveLength(INDICATORS.length);
+    expect(rows).toHaveLength(15);
+  });
+
+  it("highlights the current indicator's row in the 다른 지표 table", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    expect(screen.getByTestId("other-indicator-students_total")).toHaveAttribute("aria-current", "true");
+    expect(screen.getByTestId("other-indicator-schools_total")).not.toHaveAttribute("aria-current");
+  });
+
+  it("clicking another indicator's row in the table switches the map indicator (URL updates)", async () => {
+    const user = userEvent.setup();
+    const onUrlUpdate = vi.fn();
+    renderSelected(`?region=${REGION}&indicator=students_total`, { onUrlUpdate, hasMemory: true });
+
+    await user.click(screen.getByTestId("other-indicator-schools_total"));
+
+    const lastCall = onUrlUpdate.mock.calls.at(-1)?.[0];
+    expect(lastCall?.searchParams.get("indicator")).toBe("schools_total");
+    // setIndicator replaces the history entry (doesn't clutter back/forward).
+    expect(lastCall?.options.history).toBe("replace");
+  });
+
+  it("shows the schools-list placeholder (Task 4B replaces this)", () => {
+    renderSelected(`?region=${REGION}`);
+    expect(screen.getByText("학교별 보기는 준비 중")).toBeInTheDocument();
+  });
+
+  it("shows the source name and reference date (기준 YYYY.M.D, matching TopBar/referenceDateLabel)", () => {
+    renderSelected(`?region=${REGION}&indicator=students_total`);
+    expect(
+      screen.getByText(/한국교육개발원 교육통계서비스\(KESS\) 교육기본통계 학교별 데이터셋/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/기준 2026\.4\.1/)).toBeInTheDocument();
+  });
+
+  it("clicking the close (✕) button clears the region URL param", async () => {
+    const user = userEvent.setup();
+    const onUrlUpdate = vi.fn();
+    renderSelected(`?region=${REGION}`, { onUrlUpdate, hasMemory: true });
+
+    await user.click(screen.getByRole("button", { name: "선택 해제" }));
+
+    const lastCall = onUrlUpdate.mock.calls.at(-1)?.[0];
+    expect(lastCall?.searchParams.get("region")).toBeNull();
+  });
+});
