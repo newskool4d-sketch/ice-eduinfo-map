@@ -7,6 +7,7 @@ import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 
 import type { RegionFeature } from "../geo/geo";
 import type { IndicatorFile, Manifest, SeriesFile } from "../indicators/types";
+import type { SchoolsFile } from "../schools/types";
 
 export type RegionsFeatureCollection = FeatureCollection<
   Polygon | MultiPolygon,
@@ -31,6 +32,8 @@ export interface DataBundle {
    */
   charset: string;
   manifest: Manifest;
+  /** Task 4B — 전북 학교 점 위치 + KESS 통계 (school-level layer/panel data). */
+  schools: SchoolsFile;
   indicators: Record<string, IndicatorFile>;
   /**
    * Keyed by indicator id, but NOT guaranteed to have an entry for every

@@ -1,6 +1,7 @@
 import type { RGB } from "@/lib/colors";
 import { NULL_COLOR } from "@/lib/colors";
 import type { IndicatorDef } from "@/lib/indicators/types";
+import { SCHOOL_LEVEL_COLORS, SCHOOL_LEVEL_LABELS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
 
 export interface LegendProps {
   def: IndicatorDef;
@@ -16,14 +17,16 @@ export interface LegendProps {
    * passes it through.
    */
   referenceDate: string;
+  /** Task 4B — true whenever a 시군 is selected (the school layer is then visible on the map), adding the 4 학교급 color swatches to the legend. Defaults to false (no school layer without a selection). */
+  schoolLevelsVisible?: boolean;
 }
 
 function rgbCss([r, g, b]: readonly number[]): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-/** Bottom-bar legend: 5 color swatches + boundary values, a missing-data swatch, a one-line scale caveat, and the data source/reference date. */
-export default function Legend({ def, ticks, palette, hasNull, referenceDate }: LegendProps) {
+/** Bottom-bar legend: 5 color swatches + boundary values, a missing-data swatch, a one-line scale caveat, and the data source/reference date. When `schoolLevelsVisible`, also shows the 4 학교급 point colors (Task 4B). */
+export default function Legend({ def, ticks, palette, hasNull, referenceDate, schoolLevelsVisible = false }: LegendProps) {
   const notes: string[] = ["높이·색 모두 값에 비례"];
   if (def.scale === "sqrt") notes.push("제곱근 스케일");
   // Covers both of the brief's sub-conditions (an explicit def.domain override,
@@ -64,6 +67,26 @@ export default function Legend({ def, ticks, palette, hasNull, referenceDate }: 
           </div>
         )}
       </div>
+
+      {schoolLevelsVisible && (
+        <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+          <span className="shrink-0 text-[10px] text-[#e6e9f0]/50">학교</span>
+          {SCHOOL_LEVEL_ORDER.map((level) => {
+            const [r, g, b] = SCHOOL_LEVEL_COLORS[level];
+            return (
+              <span key={level} className="flex items-center gap-1">
+                <span
+                  data-testid="legend-school-swatch"
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: rgbCss([r, g, b]) }}
+                  aria-hidden
+                />
+                <span className="text-[10px] text-[#e6e9f0]/50">{SCHOOL_LEVEL_LABELS[level]}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       <p>{notes.join(" · ")}</p>
 

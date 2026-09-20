@@ -8,7 +8,10 @@
  * setup. DeckMap.tsx imports `makeLinesOf` from here instead of defining
  * this logic itself.
  */
+import { formatDecimal, formatInt } from "./format";
 import { isRegionCode, regionName } from "./geo/regions";
+import { SCHOOL_LEVEL_LABELS } from "./schoolVisuals";
+import type { School } from "./schools/types";
 import { rank, vsProvince } from "./stats";
 import type { IndicatorDef } from "./indicators/types";
 
@@ -80,4 +83,25 @@ export function makeLinesOf({ def, label, map }: LinesOfParams): (code: string) 
         : `전북 ${deltaNoun} 대비 ${formatDelta(def, delta)}`;
     return [name, valueLine, rankLine, deltaLine];
   };
+}
+
+/**
+ * Builds the school-point hover tooltip's lines: 학교명 / 학교급 /
+ * 학생수·학급수·학급당 학생수 / 소규모 여부 / 분교장 표시 (per the task
+ * brief). The first line renders as the tooltip's bold title (see
+ * components/map/tooltip.ts), same convention as `makeLinesOf`'s region
+ * tooltip.
+ */
+export function schoolTooltipLines(
+  school: Pick<School, "name" | "level" | "students" | "classes" | "studentsPerClass" | "small" | "branch">,
+): string[] {
+  const students = school.students != null ? `학생 ${formatInt(school.students)}명` : "학생수 자료 없음";
+  const classes = school.classes != null ? `${formatInt(school.classes)}학급` : "학급수 자료 없음";
+  const perClass =
+    school.studentsPerClass != null ? `학급당 ${formatDecimal(school.studentsPerClass, 1)}명` : "학급당 자료 없음";
+
+  const lines = [school.name, SCHOOL_LEVEL_LABELS[school.level], `${students} · ${classes} · ${perClass}`];
+  if (school.small) lines.push("소규모학교");
+  if (school.branch) lines.push("분교장");
+  return lines;
 }

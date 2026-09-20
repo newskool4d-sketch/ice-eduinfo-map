@@ -2,9 +2,10 @@
  * Fetches every file DataProvider needs and validates the result against
  * the indicator registry. No React import.
  */
-import { PROVINCE_CODE, REGION_CODES } from "../geo/regions";
+import { isRegionCode, PROVINCE_CODE, REGION_CODES } from "../geo/regions";
 import { INDICATORS } from "../indicators/registry";
 import type { IndicatorFile, Manifest, SeriesFile } from "../indicators/types";
+import type { SchoolsFile } from "../schools/types";
 import { valueMap } from "../stats";
 import type { DataBundle, NeighborsFeatureCollection, RegionsFeatureCollection } from "./types";
 
@@ -34,11 +35,12 @@ async function fetchJson<T>(fetchImpl: FetchImpl, url: string): Promise<T> {
  * would just 404.
  */
 export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBundle> {
-  const [regions, neighbors, charset, manifest] = await Promise.all([
+  const [regions, neighbors, charset, manifest, schools] = await Promise.all([
     fetchJson<RegionsFeatureCollection>(fetchImpl, "/data/regions.geojson"),
     fetchJson<NeighborsFeatureCollection>(fetchImpl, "/data/neighbors.geojson"),
     fetchJson<string>(fetchImpl, "/data/charset.json"),
     fetchJson<Manifest>(fetchImpl, "/data/manifest.json"),
+    fetchJson<SchoolsFile>(fetchImpl, "/data/schools.json"),
   ]);
 
   const indicatorIds = INDICATORS.map((d) => d.id);
@@ -80,7 +82,7 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
     series[id] = seriesFiles[i];
   });
 
-  return { regions, neighbors, charset, manifest, indicators, series };
+  return { regions, neighbors, charset, manifest, schools, indicators, series };
 }
 
 /**
@@ -118,6 +120,21 @@ export function assertBundle(bundle: DataBundle): void {
 
   if (bundle.charset.length === 0) {
     problems.push("charset is empty");
+  }
+
+  if (bundle.schools.schools.length === 0) {
+    problems.push("schools.json has 0 schools");
+  } else {
+    const badRegionSchools = bundle.schools.schools.filter((s) => !isRegionCode(s.regionCode));
+    if (badRegionSchools.length > 0) {
+      problems.push(
+        `schools.json has ${badRegionSchools.length} school(s) with a regionCode outside the 14 시군: ` +
+          badRegionSchools
+            .slice(0, 5)
+            .map((s) => `${s.name}(${s.regionCode})`)
+            .join(", "),
+      );
+    }
   }
 
   if (problems.length > 0) {
