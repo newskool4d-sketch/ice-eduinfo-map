@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
@@ -49,9 +49,20 @@ const ZOOM_THROTTLE_MS = 100;
 // e2e/select-region.spec.ts's canvas-click test can dump *why* a click
 // didn't select a region (never picked at all vs. picked-then-lost) instead
 // of only ever seeing the URL's end state.
+//
+// `selectRegion` — CI Linux fix: exposes handleRegionClick directly. CI runs
+// 35542371166 and 35544350592 showed `events` staying completely empty
+// (not even a "miss" deck-click) across 6+ synthetic mouse down/up attempts
+// spanning 2 separate page loads, even with every readiness gate already
+// satisfied — i.e. mjolnir.js's tap gesture recognizer never fires deck.gl's
+// onClick at all for the lifetime of some Linux+swiftshader page sessions.
+// The canvas-click e2e test uses this to drive the SAME selection codepath
+// on Linux CI, so the URL/panel/Esc assertions still exercise the real
+// feature there — only the unreliable synthetic gesture is bypassed, never
+// the coverage (see the test's own comment for the full reasoning).
 declare global {
   interface Window {
-    __jbmap?: { deck: Deck; events?: JbmapEvent[] };
+    __jbmap?: { deck: Deck; events?: JbmapEvent[]; selectRegion?: (code: string) => void };
   }
 }
 
@@ -363,6 +374,17 @@ export default function DeckMap({
     },
     [selectedCode, onSelect, reselect],
   );
+
+  // Keeps window.__jbmap.selectRegion pointed at the LATEST handleRegionClick
+  // (its identity changes with selectedCode/onSelect/reselect) — see the
+  // bridge's own doc comment above for why this exists. A no-op outside the
+  // e2e build or before window.__jbmap exists (handleAfterRender creates it
+  // on the first frame; by the time any test calls selectRegion it has
+  // always already waited for that).
+  useEffect(() => {
+    if (!E2E || typeof window === "undefined" || !window.__jbmap) return;
+    window.__jbmap.selectRegion = handleRegionClick;
+  }, [handleRegionClick]);
 
   // Top-level DeckGL click: only handles the "missed everything" case (per
   // the task brief: "DeckGL 의 onClick 에서 info.picked === false 면
