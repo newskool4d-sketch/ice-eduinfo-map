@@ -48,6 +48,16 @@ describe("Footer", () => {
     expect(screen.getAllByText(/게시/)).toHaveLength(1);
   });
 
+  // Fix round 2, finding 10 — JSX collapses the whitespace-only line break
+  // between `{source.referenceDate}` and the conditional `(게시 …)` fragment,
+  // so the two used to render with no space between them at all (e.g.
+  // "기준일 2026-07-16(게시 2026-07-20)").
+  it("keeps a space between 기준일 and the (게시 …) suffix", () => {
+    render(<Footer manifest={manifestFixture()} />);
+    const source = screen.getByText(/\(게시 2026-07-20\)/);
+    expect(source.textContent).toContain("2026-07-16 (게시 2026-07-20)");
+  });
+
   it("renders nothing from a hardcoded date — every date on screen traces back to a manifest.sources entry", () => {
     const manifest = manifestFixture();
     render(<Footer manifest={manifest} />);

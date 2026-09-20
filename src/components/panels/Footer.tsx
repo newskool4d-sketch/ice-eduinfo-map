@@ -20,7 +20,10 @@ export default function Footer({ manifest }: FooterProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/10 px-4 py-1.5 text-[10px] text-[#e6e9f0]/50">
       {manifest.sources.map((source) => (
-        <span key={source.name} className="flex items-center gap-1" data-testid="footer-source">
+        // Fix round 2, finding 10 — `source.name` isn't guaranteed unique
+        // (two different sources could coincidentally share a display
+        // name); `source.url` is each pipeline source's actual identity.
+        <span key={source.url} className="flex items-center gap-1" data-testid="footer-source">
           <a
             href={source.url}
             target="_blank"
@@ -31,7 +34,11 @@ export default function Footer({ manifest }: FooterProps) {
           </a>
           <span>
             기준일 {source.referenceDate}
-            {source.publishedAt && <>(게시 {source.publishedAt})</>}
+            {/* The leading space inside this fragment is load-bearing: JSX
+                collapses the whitespace-only line break between the two
+                expression containers above, so without it this used to
+                render "2026-07-16(게시 2026-07-20)" with no space at all. */}
+            {source.publishedAt && <> (게시 {source.publishedAt})</>}
           </span>
         </span>
       ))}
