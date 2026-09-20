@@ -53,3 +53,7 @@ test-results/
 
 # local env overrides
 .env*.local
+
+# Claude Code agent worktrees / local settings
+.claude/worktrees/
+.claude/settings.local.json

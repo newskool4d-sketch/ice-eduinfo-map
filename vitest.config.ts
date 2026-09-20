@@ -1,6 +1,6 @@
 import path from "node:path";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 // NOTE: vitest 5 removed `test.environmentMatchGlobs` (deprecated since v3).
 // The per-directory environment routing it used to provide is reproduced
@@ -25,7 +25,8 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["tests/unit/**/*.test.{ts,tsx}"],
+          include: ["tests/**/*.test.{ts,tsx}"],
+          exclude: [...configDefaults.exclude, "tests/components/**"],
         },
       },
       {
