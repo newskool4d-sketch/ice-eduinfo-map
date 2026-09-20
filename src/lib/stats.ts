@@ -1,0 +1,148 @@
+/**
+ * Pure derived-stat helpers over indicator data. No React import — usable
+ * from both client components (via useMemo) and plain unit tests.
+ *
+ * "52000" (전북 전체) is always read directly from the data, never
+ * recomputed here: the pipeline's ratio rows for 52000 are already Σ/Σ, not
+ * an average of the 14 시군 averages, so client-side recomputation would be
+ * both redundant and wrong for ratio-kind indicators.
+ */
+import { PROVINCE_CODE } from "./geo/regions";
+import type { IndicatorDef, IndicatorFile, Polarity, SeriesFile } from "./indicators/types";
+
+/**
+ * Extracts a region-code -> value map from an indicator file, keeping only
+ * the rows WITHOUT a `level` (the map is never used for the 지도, which must
+ * not read byLevel breakdown rows). Null values are preserved (not dropped)
+ * so callers can distinguish "no data" from "region absent".
+ */
+export function valueMap(file: IndicatorFile): Map<string, number | null> {
+  const map = new Map<string, number | null>();
+  for (const row of file.rows) {
+    if (row.level !== undefined) continue;
+    map.set(row.regionCode, row.value);
+  }
+  return map;
+}
+
+export interface RegionValue {
+  code: string;
+  value: number | null;
+}
+
+/** The 14 시군 entries of `map`, excluding the 52000 (전북 전체) aggregate row. */
+export function regionValues(map: Map<string, number | null>): RegionValue[] {
+  const values: RegionValue[] = [];
+  for (const [code, value] of map) {
+    if (code === PROVINCE_CODE) continue;
+    values.push({ code, value });
+  }
+  return values;
+}
+
+/**
+ * Ranks the 14 시군 by descending raw value: rank 1 = the largest value,
+ * for every polarity alike (the brief's spec states "큰 값이 1위" three
+ * times, once per polarity, with the same direction each time — "가장
+ * 주목할" reads as "worst" for higherWorse, "best" for higherBetter, and
+ * "biggest" for neutral, but the underlying sort is identical in all three
+ * cases). `polarity` is accepted for signature symmetry with
+ * paletteFor()/domainOf() and to keep the door open for a future
+ * direction-aware variant; it currently has no effect on the computed ranks.
+ * Regions with a null value are omitted entirely (never assigned a rank).
+ * Ties share the same rank, competition-style (e.g. values [10, 10, 8] ->
+ * ranks [1, 1, 3], not [1, 1, 2]).
+ */
+// `_polarity` is kept in the signature for symmetry with paletteFor()/
+// domainOf() and is documented above; this project's no-unused-vars config
+// has no argsIgnorePattern for `_`-prefixed names, hence the explicit disable.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function rank(map: Map<string, number | null>, _polarity: Polarity): Map<string, number> {
+  const values = regionValues(map).filter(
+    (r): r is { code: string; value: number } => r.value !== null,
+  );
+  values.sort((a, b) => b.value - a.value);
+
+  const result = new Map<string, number>();
+  let lastValue: number | null = null;
+  let lastRank = 0;
+  values.forEach((r, i) => {
+    if (r.value !== lastValue) {
+      lastRank = i + 1;
+      lastValue = r.value;
+    }
+    result.set(r.code, lastRank);
+  });
+  return result;
+}
+
+/** `value(code) - value(52000)`, or null if either side is null/missing. */
+export function vsProvince(map: Map<string, number | null>, code: string): number | null {
+  const value = map.get(code);
+  const province = map.get(PROVINCE_CODE);
+  if (value === null || value === undefined || province === null || province === undefined) {
+    return null;
+  }
+  return value - province;
+}
+
+/** A region's {year, value} rows from a series file, sorted by ascending year. */
+export function trend(series: SeriesFile, code: string): { year: number; value: number | null }[] {
+  return series.rows
+    .filter((r) => r.regionCode === code)
+    .map((r) => ({ year: r.year, value: r.value }))
+    .sort((a, b) => a.year - b.year);
+}
+
+/**
+ * `value(latestYear) - value(immediately preceding available year)` for a
+ * region, or null when there's no preceding year, the latest year itself is
+ * absent, or either value is null.
+ */
+export function deltaPrevYear(series: SeriesFile, code: string, latestYear: number): number | null {
+  const rows = trend(series, code);
+  const idx = rows.findIndex((r) => r.year === latestYear);
+  if (idx <= 0) return null;
+  const latest = rows[idx].value;
+  const prev = rows[idx - 1].value;
+  if (latest === null || prev === null) return null;
+  return latest - prev;
+}
+
+/**
+ * [minYear, maxYear] across a series' rows, or null when the series is
+ * unavailable (e.g. an `aggregate.kind === 'external'` indicator like
+ * students_change_5y has no series/<id>.json of its own — see load.ts) or
+ * empty. Used by displayLabel() below for the 추가 요구 #5 dynamic-year
+ * caption.
+ */
+export function changeYearRange(series: SeriesFile | undefined): [number, number] | null {
+  if (!series || series.rows.length === 0) return null;
+  let min = Infinity;
+  let max = -Infinity;
+  for (const row of series.rows) {
+    if (row.year < min) min = row.year;
+    if (row.year > max) max = row.year;
+  }
+  return [min, max];
+}
+
+/**
+ * The indicator label to display to the user. Identical to `def.label` for
+ * every indicator except students_change_5y (추가 요구 #5): its registry
+ * label hardcodes "5년" (5-year), but the actual comparison span is
+ * whatever [minYear, maxYear] the students_total series covers (currently
+ * 2022→2026, a 4-year span — see build-indicators.ts's computeChange5y,
+ * which falls back to the oldest available year when latestYear-5 doesn't
+ * exist). Replaces the "5년" substring with the real "{min}→{max}" span so
+ * the label never claims a span the data doesn't have; falls back to the
+ * static label if the students_total series isn't in `series` (e.g. bundle
+ * not fully loaded yet).
+ */
+export function displayLabel(def: IndicatorDef, series: Record<string, SeriesFile>): string {
+  if (def.id === "students_change_5y") {
+    const range = changeYearRange(series.students_total);
+    if (range) return def.label.replace("5년", `${range[0]}→${range[1]}`);
+  }
+  return def.label;
+}

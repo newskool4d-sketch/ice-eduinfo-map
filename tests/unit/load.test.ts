@@ -1,0 +1,179 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { assertBundle, loadBundle } from "@/lib/data/load";
+import type { DataBundle } from "@/lib/data/types";
+import { INDICATORS, INDICATOR_IDS } from "@/lib/indicators/registry";
+import { PROVINCE_CODE, REGION_CODES } from "@/lib/geo/regions";
+import type { IndicatorFile, Manifest, SeriesFile } from "@/lib/indicators/types";
+
+function regionsFixture() {
+  return {
+    type: "FeatureCollection",
+    features: REGION_CODES.map((code) => ({
+      type: "Feature",
+      properties: { code, name: code, bbox: [0, 0, 1, 1], labelPoint: [0.5, 0.5] },
+      geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+    })),
+  };
+}
+
+function neighborsFixture() {
+  return { type: "FeatureCollection", features: [] };
+}
+
+const CHARSET = "가나다0123456789";
+
+function indicatorFileFixture(id: string): IndicatorFile {
+  const def = INDICATORS.find((d) => d.id === id)!;
+  return {
+    id,
+    year: 2026,
+    referenceDate: "2026-04-01",
+    source: def.source,
+    rows: [...REGION_CODES.map((code) => ({ regionCode: code, value: 1 })), { regionCode: PROVINCE_CODE, value: 14 }],
+  };
+}
+
+function seriesFileFixture(id: string): SeriesFile {
+  return {
+    id,
+    rows: [2022, 2023, 2024, 2025, 2026].flatMap((year) => [
+      ...REGION_CODES.map((code) => ({ regionCode: code, year, value: 1 })),
+      { regionCode: PROVINCE_CODE, year, value: 14 },
+    ]),
+  };
+}
+
+function manifestFixture(): Manifest {
+  const indicators: Manifest["indicators"] = {};
+  for (const id of INDICATOR_IDS) indicators[id] = { years: [2022, 2023, 2024, 2025, 2026] };
+  return { latestYear: 2026, indicators, builtAt: "2026-01-01T00:00:00.000Z" };
+}
+
+function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 404) {
+  return { ok, status, json: async () => body } as Response;
+}
+
+/** A fetchImpl that resolves every URL this app's DataProvider is expected to request. */
+function fullFakeFetch() {
+  const calls: string[] = [];
+  const impl = vi.fn(async (url: string) => {
+    calls.push(url);
+    if (url === "/data/regions.geojson") return jsonResponse(regionsFixture());
+    if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
+    if (url === "/data/charset.json") return jsonResponse(CHARSET);
+    if (url === "/data/manifest.json") return jsonResponse(manifestFixture());
+    const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
+    if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
+    const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
+    if (seriesMatch) return jsonResponse(seriesFileFixture(seriesMatch[1]));
+    throw new Error(`unexpected url ${url}`);
+  });
+  return { impl, calls };
+}
+
+describe("loadBundle", () => {
+  it("fetches regions/neighbors/charset/manifest + every indicator/series file, returning a DataBundle", async () => {
+    const { impl } = fullFakeFetch();
+    const bundle = await loadBundle(impl);
+
+    expect(bundle.regions.features).toHaveLength(14);
+    expect(bundle.neighbors.type).toBe("FeatureCollection");
+    expect(bundle.charset).toBe(CHARSET);
+    expect(bundle.manifest.latestYear).toBe(2026);
+    for (const id of INDICATOR_IDS) {
+      expect(bundle.indicators[id]).toBeTruthy();
+      expect(bundle.indicators[id].id).toBe(id);
+    }
+  });
+
+  it("skips fetching a series file for external-kind indicators (students_change_5y)", async () => {
+    const { impl, calls } = fullFakeFetch();
+    const bundle = await loadBundle(impl);
+
+    expect(calls).not.toContain("/data/series/students_change_5y.json");
+    expect(bundle.series.students_change_5y).toBeUndefined();
+    // But a normal (sum/ratio/count/share) indicator's series IS fetched.
+    expect(calls).toContain("/data/series/students_total.json");
+    expect(bundle.series.students_total).toBeTruthy();
+  });
+
+  it("rejects when any request fails", async () => {
+    const impl = vi.fn(async (url: string) => {
+      if (url === "/data/regions.geojson") return jsonResponse(null, false);
+      if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
+      if (url === "/data/charset.json") return jsonResponse(CHARSET);
+      if (url === "/data/manifest.json") return jsonResponse(manifestFixture());
+      const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
+      if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
+      const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
+      if (seriesMatch) return jsonResponse(seriesFileFixture(seriesMatch[1]));
+      throw new Error(`unexpected url ${url}`);
+    });
+    await expect(loadBundle(impl)).rejects.toThrow();
+  });
+});
+
+describe("assertBundle", () => {
+  async function validBundle(): Promise<DataBundle> {
+    const { impl } = fullFakeFetch();
+    return loadBundle(impl);
+  }
+
+  it("does not throw for a fully valid bundle", async () => {
+    const bundle = await validBundle();
+    expect(() => assertBundle(bundle)).not.toThrow();
+  });
+
+  it("throws listing a missing indicator file for a registered id", async () => {
+    const bundle = await validBundle();
+    delete bundle.indicators[INDICATOR_IDS[0]];
+    expect(() => assertBundle(bundle)).toThrow(new RegExp(INDICATOR_IDS[0]));
+  });
+
+  it("throws when an indicator file is missing a 시군 row", async () => {
+    const bundle = await validBundle();
+    const id = INDICATOR_IDS[0];
+    bundle.indicators[id] = {
+      ...bundle.indicators[id],
+      rows: bundle.indicators[id].rows.filter((r) => r.regionCode !== REGION_CODES[0]),
+    };
+    expect(() => assertBundle(bundle)).toThrow(new RegExp(id));
+  });
+
+  it("throws when an indicator file is missing the 52000 (전북 전체) row", async () => {
+    const bundle = await validBundle();
+    const id = INDICATOR_IDS[0];
+    bundle.indicators[id] = {
+      ...bundle.indicators[id],
+      rows: bundle.indicators[id].rows.filter((r) => r.regionCode !== PROVINCE_CODE),
+    };
+    expect(() => assertBundle(bundle)).toThrow(new RegExp(id));
+  });
+
+  it("throws when regions has fewer than 14 features", async () => {
+    const bundle = await validBundle();
+    bundle.regions = { ...bundle.regions, features: bundle.regions.features.slice(0, 13) };
+    expect(() => assertBundle(bundle)).toThrow(/14/);
+  });
+
+  it("throws when charset is empty", async () => {
+    const bundle = await validBundle();
+    bundle.charset = "";
+    expect(() => assertBundle(bundle)).toThrow(/charset/i);
+  });
+
+  it("reports multiple missing items in a single error", async () => {
+    const bundle = await validBundle();
+    delete bundle.indicators[INDICATOR_IDS[0]];
+    delete bundle.indicators[INDICATOR_IDS[1]];
+    try {
+      assertBundle(bundle);
+      throw new Error("expected assertBundle to throw");
+    } catch (err) {
+      const message = (err as Error).message;
+      expect(message).toMatch(new RegExp(INDICATOR_IDS[0]));
+      expect(message).toMatch(new RegExp(INDICATOR_IDS[1]));
+    }
+  });
+});

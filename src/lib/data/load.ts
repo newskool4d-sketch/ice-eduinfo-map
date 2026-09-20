@@ -1,0 +1,107 @@
+/**
+ * Fetches every file DataProvider needs and validates the result against
+ * the indicator registry. No React import.
+ */
+import { PROVINCE_CODE, REGION_CODES } from "../geo/regions";
+import { INDICATORS } from "../indicators/registry";
+import type { IndicatorFile, Manifest, SeriesFile } from "../indicators/types";
+import { valueMap } from "../stats";
+import type { DataBundle, NeighborsFeatureCollection, RegionsFeatureCollection } from "./types";
+
+// Narrower than `typeof fetch` (which also accepts URL/Request input) since
+// every call site here always passes a plain string path — `fetch` itself
+// still satisfies this type (a function accepting a wider input type is a
+// valid substitute), and it lets tests inject a fetchImpl typed over plain
+// strings without fighting the DOM lib's URL|RequestInfo union.
+type FetchImpl = (url: string) => Promise<Response>;
+
+async function fetchJson<T>(fetchImpl: FetchImpl, url: string): Promise<T> {
+  const res = await fetchImpl(url);
+  if (!res.ok) {
+    throw new Error(`loadBundle: failed to fetch ${url} (HTTP ${res.status})`);
+  }
+  return (await res.json()) as T;
+}
+
+/**
+ * Loads every file the dashboard needs in one pass, all via `Promise.all`
+ * (per the task brief's simplification over the original plan — regions.geojson
+ * is not staged/resolved ahead of the rest; total payload is a few hundred KB,
+ * not worth a two-phase load). Fetches `indicators/<id>.json` for every
+ * registry indicator, and `series/<id>.json` for every indicator EXCEPT
+ * `aggregate.kind === 'external'` ones (currently only students_change_5y) —
+ * build-indicators.ts never writes a series file for those, so requesting one
+ * would just 404.
+ */
+export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBundle> {
+  const [regions, neighbors, charset, manifest] = await Promise.all([
+    fetchJson<RegionsFeatureCollection>(fetchImpl, "/data/regions.geojson"),
+    fetchJson<NeighborsFeatureCollection>(fetchImpl, "/data/neighbors.geojson"),
+    fetchJson<string>(fetchImpl, "/data/charset.json"),
+    fetchJson<Manifest>(fetchImpl, "/data/manifest.json"),
+  ]);
+
+  const indicatorIds = INDICATORS.map((d) => d.id);
+  const seriesIds = INDICATORS.filter((d) => d.aggregate.kind !== "external").map((d) => d.id);
+
+  const [indicatorFiles, seriesFiles] = await Promise.all([
+    Promise.all(
+      indicatorIds.map((id) => fetchJson<IndicatorFile>(fetchImpl, `/data/indicators/${id}.json`)),
+    ),
+    Promise.all(seriesIds.map((id) => fetchJson<SeriesFile>(fetchImpl, `/data/series/${id}.json`))),
+  ]);
+
+  const indicators: Record<string, IndicatorFile> = {};
+  indicatorIds.forEach((id, i) => {
+    indicators[id] = indicatorFiles[i];
+  });
+
+  const series: Record<string, SeriesFile> = {};
+  seriesIds.forEach((id, i) => {
+    series[id] = seriesFiles[i];
+  });
+
+  return { regions, neighbors, charset, manifest, indicators, series };
+}
+
+/**
+ * Validates a loaded bundle against the registry: every registered indicator
+ * id has an indicator file, every indicator file has a (level-less) row for
+ * all 14 시군 plus the 52000 (전북 전체) row, regions has exactly 14
+ * features, and charset is non-empty. Throws one Error listing every problem
+ * found (not just the first), so a broken data build fails with a complete
+ * diagnosis instead of a game of whack-a-mole.
+ */
+export function assertBundle(bundle: DataBundle): void {
+  const problems: string[] = [];
+
+  for (const def of INDICATORS) {
+    const file = bundle.indicators[def.id];
+    if (!file) {
+      problems.push(`missing indicators/${def.id}.json`);
+      continue;
+    }
+    const map = valueMap(file);
+    const missingRegions = REGION_CODES.filter((code) => !map.has(code));
+    if (missingRegions.length > 0) {
+      problems.push(`indicators/${def.id}.json is missing rows for: ${missingRegions.join(", ")}`);
+    }
+    if (!map.has(PROVINCE_CODE)) {
+      problems.push(`indicators/${def.id}.json is missing the ${PROVINCE_CODE} (전북 전체) row`);
+    }
+  }
+
+  if (bundle.regions.features.length !== REGION_CODES.length) {
+    problems.push(
+      `regions.geojson has ${bundle.regions.features.length} features, expected ${REGION_CODES.length}`,
+    );
+  }
+
+  if (bundle.charset.length === 0) {
+    problems.push("charset is empty");
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`assertBundle: ${problems.length} problem(s) found:\n- ${problems.join("\n- ")}`);
+  }
+}
