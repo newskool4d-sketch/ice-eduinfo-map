@@ -352,6 +352,14 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
   // deselects.
   const handleWrapperKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // The compass/전체보기 widget buttons deck.gl renders are DOM
+      // descendants of this same wrapper div, so a keydown ON one of them
+      // (e.g. Tab to "전체보기", press Enter to activate it) still bubbles
+      // up to this handler. Without this guard, our own "Enter" case below
+      // would preventDefault() and hijack that native button activation —
+      // only handle keys that land on the wrapper itself, not on a
+      // focused descendant.
+      if (event.target !== event.currentTarget) return;
       switch (event.key) {
         case "ArrowRight": {
           event.preventDefault();
@@ -413,6 +421,17 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
   // them (the default LightTheme assumes a light page background).
   const widgetThemeStyle: CSSProperties = { ...DarkTheme, "--widget-margin": "16px" } as CSSProperties;
 
+  // Its own useMemo (not just inlined in `layers` below): makes "data는
+  // 선택이 바뀔 때만 새로" true by construction — `layers` also rebuilds on
+  // indicator/font/label changes that have nothing to do with selection,
+  // and inlining the call there would rebuild this layer's `data` array
+  // every one of those times too (harmless, since deck.gl still diffs by
+  // id, but not what the brief asks for).
+  const selectedRingLayer = useMemo(
+    () => makeSelectedRingLayer(selectedFeature, ringElevation),
+    [selectedFeature, ringElevation],
+  );
+
   const layers = useMemo<LayersList>(() => {
     const layerList: LayersList = [
       makeNeighborsLayer(bundle.neighbors),
@@ -424,7 +443,7 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
         selectedCode,
         onClick: handleRegionClick,
       }),
-      makeSelectedRingLayer(selectedFeature, ringElevation),
+      selectedRingLayer,
     ];
     if (fontReady) {
       layerList.push(
@@ -446,8 +465,7 @@ export default function DeckMap({ indicatorId, selectedCode, onSelect }: DeckMap
     indicatorId,
     selectedCode,
     handleRegionClick,
-    selectedFeature,
-    ringElevation,
+    selectedRingLayer,
     fontReady,
     labels,
     labelTextOf,

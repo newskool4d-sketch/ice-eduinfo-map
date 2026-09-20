@@ -20,7 +20,14 @@ export interface SparklineProps {
   className?: string;
 }
 
-const VIEW_WIDTH = 240;
+// Matches RegionPanel's actual rendered width (360px aside - 2*16px p-4
+// padding = 328px) reasonably closely: `preserveAspectRatio="none"` below
+// scales each axis independently to fill width="100%"/height={VIEW_HEIGHT},
+// so a badly-mismatched viewBox width would stretch the stroke/text/dot
+// horizontally. This won't be exact for every viewport, but keeps the
+// distortion negligible for this app's fixed 360px panel instead of the
+// ~1.37x stretch a 240-wide viewBox produced.
+const VIEW_WIDTH = 328;
 const VIEW_HEIGHT = 56;
 const PAD_X = 4;
 const PAD_TOP = 6;

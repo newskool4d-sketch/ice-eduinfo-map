@@ -70,8 +70,17 @@ export default function RegionPanel({ bundle }: RegionPanelProps) {
     };
   });
 
+  // Plain block flow, no inner scroll region: Dashboard's <aside> is
+  // already `overflow-y-auto` at a fixed 360px width — letting it scroll
+  // this whole panel as one unit (rather than nesting a second `flex-1
+  // overflow-y-auto` pocket just around the 다른 지표 table) means every
+  // row is always in normal flow. A nested scroll pocket here previously
+  // left the last group's rows scrolled out of view with no visible
+  // scrollbar (confirmed against a real screenshot) — easy to misread as
+  // missing data. What now scrolls out of view on a short viewport is the
+  // footer, which reads unambiguously as "there's more below".
   return (
-    <div className="flex h-full flex-col text-[#e6e9f0]">
+    <div className="text-[#e6e9f0]">
       <div className="mb-3 flex items-start justify-between gap-2">
         <h2 className="text-lg font-semibold">{regionName(regionCode)}</h2>
         <button
@@ -110,7 +119,7 @@ export default function RegionPanel({ bundle }: RegionPanelProps) {
         {seriesFile ? <Sparkline data={trendRows} /> : <p className="text-xs text-[#e6e9f0]/50">추이 없음</p>}
       </section>
 
-      <section className="mb-4 flex-1 overflow-y-auto">
+      <section className="mb-4">
         <p className="mb-1 text-xs text-[#e6e9f0]/60">다른 지표</p>
         <table className="w-full border-collapse text-xs">
           <tbody>
@@ -154,7 +163,7 @@ export default function RegionPanel({ bundle }: RegionPanelProps) {
 
       <section className="mb-2 text-xs text-[#e6e9f0]/50">학교별 보기는 준비 중</section>
 
-      <footer className="mt-auto text-[10px] text-[#e6e9f0]/40">
+      <footer className="text-[10px] text-[#e6e9f0]/40">
         {def.source.name} · {referenceDateLabel(bundle.manifest, file)}
       </footer>
     </div>
