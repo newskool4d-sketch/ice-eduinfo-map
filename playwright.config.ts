@@ -27,6 +27,15 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   use: {
     baseURL: "http://localhost:3000",
+    // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — no added
+    // dependency (both reporters are built into @playwright/test); gives the
+    // uploaded playwright-report/ artifact an actual trace + screenshot for
+    // any future failure, instead of only the error-context.md snapshot.
+    // 'only-on-failure'/'retain-on-failure' both already skip passing tests,
+    // so this doesn't bloat the artifact on a green run. Local runs are
+    // unaffected (default 'off').
+    trace: process.env.CI ? "retain-on-failure" : undefined,
+    screenshot: process.env.CI ? "only-on-failure" : undefined,
   },
   webServer: {
     // CI runs the production build (matches what actually ships; also

@@ -6,6 +6,13 @@ import { expect, test, type Page } from "@playwright/test";
 async function waitForMapReady(page: Page) {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
+  // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — also wait
+  // for useFontGate's own gate. It's independent of data-map-ready (which
+  // only reflects deck.gl's first render frame): the label TextLayer's SDF
+  // atlas build is CPU-heavy main-thread work that can still be in flight
+  // right after data-map-ready flips, especially under swiftshader's
+  // software GL on CI. No interaction test should race that atlas build.
+  await expect(page.locator('[data-font-ready="true"]')).toBeAttached({ timeout: 20000 });
 }
 
 const MAP_WRAPPER_LABEL = "전북 시군 3D 지도";
@@ -136,16 +143,19 @@ test.describe("시군 선택", () => {
     await waitForMapReady(page);
 
     const labelPoint = jeonjuLabelPoint();
-    const pixel = await page.evaluate((point) => {
-      const deck = window.__jbmap?.deck;
-      if (!deck) throw new Error("window.__jbmap not exposed — is NEXT_PUBLIC_E2E=1 set for the dev server?");
-      return deck.getViewports()[0].project(point);
-    }, labelPoint);
-    const canvas = page.locator("canvas").first();
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error("canvas has no bounding box");
-    const x = box.x + pixel[0];
-    const y = box.y + pixel[1];
+
+    /** Re-projects 전주시's ground point to a live canvas pixel — re-read on every attempt, not cached, since a retried click may land after the camera/canvas has moved (e.g. widget layout, viewport resize). */
+    async function jeonjuPixel(): Promise<{ x: number; y: number }> {
+      const pixel = await page.evaluate((point) => {
+        const deck = window.__jbmap?.deck;
+        if (!deck) throw new Error("window.__jbmap not exposed — is NEXT_PUBLIC_E2E=1 set for the dev server?");
+        return deck.getViewports()[0].project(point);
+      }, labelPoint);
+      const canvas = page.locator("canvas").first();
+      const box = await canvas.boundingBox();
+      if (!box) throw new Error("canvas has no bounding box");
+      return { x: box.x + pixel[0], y: box.y + pixel[1] };
+    }
 
     // A plain `.click()` is occasionally missed by deck.gl's own gesture
     // recognizer (mjolnir.js) under CPU contention from parallel e2e
@@ -159,11 +169,38 @@ test.describe("시군 선택", () => {
     // synthetic `.click()`, which can dispatch the whole down/up pair
     // within the same frame — gives mjolnir.js's gesture timing enough
     // breathing room even when the page is contended.
-    await page.mouse.move(x, y);
-    await page.waitForTimeout(150);
-    await page.mouse.down();
-    await page.waitForTimeout(80);
-    await page.mouse.up();
+    async function clickJeonju() {
+      const { x, y } = await jeonjuPixel();
+      await page.mouse.move(x, y);
+      await page.waitForTimeout(150);
+      await page.mouse.down();
+      await page.waitForTimeout(80);
+      await page.mouse.up();
+    }
+
+    // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — the
+    // known flake above (mjolnir.js gesture missed under contention)
+    // apparently still occurs on CI's ubuntu-latest + swiftshader combo
+    // even with the warm-up/spacing above. Retry the whole gesture (up to
+    // 3 attempts total), re-projecting each time: if the URL hasn't picked
+    // up region=52110 within ~2s of a click, try again rather than waiting
+    // out the full assertion timeout once.
+    const MAX_ATTEMPTS = 3;
+    let selected = false;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS && !selected; attempt++) {
+      await clickJeonju();
+      selected = await page
+        .waitForURL(/[?&]region=52110(&|$)/, { timeout: 2000 })
+        .then(() => true)
+        .catch(() => false);
+    }
+    if (!selected) {
+      // Diagnostics for the CI log even when only playwright-report/
+      // gets downloaded — see DeckMap.tsx's recordE2eEvent: did the click
+      // ever reach deck.gl as a click at all, and did it pick 전주시?
+      const events = await page.evaluate(() => window.__jbmap?.events ?? []);
+      console.log(`[select-region canvas-click] exhausted ${MAX_ATTEMPTS} attempts; events:`, JSON.stringify(events));
+    }
 
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();

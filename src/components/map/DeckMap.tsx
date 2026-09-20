@@ -43,10 +43,30 @@ const ZOOM_THROTTLE_MS = 100;
 // e2e-only bridge (see e2e/select-region.spec.ts): only ever written when
 // NEXT_PUBLIC_E2E=1 (a build-time-inlined env var — see playwright.config.ts's
 // webServer.env), never read/written in normal production use.
+//
+// `events` — CI Linux fix (ci-linux-fixes branch): a small ring of recent
+// region-click/pick attempts (handleRegionClick/handleDeckClick below), so
+// e2e/select-region.spec.ts's canvas-click test can dump *why* a click
+// didn't select a region (never picked at all vs. picked-then-lost) instead
+// of only ever seeing the URL's end state.
 declare global {
   interface Window {
-    __jbmap?: { deck: Deck };
+    __jbmap?: { deck: Deck; events?: JbmapEvent[] };
   }
+}
+
+interface JbmapEvent {
+  /** "region-click": the regions/region-islands layer's own onClick fired (always a hit, some region code). "deck-click": DeckGL's top-level onClick fired (every click, hit or miss — `picked` distinguishes). */
+  type: "region-click" | "deck-click";
+  code?: string;
+  picked: boolean;
+  t: number;
+}
+
+const E2E = process.env.NEXT_PUBLIC_E2E === "1";
+function recordE2eEvent(event: JbmapEvent) {
+  if (!E2E || typeof window === "undefined" || !window.__jbmap) return;
+  (window.__jbmap.events ??= []).push(event);
 }
 
 function nameOf(code: string): string {
@@ -308,6 +328,7 @@ export default function DeckMap({
       // bundle.regions is in fact one of the 14 시군, but this narrows the
       // type rather than assuming it.
       if (!isRegionCode(code)) return;
+      recordE2eEvent({ type: "region-click", code, picked: true, t: performance.now() });
       if (code === selectedCode) {
         reselect();
       } else {
@@ -325,6 +346,12 @@ export default function DeckMap({
   // miss branch.
   const handleDeckClick = useCallback(
     (info: PickingInfo) => {
+      recordE2eEvent({
+        type: "deck-click",
+        code: (info.object as { properties?: { code?: string } } | undefined)?.properties?.code,
+        picked: info.picked,
+        t: performance.now(),
+      });
       if (!info.picked && selectedCode !== null) {
         onSelect(null);
       }
@@ -470,7 +497,7 @@ export default function DeckMap({
     mapReadyRef.current = true;
     containerRef.current.setAttribute("data-map-ready", "true");
     if (process.env.NEXT_PUBLIC_E2E === "1" && deckRef.current?.deck) {
-      window.__jbmap = { deck: deckRef.current.deck };
+      window.__jbmap = { deck: deckRef.current.deck, events: [] };
     }
   }, []);
 
@@ -482,6 +509,10 @@ export default function DeckMap({
       tabIndex={0}
       aria-label="전북 시군 3D 지도"
       onKeyDown={handleWrapperKeyDown}
+      // CI Linux fix — decoupled from data-map-ready (which only reflects
+      // deck.gl's first render frame, not font loading): e2e waits on THIS
+      // for "labels can actually render," matching useFontGate's own gate.
+      data-font-ready={fontReady ? "true" : undefined}
     >
       {cameraViewState && (
         <DeckGL

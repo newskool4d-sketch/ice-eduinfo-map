@@ -16,6 +16,10 @@ test("home page renders the 3D map with 14 regions and no console errors", async
   await expect(page).toHaveTitle(/전북교육지도/);
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
+  // useFontGate's own gate (independent of data-map-ready, which only
+  // reflects deck.gl's first render frame) — wait for it too, so the check
+  // below isn't racing the SAME font load the app itself is doing.
+  await expect(page.locator('[data-font-ready="true"]')).toBeAttached({ timeout: 20000 });
 
   // The glyphs the region labels actually need are ready in the font
   // DeckMap resolved (see DeckMap.tsx's gateFont(), which reads `--font-sans`
@@ -28,11 +32,27 @@ test("home page renders the 3D map with 14 regions and no console errors", async
   // only digits or only a unit character. `document.fonts.check()` is
   // called with real text, not the default (space) it probes without a
   // `text` argument.
+  //
+  // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — checked
+  // against the PRIMARY font-family only (the first entry of `--font-sans`),
+  // exactly like useFontGate.ts's primaryFamily() now does, NOT the full
+  // two-family var. next/font's `--font-sans` always appends a second,
+  // auto-generated metrics-only fallback face sourced via
+  // `local("Arial")`; `document.fonts.check()`/`load()` on a multi-family
+  // list fail for the WHOLE list the instant any one family resolves to a
+  // FontFace with status "error" — and a bare Linux CI runner has no
+  // "Arial" installed, so that local() source never resolves there. This
+  // isn't a real coverage gap: every character in charset.json (including
+  // "㎡"/"·") sits inside the PRIMARY "Noto Sans KR" face's own declared
+  // unicode-range (confirmed by parsing the built CSS), so the fallback
+  // face is never actually needed to render a label — checking primary-only
+  // matches both what the app itself gates on and what's actually true.
   const koreanGlyphsReady = await page.evaluate(async () => {
     const fallback = "'Noto Sans KR', sans-serif";
     const cssVar = getComputedStyle(document.body).getPropertyValue("--font-sans").trim();
-    const family = cssVar || fallback;
+    const family = (cssVar || fallback).split(",")[0].trim();
     const charset: string = await fetch("/data/charset.json").then((r) => r.json());
+    await document.fonts.load(`600 16px ${family}`, charset);
     return document.fonts.check(`600 16px ${family}`, charset);
   });
   expect(koreanGlyphsReady).toBe(true);
