@@ -8,7 +8,14 @@ import {
   regionName,
   REGIONS,
 } from "@/lib/geo/regions";
-import { bboxOf, ringsOf, unionBbox, type RegionFeature } from "@/lib/geo/geo";
+import {
+  bboxOf,
+  ringsOf,
+  splitRegionIslands,
+  unionBbox,
+  type RegionFeature,
+  type RegionsFeatureCollection,
+} from "@/lib/geo/geo";
 
 describe("REGIONS", () => {
   it("has exactly 14 entries", () => {
@@ -53,6 +60,7 @@ function rectFeature(
       name: code,
       bbox: [minLng, minLat, maxLng, maxLat],
       labelPoint: [(minLng + maxLng) / 2, (minLat + maxLat) / 2],
+      labelOffset: [0, 0],
     },
     geometry: {
       type: "Polygon",
@@ -91,6 +99,7 @@ describe("ringsOf", () => {
         name: "B",
         bbox: [0, 0, 3, 1],
         labelPoint: [0.5, 0.5],
+        labelOffset: [0, 0],
       },
       geometry: {
         type: "MultiPolygon",
@@ -141,5 +150,107 @@ describe("unionBbox", () => {
 
   it("throws on an empty feature list", () => {
     expect(() => unionBbox([])).toThrow();
+  });
+});
+
+// Task 6, Section C.1 — 섬은 평면으로: splits each region's MultiPolygon into
+// its single largest-area part (`main`) plus whatever's left (`islands`).
+describe("splitRegionIslands", () => {
+  /** A closed square ring [x,y]..[x+size,y+size], CCW winding. */
+  function square(x: number, y: number, size: number): [number, number][] {
+    return [
+      [x, y],
+      [x + size, y],
+      [x + size, y + size],
+      [x, y + size],
+      [x, y],
+    ];
+  }
+
+  function multiPolygonFeature(code: string, parts: [number, number][][]): RegionFeature {
+    return {
+      type: "Feature",
+      properties: {
+        code,
+        name: code,
+        bbox: [0, 0, 10, 10],
+        labelPoint: [5, 5],
+        labelOffset: [0, 0],
+      },
+      geometry: {
+        type: "MultiPolygon",
+        coordinates: parts.map((ring) => [ring]),
+      },
+    };
+  }
+
+  function fc(features: RegionFeature[]): RegionsFeatureCollection {
+    return { type: "FeatureCollection", features };
+  }
+
+  it("puts a single-part Polygon region entirely into `main`, contributing nothing to `islands`", () => {
+    const solo = rectFeature("52130", [0, 0, 1, 1]);
+    const { main, islands } = splitRegionIslands(fc([solo]));
+    expect(main.features).toHaveLength(1);
+    expect(main.features[0].properties.code).toBe("52130");
+    expect(main.features[0].geometry.type).toBe("Polygon");
+    expect(islands.features).toHaveLength(0);
+  });
+
+  it("picks the largest-area part as `main` (Polygon) and puts the rest in `islands`", () => {
+    // mainland: 4x4=16, islet: 1x1=1 — mainland must win regardless of
+    // input order.
+    const mainland = square(0, 0, 4);
+    const islet = square(6, 6, 1);
+    const region = multiPolygonFeature("52130", [islet, mainland]); // islet listed FIRST
+    const { main, islands } = splitRegionIslands(fc([region]));
+
+    expect(main.features).toHaveLength(1);
+    expect(main.features[0].geometry).toEqual({ type: "Polygon", coordinates: [mainland] });
+    expect(main.features[0].properties.code).toBe("52130");
+
+    expect(islands.features).toHaveLength(1);
+    expect(islands.features[0].properties.code).toBe("52130");
+    expect(islands.features[0].geometry).toEqual({ type: "Polygon", coordinates: [islet] });
+  });
+
+  it("bundles 2+ remaining parts into one MultiPolygon `islands` feature", () => {
+    const mainland = square(0, 0, 5);
+    const isletA = square(6, 6, 1);
+    const isletB = square(8, 8, 0.5);
+    const region = multiPolygonFeature("52130", [mainland, isletA, isletB]);
+    const { main, islands } = splitRegionIslands(fc([region]));
+
+    expect(main.features[0].geometry).toEqual({ type: "Polygon", coordinates: [mainland] });
+    expect(islands.features).toHaveLength(1);
+    expect(islands.features[0].geometry).toEqual({
+      type: "MultiPolygon",
+      coordinates: [[isletA], [isletB]],
+    });
+  });
+
+  it("only regions that actually have extra parts contribute an `islands` feature", () => {
+    const soloRegion = rectFeature("52110", [0, 0, 1, 1]); // Polygon, no islands
+    const multiRegion = multiPolygonFeature("52130", [square(0, 0, 4), square(6, 6, 1)]);
+    const { main, islands } = splitRegionIslands(fc([soloRegion, multiRegion]));
+
+    expect(main.features).toHaveLength(2); // every region always contributes to `main`
+    expect(islands.features).toHaveLength(1); // only 52130 has a leftover part
+    expect(islands.features[0].properties.code).toBe("52130");
+  });
+
+  it("preserves the region's properties (code/name/bbox/labelPoint/labelOffset) on both main and island features", () => {
+    const region = multiPolygonFeature("52130", [square(0, 0, 4), square(6, 6, 1)]);
+    const { main, islands } = splitRegionIslands(fc([region]));
+    expect(main.features[0].properties).toEqual(region.properties);
+    expect(islands.features[0].properties).toEqual(region.properties);
+  });
+
+  it("compares areas per-region only (a huge part of one region never masks a genuinely-largest part of another)", () => {
+    const small = multiPolygonFeature("52130", [square(0, 0, 1), square(20, 20, 0.5)]);
+    const { main } = splitRegionIslands(fc([small]));
+    // 52130's own largest part (1x1=1) wins for 52130, regardless of any
+    // other region's absolute size.
+    expect(main.features[0].geometry).toEqual({ type: "Polygon", coordinates: [square(0, 0, 1)] });
   });
 });

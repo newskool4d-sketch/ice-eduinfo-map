@@ -118,6 +118,37 @@ describe("transformRegions", () => {
     }
   });
 
+  // Task 6, Section C.2 — 라벨 겹침 완화: data/manual/label-offsets.json's
+  // per-code pixel nudge is injected as properties.labelOffset. `main()` is
+  // the only thing that reads the manual file from disk (IO stays out of
+  // this pure function, matching the module's existing IO/pure split) — it
+  // passes the parsed map in as an argument.
+  describe("labelOffset injection (Task 6, Section C.2)", () => {
+    it("uses the given labelOffsets map, keyed by code", async () => {
+      const fc = await transformRegions(JSON.stringify(fixture()), {
+        labelOffsets: { "52110": [0, -12], "52130": [5, 0] },
+      });
+      const byCode = new Map(fc.features.map((f) => [f.properties.code, f.properties.labelOffset]));
+      expect(byCode.get("52110")).toEqual([0, -12]);
+      expect(byCode.get("52130")).toEqual([5, 0]);
+    });
+
+    it("defaults an unlisted region's labelOffset to [0, 0]", async () => {
+      const fc = await transformRegions(JSON.stringify(fixture()), {
+        labelOffsets: { "52110": [0, -12] }, // 52130 deliberately omitted
+      });
+      const gunsan = fc.features.find((f) => f.properties.code === "52130")!;
+      expect(gunsan.properties.labelOffset).toEqual([0, 0]);
+    });
+
+    it("defaults every region's labelOffset to [0, 0] when no labelOffsets map is given at all", async () => {
+      const fc = await transformRegions(JSON.stringify(fixture()));
+      for (const f of fc.features) {
+        expect(f.properties.labelOffset).toEqual([0, 0]);
+      }
+    });
+  });
+
   it("merges the two 전주시 gu rectangles into a bbox spanning both", async () => {
     const fc = await transformRegions(JSON.stringify(fixture()));
     const jeonju = fc.features.find((f) => f.properties.code === "52110")!;

@@ -26,6 +26,11 @@ export const SOURCE_URL =
 const RAW_PATH = path.join(ROOT, "data/raw/admdongkor-ver20260701.geojson");
 const REGIONS_OUTPUT_PATH = path.join(ROOT, "public/data/regions.geojson");
 const NEIGHBORS_OUTPUT_PATH = path.join(ROOT, "public/data/neighbors.geojson");
+// Task 6, Section C.2 — 라벨 겹침 완화: manual per-region pixel nudges,
+// hand-tuned by screenshot comparison (see task-6-report.md). Optional —
+// missing entirely, or missing a given code, both just mean "[0, 0]" (see
+// transformRegions's own default).
+const LABEL_OFFSETS_PATH = path.join(ROOT, "data/manual/label-offsets.json");
 
 const REGIONS_MAX_BYTES = 300 * 1024;
 const NEIGHBORS_MAX_BYTES = 200 * 1024;
@@ -74,6 +79,9 @@ async function runMapshaper(
   return text;
 }
 
+/** `{ [regionCode]: [dx, dy] }` pixel nudge — see data/manual/label-offsets.json. */
+export type LabelOffsets = Record<string, [number, number]>;
+
 /**
  * sido === '52' (전북) 필터 → sgg_cd(=sgg, 5211*는 52110으로 통합) 로 dissolve
  * → simplify → 미세 섬 제거 → bbox/labelPoint 계산. 14개 시군 코드표에 없는
@@ -81,10 +89,16 @@ async function runMapshaper(
  */
 export async function transformRegions(
   inputGeojsonText: string,
-  opts: { simplifyPercent?: number; minIslandAreaKm2?: number } = {},
+  opts: { simplifyPercent?: number; minIslandAreaKm2?: number; labelOffsets?: LabelOffsets } = {},
 ): Promise<FeatureCollection<Polygon | MultiPolygon, RegionFeature["properties"]>> {
   const simplifyPercent = opts.simplifyPercent ?? 5;
   const minIslandAreaKm2 = opts.minIslandAreaKm2 ?? 1;
+  // Task 6, Section C.2 — 라벨 겹침 완화: IO (reading the manual JSON file)
+  // stays in main() below, matching this module's existing pure/IO split —
+  // this function only ever reads the ALREADY-PARSED map handed to it, so
+  // it stays testable against a small in-memory fixture (see
+  // tests/pipeline/build-regions.test.ts).
+  const labelOffsets = opts.labelOffsets ?? {};
   const outputText = await runMapshaper(
     [
       "-i input.geojson",
@@ -143,6 +157,7 @@ export async function transformRegions(
         name: regionName(code),
         bbox,
         labelPoint: [lng, lat],
+        labelOffset: labelOffsets[code] ?? [0, 0],
       },
     } satisfies RegionFeature;
   });
@@ -202,9 +217,20 @@ async function ensureSourceDownloaded(): Promise<void> {
   console.log(`[build-regions] downloaded ${buf.byteLength} bytes -> ${path.relative(ROOT, RAW_PATH)}`);
 }
 
+async function loadLabelOffsets(): Promise<LabelOffsets> {
+  if (!existsSync(LABEL_OFFSETS_PATH)) return {};
+  const text = await readFile(LABEL_OFFSETS_PATH, "utf8");
+  return JSON.parse(text) as LabelOffsets;
+}
+
 async function main() {
   await ensureSourceDownloaded();
   const inputText = await readFile(RAW_PATH, "utf8");
+  const labelOffsets = await loadLabelOffsets();
+  console.log(
+    `[build-regions] label-offsets.json: ${Object.keys(labelOffsets).length} region(s) configured` +
+      (Object.keys(labelOffsets).length > 0 ? ` (${Object.keys(labelOffsets).join(", ")})` : ""),
+  );
 
   const distinctSido = new Map<string, string>();
   for (const f of JSON.parse(inputText).features as Feature<
@@ -219,14 +245,14 @@ async function main() {
       .join(", ")}`,
   );
 
-  let regions = await transformRegions(inputText, { simplifyPercent: 5 });
+  let regions = await transformRegions(inputText, { simplifyPercent: 5, labelOffsets });
   let regionsText = JSON.stringify(regions);
   if (Buffer.byteLength(regionsText) > REGIONS_MAX_BYTES) {
     console.log(
       `[build-regions] regions.geojson at 5% simplify is ${Buffer.byteLength(regionsText)} bytes ` +
         `(> ${REGIONS_MAX_BYTES}), retrying at 3%`,
     );
-    regions = await transformRegions(inputText, { simplifyPercent: 3 });
+    regions = await transformRegions(inputText, { simplifyPercent: 3, labelOffsets });
     regionsText = JSON.stringify(regions);
   }
   if (regions.features.length !== REGION_CODES.length) {

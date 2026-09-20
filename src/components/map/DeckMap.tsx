@@ -3,18 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
-import { Deck, FlyToInterpolator, MapView } from "@deck.gl/core";
+import { Deck, MapView } from "@deck.gl/core";
 import type { LayersList, PickingInfo } from "@deck.gl/core";
 import { CompassWidget, DarkTheme, ResetViewWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
 import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/geo/regions";
-import { unionBbox, type Bbox } from "@/lib/geo/geo";
-import type { RegionFeature } from "@/lib/geo/geo";
 import { lightingEffect } from "@/components/map/lighting";
-import { CONTROLLER, fitOverview, fitRegion, VIEW_LIMITS } from "@/components/map/camera";
+import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
 import {
   makeFootprintLayer,
+  makeIslandsLayer,
   makeNeighborsLayer,
   makeRegionsLayer,
   makeSelectedRingLayer,
@@ -22,6 +21,8 @@ import {
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
+import { useCamera } from "@/components/map/useCamera";
+import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
 import { displayLabel, rank, valueMap } from "@/lib/stats";
@@ -29,7 +30,9 @@ import { makeColorScale } from "@/lib/colors";
 import { makeElevationScale } from "@/lib/scales";
 import { makeSchoolRadiusScale } from "@/lib/schoolVisuals";
 import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipText";
-import { nextRegion, regionRankList, selectionAnnouncement } from "@/lib/selection";
+import { regionRankList, selectionAnnouncement } from "@/lib/selection";
+import { useReducedMotion } from "@/lib/useReducedMotion";
+import type { RegionFeature } from "@/lib/geo/geo";
 
 /** zoom≥11 이 되어야 학교명 라벨을 그린다 (브리프 고정값 — DeckMap.tsx 의 onViewStateChange 스로틀 zoom 으로 판단). */
 const SCHOOL_LABEL_MIN_ZOOM = 11;
@@ -57,21 +60,14 @@ function nameOf(code: string): string {
 
 const VIEW = new MapView();
 
-type OverviewViewState = ReturnType<typeof fitOverview>;
-/** What's actually fed to `<DeckGL initialViewState>` — the overview/region fit plus a monotonic `_nonce` so re-applying the SAME target (e.g. re-clicking the already-selected region) still forces deck.gl to reset its camera. See DeckMap's `flyTo` for why: `Deck.setProps` skips the reset when the new `initialViewState` is deep-equal (by content, depth 3) to the previous one — see task-4A-report.md. */
-type CameraViewState = OverviewViewState & {
-  transitionInterpolator?: FlyToInterpolator;
-  transitionDuration?: number | "auto";
-  _nonce: number;
-};
-
-function prefersReducedMotion(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
+// 추가 요구 #4: 16px margin (deck.gl/widgets' own default is 12px);
+// DarkTheme keeps the compass/전체보기 buttons legible against the varied 3D
+// scene behind them (the default LightTheme assumes a light page
+// background). A MODULE constant, not an inline object literal inside the
+// component — Task 6, Section C.3 ("widgetThemeStyle 등 매 렌더 새 객체를 모듈
+// 상수로"): an inline literal would be a NEW object reference every render,
+// pointlessly changing the wrapper div's `style` prop identity every time.
+const WIDGET_THEME_STYLE: CSSProperties = { ...DarkTheme, "--widget-margin": "16px" } as CSSProperties;
 
 export interface DeckMapProps {
   indicatorId: string;
@@ -97,32 +93,39 @@ export default function DeckMap({
   const deckRef = useRef<DeckGLRef | null>(null);
   const mapReadyRef = useRef(false);
 
+  // Task 6, Section A.4 — reduced-motion: zeroes both the camera's
+  // transitionDuration (useCamera) and every layer's own `transitions`
+  // (regionLayers/labelLayer/schoolLayers' `transitionDuration` option)
+  // below, when `prefers-reduced-motion: reduce` is set.
+  const reduceMotion = useReducedMotion();
+  // Task 6, "현재 코드 상태" — camera state/effects/flyTo live in useCamera
+  // now (split out of this file with no intended behavior change); `regions`
+  // (not `regionsMain`) is deliberately what's handed in — `properties.bbox`
+  // already spans a region's FULL original geometry (mainland + islands), so
+  // the camera never clips an island out of frame.
+  const { overview, cameraViewState, reselect } = useCamera(containerRef, bundle.regions, selectedCode, reduceMotion);
+
+  // Task 6, Section A.2 — WebGL context loss: deck.gl's own internal
+  // handling (Deck#_onWebGLContextLost) calls onError(new Error('WebGL
+  // context is lost')) — matching on "context" (case-insensitively, not an
+  // exact string) also catches any OTHER error deck.gl/luma.gl ever phrases
+  // slightly differently, while still leaving every unrelated error (a
+  // picking bug, a bad accessor, ...) to just log and fall through with no
+  // overlay, per the brief. deck.gl's default onError just does
+  // `log.error(error.message)`; supplying our own REPLACES that default, so
+  // the non-context branch below calls console.error itself to not lose
+  // that reporting.
+  const [contextLost, setContextLost] = useState(false);
+  const handleDeckError = useCallback((error: Error) => {
+    if (error.message.toLowerCase().includes("context")) {
+      setContextLost(true);
+    } else {
+      console.error(error);
+    }
+  }, []);
+
   const [fontReady, setFontReady] = useState(false);
   const [fontFamily, setFontFamily] = useState(FALLBACK_FONT_FAMILY);
-  // `overview` is the "전체 보기" seed: computed once on mount, never again
-  // (kept STABLE and separate from `cameraViewState` below) so the
-  // ResetViewWidget — which defaults to `deck.props.initialViewState`, i.e.
-  // whatever `cameraViewState` currently is — can be told explicitly to
-  // reset to the overview even while a region is selected.
-  const [overview, setOverview] = useState<OverviewViewState | null>(null);
-  // What's actually passed to `<DeckGL initialViewState>` right now.
-  const [cameraViewState, setCameraViewState] = useState<CameraViewState | null>(null);
-
-  const nonceRef = useRef(0);
-  // Bumped (never read for its value, only its identity as a dependency) by
-  // handleRegionClick/handleWrapperKeyDown when the user (re-)selects the
-  // region that's ALREADY selected — selectedCode itself wouldn't change in
-  // that case, so the camera-sync effect below wouldn't otherwise re-fire
-  // (see CameraViewState's doc comment for why re-clicking the same region
-  // still needs to reset the camera). Deliberately plain state, not a ref:
-  // a ref read reachable from handleRegionClick — which is handed to
-  // deck.gl as a layer-prop value during the `layers` useMemo below, a
-  // render-phase computation — trips eslint-plugin-react-hooks' `refs` rule
-  // ("a ref might be read during render"), even though deck.gl only
-  // invokes onClick later, from a real click. Routing the "reselect" signal
-  // through state instead means neither click/keyboard handler touches a
-  // ref at all; only this effect (a safe place to read one) calls `flyTo`.
-  const [reselectNonce, setReselectNonce] = useState(0);
 
   // Task 4B: current zoom, throttled to ZOOM_THROTTLE_MS via onViewStateChange
   // below — this is the ONLY thing zoom is tracked for (deciding whether
@@ -198,81 +201,6 @@ export default function DeckMap({
     };
   }, [bundle.charset]);
 
-  // Uncontrolled camera, initial mount only: compute the overview from the
-  // container's measured size, the loaded regions' combined bbox, and every
-  // region's label point (fitOverview needs both — see camera.ts's
-  // fitViewToPoints — so a label doesn't end up clipped even when the
-  // polygon bbox itself just barely fits). No transition here — nothing has
-  // been rendered yet for a fly-from position to make sense against.
-  useEffect(() => {
-    if (overview) return; // once only
-    if (!containerRef.current) return;
-    const { width, height } = containerRef.current.getBoundingClientRect();
-    if (width <= 0 || height <= 0) return;
-    const bbox: Bbox = unionBbox(bundle.regions.features);
-    const labelPoints = bundle.regions.features.map((f) => f.properties.labelPoint);
-    const initial = fitOverview(bbox, labelPoints, { width, height });
-    setOverview(initial);
-    setCameraViewState({ ...initial, _nonce: 0 });
-    // bundle.regions is a stable reference for the provider's lifetime (set
-    // once on load, never recreated) — this effect only re-runs if the
-    // container itself is remeasured via a fresh mount.
-  }, [bundle.regions, overview]);
-
-  // Imperatively (re-)applies the camera for `code` (a region, or null for
-  // the overview), always stamping a fresh `_nonce` — see CameraViewState's
-  // doc comment for why that's required even when the target is UNCHANGED
-  // from what's currently applied (e.g. re-clicking the already-selected
-  // region: deck.gl's own content-based deepEqual check on `initialViewState`
-  // would otherwise silently no-op the reset). Only ever called from the
-  // camera-sync effect below — never directly from a click/keydown handler
-  // (see `reselectNonce`'s doc comment for why).
-  const flyTo = useCallback(
-    (code: string | null) => {
-      if (!containerRef.current) return;
-      const { width, height } = containerRef.current.getBoundingClientRect();
-      if (width <= 0 || height <= 0) return;
-      const size = { width, height };
-      const reduceMotion = prefersReducedMotion();
-
-      nonceRef.current += 1;
-      const nonce = nonceRef.current;
-
-      if (code) {
-        const feature = bundle.regions.features.find((f) => f.properties.code === code);
-        if (!feature) return;
-        const view = fitRegion(feature.properties.bbox, size);
-        setCameraViewState({
-          ...view,
-          transitionDuration: reduceMotion ? 0 : view.transitionDuration,
-          _nonce: nonce,
-        });
-      } else {
-        const bbox = unionBbox(bundle.regions.features);
-        const labelPoints = bundle.regions.features.map((f) => f.properties.labelPoint);
-        const view = fitOverview(bbox, labelPoints, size);
-        setCameraViewState({
-          ...view,
-          transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
-          transitionDuration: reduceMotion ? 0 : "auto",
-          _nonce: nonce,
-        });
-      }
-    },
-    [bundle.regions],
-  );
-
-  // The single place that actually moves the camera, for every trigger:
-  // selectedCode changing (RegionList click, canvas click on a NEW region,
-  // ←/→, Esc, browser back/forward, a `?region=` deep link — all flow
-  // through onSelect -> the URL -> selectedCode) AND reselectNonce changing
-  // (re-clicking/re-Entering the ALREADY-selected region, which doesn't
-  // change selectedCode at all).
-  useEffect(() => {
-    if (!overview) return; // wait for the mount effect first (and re-fire once it's ready, e.g. a `?region=` deep link)
-    flyTo(selectedCode);
-  }, [selectedCode, overview, reselectNonce, flyTo]);
-
   const def = indicatorById(indicatorId);
   if (!def) {
     throw new Error(`DeckMap: unknown indicatorId "${indicatorId}"`);
@@ -288,10 +216,14 @@ export default function DeckMap({
   // the same pure function), RegionList's render order.
   const orderedCodes = useMemo(() => regionRankList(map), [map]);
 
+  // Task 6, Section C.1 — the ring traces the MAINLAND part only
+  // (bundle.regionsMain), never an island: islands aren't extruded, so a
+  // ring floating at `elevation + 10` over a flat island would look
+  // detached from anything actually rising off the ground.
   const selectedFeature = useMemo<RegionFeature | null>(() => {
     if (!selectedCode) return null;
-    return bundle.regions.features.find((f) => f.properties.code === selectedCode) ?? null;
-  }, [bundle.regions, selectedCode]);
+    return bundle.regionsMain.features.find((f) => f.properties.code === selectedCode) ?? null;
+  }, [bundle.regionsMain, selectedCode]);
   const ringElevation = useMemo(
     () => (selectedCode ? elevationOf(selectedCode) : 0),
     [elevationOf, selectedCode],
@@ -331,15 +263,18 @@ export default function DeckMap({
   // Static across indicator switches — regenerating this array on every
   // indicatorId change would give the label TextLayer a new `data` reference
   // each time, defeating deck.gl's diffing (the constraint the task brief
-  // calls out explicitly: "매 렌더 새 배열을 만들지 않는다").
+  // calls out explicitly: "매 렌더 새 배열을 만들지 않는다"). Sourced from
+  // regionsMain (Task 6, Section C.2): same properties (code/name/labelPoint/
+  // labelOffset) as bundle.regions, one feature per region either way.
   const labels = useMemo(
     () =>
-      bundle.regions.features.map((f) => ({
+      bundle.regionsMain.features.map((f) => ({
         code: f.properties.code,
         name: f.properties.name,
         position: f.properties.labelPoint,
+        labelOffset: f.properties.labelOffset,
       })),
-    [bundle.regions],
+    [bundle.regionsMain],
   );
 
   const characterSet = useMemo(() => Array.from(bundle.charset), [bundle.charset]);
@@ -392,7 +327,11 @@ export default function DeckMap({
   const getSchoolTooltip = useMemo(() => makeSchoolTooltip(schoolTooltipLines), []);
   // Dispatches by which layer was actually hovered — schools (a
   // ScatterplotLayer, `info.object` is a plain School row) vs every other
-  // (GeoJsonLayer-backed, `info.object.properties.code`) layer.
+  // (GeoJsonLayer-backed — regions, region-islands, footprint, neighbors —
+  // `info.object.properties.code`) layer. `region-islands` needs no special
+  // case here: every feature it hands the picker still carries
+  // `properties.code` (see splitRegionIslands), so the same generic
+  // getRegionTooltip branch already covers it.
   const getTooltip = useCallback(
     (info: Parameters<typeof getRegionTooltip>[0]) =>
       info.layer?.id === "schools" ? getSchoolTooltip(info) : getRegionTooltip(info),
@@ -405,13 +344,13 @@ export default function DeckMap({
     [],
   );
 
-  // A region was clicked on the canvas (the `regions` layer's own onClick —
-  // see below). Re-clicking the ALREADY-selected region wouldn't change the
-  // URL (setRegion would push the same value again), so bump reselectNonce
-  // to force the camera-sync effect to re-fly anyway, instead of calling
-  // onSelect with a no-op value. Every other click is a genuine selection
-  // change; onSelect -> the URL -> that effect drives the camera instead,
-  // exactly like a RegionList click would.
+  // A region was clicked on the canvas (the `regions`/`region-islands`
+  // layers' own onClick — see below). Re-clicking the ALREADY-selected
+  // region wouldn't change the URL (setRegion would push the same value
+  // again), so re-fly the camera anyway via useCamera's `reselect` instead
+  // of calling onSelect with a no-op value. Every other click is a genuine
+  // selection change; onSelect -> the URL -> useCamera's effect drives the
+  // camera instead, exactly like a RegionList click would.
   const handleRegionClick = useCallback(
     (code: string) => {
       // Defensive: makeRegionsLayer's onClick is typed generically (plain
@@ -420,19 +359,20 @@ export default function DeckMap({
       // type rather than assuming it.
       if (!isRegionCode(code)) return;
       if (code === selectedCode) {
-        setReselectNonce((n) => n + 1);
+        reselect();
       } else {
         onSelect(code);
       }
     },
-    [selectedCode, onSelect],
+    [selectedCode, onSelect, reselect],
   );
 
   // Top-level DeckGL click: only handles the "missed everything" case (per
   // the task brief: "DeckGL 의 onClick 에서 info.picked === false 면
   // onSelect(null)"). A click that DID pick a region is handled by the
-  // `regions` layer's own onClick (handleRegionClick) instead — deck.gl
-  // fires both for the same click, so this only needs the miss branch.
+  // `regions`/`region-islands` layers' own onClick (handleRegionClick)
+  // instead — deck.gl fires both for the same click, so this only needs the
+  // miss branch.
   const handleDeckClick = useCallback(
     (info: PickingInfo) => {
       if (!info.picked && selectedCode !== null) {
@@ -442,114 +382,17 @@ export default function DeckMap({
     [selectedCode, onSelect],
   );
 
-  // Keyboard path on the map wrapper (tabIndex=0): ←/→ cycle through
-  // `orderedCodes` and commit immediately (selection IS the URL — no
-  // separate "focused but not selected" state to keep in sync with it).
-  // Enter with nothing selected picks rank 1; Enter on the already-selected
-  // region re-flies (same "reselect" case as a canvas re-click). No "Escape"
-  // case here (Fix round 1, review finding #1) — deselecting on Escape is
-  // now owned entirely by the document-level listener below, which (unlike
-  // this handler) still fires when a mouse-driven selection has left focus
-  // off the wrapper.
-  const handleWrapperKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      // The compass/전체보기 widget buttons deck.gl renders are DOM
-      // descendants of this same wrapper div, so a keydown ON one of them
-      // (e.g. Tab to "전체보기", press Enter to activate it) still bubbles
-      // up to this handler. Without this guard, our own "Enter" case below
-      // would preventDefault() and hijack that native button activation —
-      // only handle keys that land on the wrapper itself, not on a
-      // focused descendant.
-      if (event.target !== event.currentTarget) return;
-      switch (event.key) {
-        case "ArrowRight": {
-          event.preventDefault();
-          const next = nextRegion(orderedCodes, selectedCode, 1);
-          if (next) onSelect(next);
-          break;
-        }
-        case "ArrowLeft": {
-          event.preventDefault();
-          const prev = nextRegion(orderedCodes, selectedCode, -1);
-          if (prev) onSelect(prev);
-          break;
-        }
-        case "Enter": {
-          event.preventDefault();
-          if (selectedCode === null) {
-            const first = nextRegion(orderedCodes, null, 1);
-            if (first) onSelect(first);
-          } else {
-            // Same "reselect" case as handleRegionClick above.
-            setReselectNonce((n) => n + 1);
-          }
-          break;
-        }
-        default:
-          break;
-      }
-    },
-    [orderedCodes, selectedCode, onSelect],
-  );
-
-  // Escape-to-deselect via a document-level listener (Fix round 1, review
-  // finding #1): a MOUSE-driven selection leaves focus off the wrapper — a
-  // RegionList click's clicked <button> unmounts once the panel swaps to
-  // RegionPanel (focus reverts to <body>), and a canvas click never moves
-  // focus onto the wrapper div either (mjolnir.js doesn't request it) — so
-  // a keydown in either case never reaches handleWrapperKeyDown above at
-  // all (React's delegated listener only fires for events whose target is
-  // the wrapper itself or one of ITS descendants; <body> is an ANCESTOR of
-  // the wrapper, not a descendant, so the event bubbles straight past it to
-  // document without ever visiting the wrapper). Listening on `document`
-  // catches Escape regardless of focus.
-  //
-  // Deliberately BUBBLE phase, not capture: IndicatorMenu registers its own
-  // Escape handler on `document` in the CAPTURE phase and now calls
-  // preventDefault() when it closes the menu (see IndicatorMenu.tsx). Every
-  // capture-phase listener on a node runs before ANY bubble-phase listener
-  // on that SAME node, for every event dispatch — a DOM invariant, true
-  // regardless of which effect happened to attach first. That's what makes
-  // the `defaultPrevented` check below reliable even though registration
-  // order between these two components' effects is otherwise
-  // nondeterministic (`onSelect` is a new function identity every render,
-  // so this effect can re-attach on renders unrelated to IndicatorMenu's
-  // own open/close state). Net effect: a single Escape with the indicator
-  // menu open closes only the menu, never both.
-  //
-  // Also ignores a target inside a text-editing control (typing Escape in
-  // an <input>/<textarea>/contenteditable — e.g. IndicatorMenu's own radio
-  // inputs while focused — must never deselect the map behind it), and is
-  // only attached while something is actually selected (nothing to
-  // deselect otherwise).
-  //
-  // Task 4B: a highlighted school (highlightedSchoolId) clears FIRST — a
-  // second Escape (now nothing highlighted) deselects the region, same as
-  // before 4B. highlightedSchoolId can only be non-null while a region is
-  // already selected (Dashboard resets it whenever regionCode changes), so
-  // the effect's existing `!selectedCode` guard already covers this case
-  // too — no separate attach condition needed.
-  useEffect(() => {
-    if (!selectedCode) return;
-    function onDocumentKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      if (event.defaultPrevented) return;
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
-      ) {
-        return;
-      }
-      if (highlightedSchoolId !== null) {
-        onHighlightSchool(null);
-      } else {
-        onSelect(null);
-      }
-    }
-    document.addEventListener("keydown", onDocumentKeyDown);
-    return () => document.removeEventListener("keydown", onDocumentKeyDown);
-  }, [selectedCode, onSelect, highlightedSchoolId, onHighlightSchool]);
+  // Task 6, "현재 코드 상태" — ←/→/Enter cycling + document-level
+  // Escape-to-deselect live in useRegionKeyboardNav now (split out of this
+  // file with no intended behavior change).
+  const { handleWrapperKeyDown } = useRegionKeyboardNav({
+    orderedCodes,
+    selectedCode,
+    onSelect,
+    reselect,
+    highlightedSchoolId,
+    onHighlightSchool,
+  });
 
   // 추가 요구 #4: 나침반(bearing/pitch reset) + 전체보기(fit-to-overview)
   // buttons, bottom-left inside the canvas. Both are official deck.gl
@@ -571,34 +414,28 @@ export default function DeckMap({
     ],
     [overview],
   );
-  // 16px margin (추가 요구 #4) instead of the widget package's 12px default;
-  // DarkTheme keeps the buttons legible against the varied 3D scene behind
-  // them (the default LightTheme assumes a light page background).
-  const widgetThemeStyle: CSSProperties = { ...DarkTheme, "--widget-margin": "16px" } as CSSProperties;
-
-  // Its own useMemo (not just inlined in `layers` below): makes "data는
-  // 선택이 바뀔 때만 새로" true by construction — `layers` also rebuilds on
-  // indicator/font/label changes that have nothing to do with selection,
-  // and inlining the call there would rebuild this layer's `data` array
-  // every one of those times too (harmless, since deck.gl still diffs by
-  // id, but not what the brief asks for).
-  const selectedRingLayer = useMemo(
-    () => makeSelectedRingLayer(selectedFeature, ringElevation),
-    [selectedFeature, ringElevation],
-  );
 
   const layers = useMemo<LayersList>(() => {
+    const transitionDuration = reduceMotion ? 0 : undefined; // undefined -> each factory's own 600ms default
     const layerList: LayersList = [
       makeNeighborsLayer(bundle.neighbors),
       makeFootprintLayer(bundle.regions),
-      makeRegionsLayer(bundle.regions, {
+      makeRegionsLayer(bundle.regionsMain, {
         elevationOf,
         fillColorOf: colorOf,
         triggerKey: indicatorId,
         selectedCode,
         onClick: handleRegionClick,
+        transitionDuration,
       }),
-      selectedRingLayer,
+      makeIslandsLayer(bundle.regionsIslands, {
+        fillColorOf: colorOf,
+        triggerKey: indicatorId,
+        selectedCode,
+        onClick: handleRegionClick,
+        transitionDuration,
+      }),
+      makeSelectedRingLayer(selectedFeature, ringElevation),
       makeSchoolsLayer(positionedRegionSchools, {
         elevationOf,
         radiusOf,
@@ -606,6 +443,7 @@ export default function DeckMap({
         visible: schoolsVisible,
         onClick: handleSchoolClick,
         triggerKey: indicatorId,
+        transitionDuration,
       }),
     ];
     if (fontReady) {
@@ -616,6 +454,7 @@ export default function DeckMap({
           triggerKey: indicatorId,
           fontFamily,
           characterSet,
+          transitionDuration,
         }),
         makeSchoolLabelsLayer(positionedRegionSchools, {
           elevationOf,
@@ -623,19 +462,23 @@ export default function DeckMap({
           fontFamily,
           characterSet,
           triggerKey: indicatorId,
+          transitionDuration,
         }),
       );
     }
     return layerList;
   }, [
     bundle.regions,
+    bundle.regionsMain,
+    bundle.regionsIslands,
     bundle.neighbors,
     elevationOf,
     colorOf,
     indicatorId,
     selectedCode,
     handleRegionClick,
-    selectedRingLayer,
+    selectedFeature,
+    ringElevation,
     positionedRegionSchools,
     radiusOf,
     highlightedSchoolId,
@@ -647,6 +490,7 @@ export default function DeckMap({
     labelTextOf,
     fontFamily,
     characterSet,
+    reduceMotion,
   ]);
 
   // Fires every frame; only the first frame after the initial view state is
@@ -668,7 +512,7 @@ export default function DeckMap({
     <div
       ref={containerRef}
       className="relative h-full w-full bg-[#0b0f19] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
-      style={widgetThemeStyle}
+      style={WIDGET_THEME_STYLE}
       tabIndex={0}
       aria-label="전북 시군 3D 지도"
       onKeyDown={handleWrapperKeyDown}
@@ -687,7 +531,23 @@ export default function DeckMap({
           onAfterRender={handleAfterRender}
           onClick={handleDeckClick}
           onViewStateChange={handleViewStateChange}
+          onError={handleDeckError}
         />
+      )}
+      {contextLost && (
+        <div
+          role="alert"
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[#0b0f19]/90 text-center text-sm text-[#e6e9f0]"
+        >
+          <p>그래픽 컨텍스트가 끊겼습니다</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded bg-white/10 px-3 py-1.5 hover:bg-white/20"
+          >
+            새로고침
+          </button>
+        </div>
       )}
       <div aria-live="polite" className="sr-only">
         {announcement}
