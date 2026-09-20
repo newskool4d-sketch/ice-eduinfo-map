@@ -47,4 +47,48 @@ describe("IndicatorPicker", () => {
     await user.keyboard(" ");
     expect(onChange).toHaveBeenCalledWith("schools_total");
   });
+
+  it("renders the group legend text with at least WCAG AA (4.5:1) contrast against the popover surface #121826", () => {
+    render(<IndicatorPicker value={DEFAULT_INDICATOR_ID} onChange={() => {}} />);
+    const legend = screen.getByText(GROUP_LABELS.scale);
+
+    // The legend is styled as `text-[#e6e9f0]/<alpha>` — read the actual
+    // opacity out of the rendered className (rather than hardcoding the
+    // expected value) so this test fails again if the color or opacity ever
+    // regresses, not just if a specific literal is reverted.
+    const match = legend.className.match(/text-\[#e6e9f0\]\/(\d+)/);
+    expect(match, `expected a text-[#e6e9f0]/<alpha> class, got "${legend.className}"`).not.toBeNull();
+    const alpha = Number(match![1]) / 100;
+
+    // WCAG 2.x relative-luminance contrast, computed for the legend's text
+    // color (foreground alpha-blended over the popover's actual background)
+    // against that same background — same formula/method used to verify
+    // every other text color in this task (see task-3-report.md).
+    const hexToRgb = (hex: string): [number, number, number] => {
+      const n = parseInt(hex.replace("#", ""), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    };
+    const relativeLuminance = ([r, g, b]: [number, number, number]) => {
+      const linearize = (channel: number) => {
+        const c = channel / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      };
+      return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+    };
+
+    const fg = hexToRgb("#e6e9f0");
+    const bg = hexToRgb("#121826"); // IndicatorMenu's popover background (bg-[#121826])
+    const blended: [number, number, number] = [
+      alpha * fg[0] + (1 - alpha) * bg[0],
+      alpha * fg[1] + (1 - alpha) * bg[1],
+      alpha * fg[2] + (1 - alpha) * bg[2],
+    ];
+
+    const textLum = relativeLuminance(blended);
+    const bgLum = relativeLuminance(bg);
+    const [lighter, darker] = textLum > bgLum ? [textLum, bgLum] : [bgLum, textLum];
+    const ratio = (lighter + 0.05) / (darker + 0.05);
+
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
+  });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 
@@ -128,6 +128,34 @@ describe("IndicatorMenu", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "밖" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("resets the arrow-key click-suppression when the popover closes, so a later real click still closes it", async () => {
+    const user = userEvent.setup();
+    render(<IndicatorMenu />, { wrapper: withNuqsTestingAdapter() });
+
+    await user.click(screen.getByRole("button", { name: MENU_BUTTON_NAME }));
+    const firstRadio = screen.getAllByRole("radio")[0];
+
+    // Dispatches only the keydown that arms suppressNextClickRef (see
+    // handlePopoverKeyDown) WITHOUT the paired synthetic click a real
+    // arrow-key press produces (that pairing is what the "ArrowDown
+    // navigates..." test above exercises via full user-event interaction,
+    // and it's what normally consumes/clears the ref). This isolates the
+    // race the safety net guards against: the popover closing (here, via
+    // Escape) before that paired click ever arrives to clear the flag
+    // itself, leaving it stale for the next, unrelated open.
+    fireEvent.keyDown(firstRadio, { key: "ArrowDown" });
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: MENU_BUTTON_NAME }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: indicatorById("schools_total")!.label }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });

@@ -23,7 +23,7 @@ export default function IndicatorPicker({ value, onChange }: IndicatorPickerProp
         if (items.length === 0) return null;
         return (
           <fieldset key={group} className="m-0 flex items-center gap-2 border-0 p-0">
-            <legend className="mr-1 text-[11px] uppercase tracking-wide text-[#e6e9f0]/45">
+            <legend className="mr-1 text-[11px] uppercase tracking-wide text-[#e6e9f0]/60">
               {GROUP_LABELS[group]}
             </legend>
             {items.map((def) => {

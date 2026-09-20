@@ -33,6 +33,16 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
+  // Bridges an arrow-key move's synthetic click (see handlePopoverKeyDown /
+  // handlePopoverClick below) so it isn't mistaken for a commit gesture.
+  // Declared here (not next to the handlers that use it) so the lifecycle
+  // effect below can reset it in its close/cleanup path: a stray keydown
+  // can arm this flag without its paired click ever arriving before the
+  // popover closes by some other route (Escape, outside click) — resetting
+  // on every close is a safety net so that stale `true` can never survive
+  // into the next open and swallow an unrelated later real click.
+  const suppressNextClickRef = useRef(false);
+
   const def = indicatorById(indicatorId);
   const label = def ? displayLabel(def, series) : indicatorId;
 
@@ -71,6 +81,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     return () => {
       document.removeEventListener("keydown", onKeyDown, { capture: true });
       document.removeEventListener("mousedown", onPointerDown, { capture: true });
+      suppressNextClickRef.current = false;
       button?.focus();
     };
   }, [open]);
@@ -93,12 +104,11 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   // behavior here — NOT the `change`-without-`click` behavior a first read
   // of the spec might suggest). That means a plain "close on any click
   // hitting a radio" handler cannot tell an arrow-key move apart from an
-  // explicit click: both are `click` events on the target radio. This ref
-  // bridges the two: the keydown handler below sets it for exactly the one
-  // click an arrow key is about to synthesize, and the click handler
-  // consumes it (clears it, does not close) instead of treating it as a
-  // commit gesture.
-  const suppressNextClickRef = useRef(false);
+  // explicit click: both are `click` events on the target radio. The
+  // suppressNextClickRef declared above bridges the two: the keydown
+  // handler below sets it for exactly the one click an arrow key is about
+  // to synthesize, and the click handler consumes it (clears it, does not
+  // close) instead of treating it as a commit gesture.
 
   // A real mouse click on a radio (or on its wrapping <label> — the browser
   // re-dispatches a second click with target = the input via native
