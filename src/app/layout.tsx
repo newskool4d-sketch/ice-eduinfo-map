@@ -14,7 +14,9 @@ export const metadata: Metadata = {
   description: "전북 14개 시군의 교육통계를 3D 데이터 지도로 보여주는 대시보드입니다.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
       <body className={notoSansKr.variable}>{children}</body>
