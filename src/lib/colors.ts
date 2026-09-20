@@ -79,7 +79,7 @@ export interface ColorScale {
   /** Domain ends plus the 4 interior bucket-boundary values — 6 values bounding the 5 buckets. Always [domainOf()[0], …, domainOf()[1]] regardless of `colorBuckets` — only what falls BETWEEN those ends changes. */
   ticks: number[];
   /**
-   * Task 6, Section C-추가 #5 — which bucket rule actually produced
+   * Task 6, Section C-추가 #5 — which bucket rule ACTUALLY produced
    * `ticks`/`colorOf`: 'linear' (scaleQuantize — 5 equal-WIDTH buckets
    * across the domain) or 'quantile' (scaleQuantile — 5 equal-COUNT
    * buckets, i.e. by rank/percentile). Defaults to 'quantile' for
@@ -87,12 +87,25 @@ export interface ColorScale {
    * equal-width buckets left most regions in the bottom step) and 'linear'
    * otherwise — see `makeColorScale`'s `opts.colorBuckets`. Legend shows a
    * "색 구간: 5분위" note only when this is 'quantile'.
+   *
+   * Fix round 1/5, finding 1 — this can be 'linear' even when quantile was
+   * requested (the kind-based default, or an explicit
+   * `opts.colorBuckets: 'quantile'`): with `palette.length` (5) or fewer
+   * DISTINCT non-null region values, `makeColorScale` falls back to
+   * 'linear' instead (see its doc comment for why). Callers/Legend must
+   * always read the MODE FROM THIS FIELD rather than re-deriving it from
+   * `def.kind` or `opts`.
    */
   colorBuckets: ColorBucketMode;
 }
 
 export interface ColorScaleOptions {
-  /** Overrides the `def.kind`-based default — see `ColorScale.colorBuckets`. */
+  /**
+   * Requests a mode, overriding the `def.kind`-based default. Not a
+   * guarantee, though — `makeColorScale` can still fall back to 'linear'
+   * regardless of this option when the data has too few distinct values
+   * for a quantile split to mean anything (see `ColorScale.colorBuckets`).
+   */
   colorBuckets?: ColorBucketMode;
 }
 
@@ -103,6 +116,29 @@ export interface ColorScaleOptions {
  * changes the domain itself, only how the 5 palette steps are split across
  * it). A null value (or a code absent from `map`) always returns
  * NULL_COLOR; alpha is always 255.
+ *
+ * Fix round 1/5, finding 1 — quantile bucketing on TIES: `scaleQuantile`
+ * computes its 4 interior thresholds by interpolating within the SORTED
+ * value array, then buckets a value via bisect-RIGHT against those
+ * thresholds — so a value that lands exactly ON a threshold is pushed into
+ * the bucket ABOVE it, not the one below. With real closed_schools_unused
+ * data ([0,0,0,0,0,0,1,1,1,1,1,2,8,9] — 14 시군, only 5 distinct values,
+ * six of them tied at 0), the first threshold itself computes to 0, so
+ * every region actually AT 0 gets bucketed into palette[1]: palette[0] is
+ * never used at all, and the Legend's ticks render as 0, 0, 0, 1, 1, 9
+ * (not strictly increasing — actively misleading). Two-part fix:
+ *  1. With `palette.length` (5) or fewer DISTINCT non-null values, a
+ *     "5-quantile" split isn't meaningful anyway (at most one value per
+ *     bucket) — fall back to the linear/quantize scale instead, and
+ *     report the ACTUAL mode used via the returned `colorBuckets` (never
+ *     silently pretend quantile ran). This is data-driven: it applies even
+ *     when quantile was explicitly requested via `opts.colorBuckets`.
+ *  2. With more than 5 distinct values, quantile still runs, but its
+ *     domain is the DEDUPLICATED distinct values (not the raw per-region
+ *     array) — every repeated value collapses to one entry first, so a
+ *     threshold interpolated between two ADJACENT DISTINCT values can
+ *     still land exactly on one of them without starving a whole bucket
+ *     the way un-deduplicated ties did.
  */
 export function makeColorScale(
   def: IndicatorDef,
@@ -111,21 +147,27 @@ export function makeColorScale(
 ): ColorScale {
   const domain = domainOf(def, map);
   const palette = paletteFor(def.polarity);
-  const colorBuckets: ColorBucketMode = opts.colorBuckets ?? (def.kind === "count" ? "quantile" : "linear");
+  const requestedBuckets: ColorBucketMode = opts.colorBuckets ?? (def.kind === "count" ? "quantile" : "linear");
+
+  const distinctValues = Array.from(
+    new Set(
+      regionValues(map)
+        .map((r) => r.value)
+        .filter((v): v is number => v !== null),
+    ),
+  ).sort((a, b) => a - b);
+  const colorBuckets: ColorBucketMode =
+    requestedBuckets === "quantile" && distinctValues.length > palette.length ? "quantile" : "linear";
 
   if (colorBuckets === "quantile") {
     // scaleQuantile takes the raw DATA array (not a [min,max] pair) — it
     // sorts internally and splits it into `palette.length` roughly-equal-
-    // COUNT groups, unlike scaleQuantize's equal-WIDTH value ranges. Falls
-    // back to the 2-point domain when every region is null (mirrors
-    // domainOf's own empty-data fallback) so this never throws on an empty
-    // array.
-    const values = regionValues(map)
-      .map((r) => r.value)
-      .filter((v): v is number => v !== null);
-    const quantile = scaleQuantile<RGB>()
-      .domain(values.length > 0 ? values : domain)
-      .range(palette);
+    // COUNT groups, unlike scaleQuantize's equal-WIDTH value ranges. Built
+    // from `distinctValues` (deduplicated — see the fix-round comment
+    // above), which is always non-empty here (the `colorBuckets` check
+    // above already routes an all-null map, or one with too few distinct
+    // values, to the 'linear' branch instead).
+    const quantile = scaleQuantile<RGB>().domain(distinctValues).range(palette);
     const ticks = [domain[0], ...quantile.quantiles(), domain[1]];
 
     function colorOf(code: string): RGBA {

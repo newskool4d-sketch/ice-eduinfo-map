@@ -39,6 +39,30 @@ test("navigating directly to ?indicator=teachers_total starts on that indicator"
   await expect(page.getByRole("button", { name: /^조건별 맵/ })).toHaveText(/교원수/);
 });
 
+// Fix round 1/5, findings 1 & 4 — real-browser confirmation that the two
+// legend states actually render as intended: students_total (14 distinct
+// values) gets the quantile "색 구간: 5분위" note and the color-agnostic base
+// note, while closed_schools_unused (only 5 distinct values, the exact
+// dataset that exposed the tie-bucketing bug — see tests/unit/colors.test.ts)
+// falls back to linear and shows neither the quantile note nor a
+// self-contradicting "색 모두 값에 비례" claim.
+test("legend shows the quantile note for students_total and falls back to linear (no quantile note) for closed_schools_unused", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await waitForMapReady(page);
+  await expect(page.getByTestId("legend-indicator-label")).toHaveText("학생수");
+  await expect(page.getByText("색 구간: 5분위")).toBeVisible();
+  await expect(page.getByText("높이는 값에 비례")).toBeVisible();
+  await expect(page.getByText("높이·색 모두 값에 비례")).toHaveCount(0);
+
+  await page.goto("/?indicator=closed_schools_unused");
+  await waitForMapReady(page);
+  await expect(page.getByTestId("legend-indicator-label")).toHaveText("미활용 폐교 수");
+  await expect(page.getByText("색 구간: 5분위")).toHaveCount(0);
+  await expect(page.getByText("높이·색 모두 값에 비례")).toBeVisible();
+});
+
 test("an invalid ?indicator value falls back to the default indicator", async ({ page }) => {
   await page.goto("/?indicator=not_a_real_indicator");
   await waitForMapReady(page);

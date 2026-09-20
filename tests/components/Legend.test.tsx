@@ -206,6 +206,24 @@ describe("Legend", () => {
     expect(screen.getByText(/색 구간: 5분위/)).toBeInTheDocument();
   });
 
+  // Fix round 1/5, finding 4: "높이·색 모두 값에 비례" next to "색 구간: 5분위" was a
+  // direct self-contradiction (claims color IS proportional to value right
+  // next to a note saying it's rank-based instead).
+  it("shows '높이는 값에 비례' instead of '높이·색 모두 값에 비례' when colorBuckets is 'quantile' (finding 4)", () => {
+    render(
+      <Legend
+        def={baseDef()}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+        colorBuckets="quantile"
+      />,
+    );
+    expect(screen.getByText(/높이는 값에 비례/)).toBeInTheDocument();
+    expect(screen.queryByText(/높이·색 모두 값에 비례/)).not.toBeInTheDocument();
+  });
+
   it("omits the '색 구간: 5분위' note when colorBuckets is 'linear' (explicit or default)", () => {
     render(
       <Legend

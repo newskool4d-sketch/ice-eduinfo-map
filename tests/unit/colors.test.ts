@@ -131,15 +131,22 @@ describe("makeColorScale", () => {
 // (unaffected — this option only ever changes `colorOf`/`ticks`, never
 // `domainOf`/makeElevationScale).
 describe("makeColorScale — colorBuckets option (Task 6, Section C-추가 #5)", () => {
-  // Skewed like a real count-kind indicator: 4 low/clustered values + 1 big
-  // outlier (전주시-like).
-  const skewedCodes = ["52110", "52130", "52140", "52180", "52190"];
+  // Skewed like a real count-kind indicator: low/clustered values + 2 big
+  // outliers (전주시-like). 7 distinct values (> palette.length/5) so this
+  // fixture actually exercises the quantile branch — fix round 1/5,
+  // finding 1: with palette.length (5) or fewer distinct values,
+  // makeColorScale now falls back to 'linear' regardless of what's
+  // requested (see the "tied values" describe block below), so a fixture
+  // meant to exercise "quantile mode" needs MORE than 5 distinct values.
+  const skewedCodes = ["52110", "52130", "52140", "52180", "52190", "52210", "52310"];
   const skewedMap = new Map<string, number | null>([
     ["52110", 1000],
     ["52130", 3],
     ["52140", 2],
     ["52180", 1],
     ["52190", 0],
+    ["52210", 500],
+    ["52310", 10],
   ]);
 
   it("count-kind indicators default to quantile bucketing", () => {
@@ -164,15 +171,16 @@ describe("makeColorScale — colorBuckets option (Task 6, Section C-추가 #5)",
   it("quantile mode spreads a skewed dataset across distinct color buckets (linear clusters most into the bottom one)", () => {
     const linear = makeColorScale(def({ kind: "count" }), skewedMap, { colorBuckets: "linear" });
     const linearColors = new Set(skewedCodes.map((c) => linear.colorOf(c).join(",")));
-    // Linear (equal-width [0,1000] buckets): 0/1/2/3 all fall in the bottom
-    // 200-wide bucket alongside each other — at most 2 distinct colors
-    // among the 5 regions (bottom bucket + the outlier's own top bucket).
-    expect(linearColors.size).toBeLessThanOrEqual(2);
+    // Linear (equal-width [0,1000] buckets, width 200): 0/1/2/3/10 all fall
+    // in the bottom bucket alongside each other — far fewer distinct colors
+    // than quantile mode manages below, among the same 7 regions.
+    expect(linearColors.size).toBeLessThan(5);
 
     const quantile = makeColorScale(def({ kind: "count" }), skewedMap, { colorBuckets: "quantile" });
+    expect(quantile.colorBuckets).toBe("quantile"); // 7 distinct values > palette.length (5) — no fallback here
     const quantileColors = new Set(skewedCodes.map((c) => quantile.colorOf(c).join(",")));
-    // Quantile (rank-based, 5 distinct values / 5 buckets): every region
-    // lands in its own bucket.
+    // Quantile (rank-based, over the 7 DEDUPLICATED distinct values): all 5
+    // palette buckets get used, unlike linear's clustering above.
     expect(quantileColors.size).toBe(5);
   });
 
@@ -198,6 +206,50 @@ describe("makeColorScale — colorBuckets option (Task 6, Section C-추가 #5)",
       ["52130", null],
     ]);
     expect(() => makeColorScale(def({ kind: "count", domain: [0, 10] }), map)).not.toThrow();
+  });
+
+  // Fix round 1/5, finding 1 — the exact real-world dataset that exposed the
+  // tie-bucketing bug: public/data/indicators/closed_schools_unused.json's
+  // 14 시군 values as of this fix (only 5 distinct values, 6 of them tied at
+  // the domain floor 0). Copied in directly rather than re-derived so this
+  // regresses loudly even if the live data file's shape changes later.
+  it("falls back to linear for the real closed_schools_unused dataset (exactly palette.length distinct values, heavy ties)", () => {
+    const tiedValues = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 8, 9];
+    const tiedMap = new Map<string, number | null>(tiedValues.map((value, i) => [`code-${i}`, value]));
+    const testDef = def({ kind: "count", polarity: "higherWorse" });
+
+    // Quantile was never even asked for here (count-kind defaults to it) —
+    // this is the data-driven fallback, not an opt-out.
+    const scale = makeColorScale(testDef, tiedMap);
+    expect(scale.colorBuckets).toBe("linear");
+    expect(scale.ticks).toHaveLength(6);
+    for (let i = 1; i < scale.ticks.length; i++) {
+      expect(scale.ticks[i]).toBeGreaterThan(scale.ticks[i - 1]);
+    }
+    // The regression this fix targets: a value tied at the domain floor
+    // must reach the FIRST palette color, not skip straight to the second.
+    const palette = paletteFor("higherWorse");
+    expect(scale.colorOf("code-0")).toEqual([...palette[0], 255]);
+
+    // An explicit request for quantile is overridden by the same
+    // data-driven fallback (Task 6, Section C-추가 #5's `opts.colorBuckets`
+    // is a request, not a guarantee — see ColorScaleOptions' doc comment).
+    const requested = makeColorScale(testDef, tiedMap, { colorBuckets: "quantile" });
+    expect(requested.colorBuckets).toBe("linear");
+  });
+
+  it("uses quantile with strictly increasing ticks and all 5 colors for a 14-distinct-value dataset", () => {
+    const distinct14 = [10, 20, 30, 40, 50, 60, 70, 80, 90, 200, 400, 700, 1000, 2000];
+    const map14 = new Map<string, number | null>(distinct14.map((value, i) => [`code-${i}`, value]));
+    const scale = makeColorScale(def({ kind: "count" }), map14);
+
+    expect(scale.colorBuckets).toBe("quantile");
+    expect(scale.ticks).toHaveLength(6);
+    for (let i = 1; i < scale.ticks.length; i++) {
+      expect(scale.ticks[i]).toBeGreaterThan(scale.ticks[i - 1]);
+    }
+    const colorsUsed = new Set(distinct14.map((_, i) => scale.colorOf(`code-${i}`).join(",")));
+    expect(colorsUsed.size).toBe(5);
   });
 });
 

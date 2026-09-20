@@ -40,16 +40,21 @@ export default function Legend({
   hasSchoolsWithoutLocation = false,
   colorBuckets = "linear",
 }: LegendProps) {
-  const notes: string[] = ["높이·색 모두 값에 비례"];
+  // Fix round 1/5, finding 4 — "높이·색 모두 값에 비례" next to a "색 구간: 5분위"
+  // note directly contradicts itself (color is rank-based under quantile,
+  // not proportional to value). Swap the base note to the color-agnostic
+  // "높이는 값에 비례" whenever colorBuckets is 'quantile'; height itself is
+  // unaffected (still linear) either way — only this sentence changes.
+  const notes: string[] = [colorBuckets === "quantile" ? "높이는 값에 비례" : "높이·색 모두 값에 비례"];
   if (def.scale === "sqrt") notes.push("제곱근 스케일");
   // Covers both of the brief's sub-conditions (an explicit def.domain override,
   // or a ratio-kind indicator whose data minimum isn't 0) with one check: in
   // either case the resulting scale's lower bound (ticks[0]) simply isn't 0.
   if (ticks[0] !== 0) notes.push("기준선 ≠ 0");
   // Task 6, Section C-추가 #5 — count-kind indicators' color buckets are
-  // quantile (rank-based), not the equal-width linear split "높이·색 모두 값에
-  // 비례" literally implies for color; this note prevents that
-  // misreading without changing the (still-linear) height encoding.
+  // quantile (rank-based), not the equal-width linear split the base note
+  // implies for color; this note prevents that misreading without changing
+  // the (still-linear) height encoding.
   if (colorBuckets === "quantile") notes.push("색 구간: 5분위");
 
   return (
