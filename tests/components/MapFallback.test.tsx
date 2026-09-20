@@ -1,0 +1,134 @@
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+import MapFallback from "@/components/map/MapFallback";
+import { REGIONS } from "@/lib/geo/regions";
+import type { IndicatorFile, SeriesFile } from "@/lib/indicators/types";
+
+/** Deliberately NOT REGIONS' declaration order — exercises real rank sorting (mirrors tests/components/RegionList.test.tsx's own fixture). */
+const VALUES: Record<string, number> = {
+  "52110": 70851, // 전주시 — rank 1
+  "52130": 50000, // 군산시 — rank 2
+  "52140": 1000, // 익산시 — rank 3 (smallest of the 3 given here)
+};
+
+function studentsTotalFile(): IndicatorFile {
+  return {
+    id: "students_total",
+    year: 2026,
+    referenceDate: "2026-04-01",
+    source: { name: "KESS 테스트", url: "https://example.com", year: 2026 },
+    rows: [
+      ...Object.entries(VALUES).map(([regionCode, value]) => ({ regionCode, value })),
+      { regionCode: "52000", value: Object.values(VALUES).reduce((a, b) => a + b, 0) },
+      // Every other 시군: no data (null) — a realistic partial fixture, not all 14.
+      ...REGIONS.map((r) => r.code)
+        .filter((code) => !(code in VALUES))
+        .map((regionCode) => ({ regionCode, value: null })),
+    ],
+  };
+}
+
+function bundleFixture() {
+  return {
+    indicators: { students_total: studentsTotalFile() },
+    series: {} as Record<string, SeriesFile>,
+  };
+}
+
+describe("MapFallback", () => {
+  it("shows the WebGL-failure reason text", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="webgl" />,
+    );
+    expect(screen.getByText("이 환경에서는 3D 지도를 표시할 수 없어 표로 보여드립니다")).toBeInTheDocument();
+  });
+
+  it("shows the narrow-viewport reason text", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="viewport" />,
+    );
+    expect(screen.getByText("화면이 좁아 표로 표시합니다")).toBeInTheDocument();
+  });
+
+  it("shows an error reason text", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="error" />,
+    );
+    expect(screen.getByText(/오류/)).toBeInTheDocument();
+  });
+
+  it("renders a real <table> with one row per 시군 (14 rows), ranked largest-first", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="webgl" />,
+    );
+    const rows = screen.getAllByRole("row"); // includes the header row
+    expect(rows).toHaveLength(REGIONS.length + 1);
+    const dataRows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    expect(within(dataRows[0]).getByText("전주시")).toBeInTheDocument();
+    expect(within(dataRows[1]).getByText("군산시")).toBeInTheDocument();
+    expect(within(dataRows[2]).getByText("익산시")).toBeInTheDocument();
+  });
+
+  it("shows each row's formatted value and rank", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="webgl" />,
+    );
+    const dataRows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    expect(within(dataRows[0]).getByText("70,851")).toBeInTheDocument();
+    expect(within(dataRows[0]).getByText("1위")).toBeInTheDocument();
+    expect(within(dataRows[1]).getByText("50,000")).toBeInTheDocument();
+    expect(within(dataRows[1]).getByText("2위")).toBeInTheDocument();
+  });
+
+  it("shows 자료 없음 for a region with a null value, with no rank", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="webgl" />,
+    );
+    const dataRows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    const last = dataRows[dataRows.length - 1];
+    expect(within(last).getByText("자료 없음")).toBeInTheDocument();
+  });
+
+  it("renders a proportional bar whose width reflects each row's normalized value", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="webgl" />,
+    );
+    const bars = screen.getAllByTestId("fallback-bar-fill");
+    // 전주시 is the domain max (count-kind floors at 0) -> a full-width (100%) bar.
+    expect(bars[0]).toHaveStyle({ width: "100%" });
+    // 익산시 (1,000 of [0, 70851]) is much narrower than 전주시's.
+    const widthOf = (el: HTMLElement) => Number(el.style.width.replace("%", ""));
+    expect(widthOf(bars[2])).toBeLessThan(widthOf(bars[0]));
+    expect(widthOf(bars[2])).toBeGreaterThan(0);
+  });
+
+  it("clicking a row calls onSelect with that region's code", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(<MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={onSelect} reason="webgl" />);
+    await user.click(screen.getByRole("button", { name: /전주시/ }));
+    expect(onSelect).toHaveBeenCalledWith("52110");
+  });
+
+  it("marks the currently-selected region's row with aria-current", () => {
+    render(
+      <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode="52130" onSelect={vi.fn()} reason="webgl" />,
+    );
+    const dataRows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    const gunsanRow = dataRows.find((r) => within(r).queryByText("군산시"));
+    expect(gunsanRow).toHaveAttribute("aria-current", "true");
+  });
+
+  it("throws for an unknown indicatorId (same contract as DeckMap/RegionList)", () => {
+    // Swallow the expected console.error React logs for this render failure.
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(() =>
+      render(
+        <MapFallback indicatorId="not-a-real-id" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="webgl" />,
+      ),
+    ).toThrow();
+    spy.mockRestore();
+  });
+});
