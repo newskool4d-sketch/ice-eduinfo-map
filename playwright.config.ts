@@ -19,12 +19,27 @@ export default defineConfig({
   // in-file comment for the documented cause: mjolnir.js gesture recognition
   // occasionally missed under CPU contention from parallel workers, not a
   // real regression). 0 locally: a real local failure should surface
-  // immediately, not be silently retried away. `workers` similarly caps CI
-  // parallelism (shared-runner CPUs make that same contention worse at full
-  // parallelism) while leaving local runs at Playwright's own default (all
-  // available cores).
+  // immediately, not be silently retried away.
+  //
+  // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — `workers`
+  // dropped from 2 to 1 on CI: run 35541524874 showed the 2-worker
+  // contention is worse than just the documented canvas-click flake. The
+  // canvas-click test's own in-app diagnostic (DeckMap.tsx's
+  // window.__jbmap.events) came back completely EMPTY across every retry —
+  // deck.gl's onClick never fired at all, not merely picked the wrong
+  // target — and a SEPARATE, previously-stable test (RegionList click's
+  // camera-pitch assertion) failed in the very same run with an
+  // almost-but-not-quite-55 pitch, i.e. its FlyTo transition was still
+  // mid-flight 2s in. Both point at the same shared-2-vCPU-runner
+  // contention between the two parallel workers, not at either test's own
+  // logic. ubuntu-latest's swiftshader software GL (see the chromium
+  // project's launchOptions below) already makes every frame more
+  // expensive than on a real GPU; running two such Chromium instances at
+  // once leaves too little headroom. Serial execution costs wall-clock time
+  // (21 tests one at a time vs. 2-wide) but this repo's suite is small
+  // enough that the trade is worth it for determinism.
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL: "http://localhost:3000",
     // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — no added
