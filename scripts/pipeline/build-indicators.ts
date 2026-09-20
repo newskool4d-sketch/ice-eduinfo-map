@@ -22,7 +22,11 @@ import type {
 import type { ClosedSchoolsFile } from "../../src/lib/closedSchools/types";
 import type { SchoolsFile } from "../../src/lib/schools/types";
 import { aggregateIndicator } from "./lib/aggregate";
-import { aggregateClosedSchools, type ClosedSchoolsMetric } from "./lib/closed-schools";
+import {
+  aggregateClosedSchools,
+  assertPublishedAtNotBeforeReferenceDate,
+  type ClosedSchoolsMetric,
+} from "./lib/closed-schools";
 import { buildClosedSchoolsInterim } from "./build-closed-schools";
 import type { SchoolRow } from "./lib/kess-xlsx";
 import {
@@ -175,7 +179,12 @@ async function main(): Promise<void> {
   let closedSchoolsResult: ClosedSchoolsFile | undefined;
   if (closedDefs.length > 0) {
     closedSchoolsResult = await buildClosedSchoolsInterim();
-    const aggregated = aggregateClosedSchools(closedSchoolsResult.rows);
+    // Fix round 1/5, finding 4: fail loudly if a future CSV refresh's
+    // sources.ts constant (CLOSED_SCHOOLS_PUBLISHED_AT) or filename-derived
+    // referenceDate is ever set inconsistently (게시일 < 기준일 is never
+    // valid for a real 공공데이터포털 dataset).
+    assertPublishedAtNotBeforeReferenceDate(closedSchoolsResult.referenceDate, closedSchoolsResult.publishedAt);
+    const aggregated = aggregateClosedSchools(closedSchoolsResult.rows, closedSchoolsResult.referenceDate);
 
     for (const def of closedDefs) {
       if (def.aggregate.kind !== "external") continue; // narrows def.aggregate below

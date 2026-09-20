@@ -40,6 +40,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 import { INDICATOR_IDS, INDICATORS, indicatorById } from "../../src/lib/indicators/registry";
+import { referenceYear } from "./lib/closed-schools";
 import type { IndicatorFile, Manifest, SchoolLevel, SeriesFile } from "../../src/lib/indicators/types";
 import type { ClosedSchoolsFile } from "../../src/lib/closedSchools/types";
 import type { RegionFeature } from "../../src/lib/geo/geo";
@@ -294,6 +295,16 @@ function checkSchools(): void {
  * unit-tested in isolation, but this re-checks the actually-PUBLISHED files
  * end to end, the same way check 6 re-checks schools.json rather than only
  * trusting lib/schools.ts's unit tests.
+ *
+ * Fix round 1/5, finding 3: the "최근 10년" threshold here is recomputed
+ * independently of aggregateClosedSchools() (by design — this check exists
+ * to catch drift between the pipeline's output and what the source data
+ * actually supports), so it must use the exact same referenceDate-anchored
+ * formula (`referenceYear(referenceDate) - 9`) the pipeline itself now uses,
+ * not the data rows' own max 폐교연도 — otherwise this check would compare
+ * the new pipeline output against a stale formula and fail spuriously (or
+ * worse, pass while actually disagreeing) whenever a future refresh's max
+ * 폐교연도 differs from its 기준일 year.
  */
 function checkClosedSchools(indicatorFiles: Map<string, IndicatorFile>): void {
   const closedSchools = loadJSON<ClosedSchoolsFile>(CLOSED_SCHOOLS_JSON_PATH);
@@ -302,8 +313,7 @@ function checkClosedSchools(indicatorFiles: Map<string, IndicatorFile>): void {
     return;
   }
 
-  const maxYear = closedSchools.rows.reduce((max, r) => Math.max(max, r.year), -Infinity);
-  const recentThreshold = maxYear - 9;
+  const recentThreshold = referenceYear(closedSchools.referenceDate) - 9;
   const expectedTotals: Record<string, number> = {
     closed_schools: closedSchools.rows.length,
     closed_schools_unused: closedSchools.rows.filter((r) => r.usage === "미활용").length,

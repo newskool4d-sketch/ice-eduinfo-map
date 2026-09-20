@@ -431,6 +431,22 @@ export const HEADER_MAP: Record<number, HeaderLabels> = {
 export const CLOSED_SCHOOLS_CSV_PREFIX = "전북특별자치도교육청_폐교재산 현황_";
 
 /**
+ * Known 활용현황구분명 values (fix round 1/5, finding 2). The real
+ * 2026-07-16 CSV's own distinct values are exactly `{미활용: 24행,
+ * 자체활용: 35행}` (verified directly against the raw file), but 대부/매각
+ * are standard categories for this kind of 폐교재산 활용현황 dataset that
+ * could plausibly appear in a future refresh — included here so a future
+ * value from that same real-world category set doesn't require a code
+ * change, while any genuinely unrecognized value (typo, new category not
+ * anticipated here) still fails loudly in parseClosedSchoolsCsv instead of
+ * being silently counted. Not `as const` / not narrowed into
+ * ClosedSchoolRow.usage's type — see that field's own doc comment for why
+ * the type itself stays plain `string`; this is a runtime validation list
+ * only (same role INCLUDED_STATUSES/LEVEL_MAP play for their own columns).
+ */
+export const USAGE_VALUES: readonly string[] = ["미활용", "자체활용", "대부", "매각"];
+
+/**
  * "날짜기준 규칙" (사용자 지시): the 폐교재산 CSV's own filename date
  * (`referenceDateFromFilename`, 2026-07-16 as of the current file) and its
  * 공공데이터포털 게시(갱신)일 are two different dates and must both be

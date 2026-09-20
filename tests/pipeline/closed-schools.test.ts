@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   aggregateClosedSchools,
+  assertPublishedAtNotBeforeReferenceDate,
   parseClosedSchoolsCsv,
+  referenceYear,
   regionCodeForClosedSchool,
 } from "../../scripts/pipeline/lib/closed-schools";
 
@@ -52,8 +54,12 @@ function csvText(rows: FixtureRow[]): string {
 
 // 6-row happy-path fixture (per the task brief): 전주시 완산구(111)/덕진구(113)
 // merge into 52110, one row with a blank 소재지도로명주소 (jibun fallback), a
-// 미활용/자체활용 usage split, and a 최근 10년 boundary (max 폐교연도 in this
-// fixture is 2026 -> threshold 2017: row[1]=2017 is IN, row[0]=2016 is OUT).
+// 미활용/자체활용 usage split, and a 최근 10년 boundary anchored on
+// referenceDate="2026-07-16" (연도 2026) -> threshold 2017: row[1]=2017 is IN,
+// row[0]=2016 is OUT. This fixture's data itself also happens to max out at
+// 폐교연도=2026 (군산고), but the boundary is driven by referenceDate, not by
+// that coincidence — see the dedicated "anchors on referenceDate" test below,
+// which uses a referenceDate whose year differs from the data's own max year.
 const FIXTURE_ROWS: FixtureRow[] = [
   {
     sigunguCode: "111",
@@ -220,11 +226,56 @@ describe("parseClosedSchoolsCsv", () => {
     const { rows } = parseClosedSchoolsCsv(withBom);
     expect(rows).toHaveLength(6);
   });
+
+  it("trims a padded 활용현황구분명 value instead of treating it as unknown", () => {
+    const paddedRow: FixtureRow = {
+      sigunguCode: "130",
+      sigunguName: "군산시",
+      name: "공백폐교",
+      year: 2020,
+      level: "초등학교",
+      usage: "  미활용  ",
+      buildingArea: 1,
+      siteArea: 1,
+    };
+    const { rows } = parseClosedSchoolsCsv(csvText([paddedRow]));
+    expect(rows[0].usage).toBe("미활용");
+  });
+
+  it("a trimmed padded usage value is counted correctly by aggregateClosedSchools", () => {
+    const paddedRow: FixtureRow = {
+      sigunguCode: "130",
+      sigunguName: "군산시",
+      name: "공백폐교",
+      year: 2020,
+      level: "초등학교",
+      usage: " 미활용 ",
+      buildingArea: 1,
+      siteArea: 1,
+    };
+    const { rows } = parseClosedSchoolsCsv(csvText([paddedRow]));
+    const aggregated = aggregateClosedSchools(rows, "2026-07-16");
+    expect(aggregated.unused.find((r) => r.regionCode === "52130")?.value).toBe(1);
+  });
+
+  it("throws on an unrecognized 활용현황구분명 (not in the known USAGE_VALUES set)", () => {
+    const badRow: FixtureRow = {
+      sigunguCode: "130",
+      sigunguName: "군산시",
+      name: "이상한활용폐교",
+      year: 2020,
+      level: "초등학교",
+      usage: "철거예정", // not one of 미활용/자체활용/대부/매각
+      buildingArea: 1,
+      siteArea: 1,
+    };
+    expect(() => parseClosedSchoolsCsv(csvText([badRow]))).toThrow(/활용현황구분명/);
+  });
 });
 
 describe("aggregateClosedSchools", () => {
   const { rows } = parseClosedSchoolsCsv(csvText(FIXTURE_ROWS));
-  const aggregated = aggregateClosedSchools(rows);
+  const aggregated = aggregateClosedSchools(rows, "2026-07-16");
 
   it("produces all 14 시군 + 52000 rows for every metric, even for regions with 0 폐교", () => {
     for (const metric of ["count", "unused", "recent"] as const) {
@@ -267,7 +318,7 @@ describe("aggregateClosedSchools", () => {
     expect(byCode.get("52000")).toBe(3);
   });
 
-  it("recent: 폐교연도 >= (fixture 최신연도 2026 - 9 = 2017) — 2017 is IN, 2016 is OUT", () => {
+  it("recent: 폐교연도 >= (referenceDate 연도 2026 - 9 = 2017) — 2017 is IN, 2016 is OUT", () => {
     const byCode = new Map(aggregated.recent.map((r) => [r.regionCode, r.value]));
     // 52110: 완산초(2016, OUT) + 덕진중(2017, IN) -> 1
     expect(byCode.get("52110")).toBe(1);
@@ -278,10 +329,50 @@ describe("aggregateClosedSchools", () => {
     expect(byCode.get("52000")).toBe(3);
   });
 
-  it("returns an all-zero aggregate for an empty row set (no rows -> no metric throws on the -Infinity edge case)", () => {
-    const empty = aggregateClosedSchools([]);
+  it("anchors the 최근 10년 window on referenceDate's year, not the data's own max 폐교연도", () => {
+    // Same rows (data max 폐교연도 is still 2026, via 군산고), but referenceDate
+    // is now 2030-01-01 -> threshold 2021, not 2017. 완산초(2016)/덕진중(2017)
+    // and 부안중(2020)/부안고(2005) all fall OUT under the 2021 threshold, even
+    // though nothing in `rows` itself changed — proving the anchor is
+    // referenceDate, not a value derived from the rows.
+    const later = aggregateClosedSchools(rows, "2030-01-01");
+    const byCode = new Map(later.recent.map((r) => [r.regionCode, r.value]));
+    expect(byCode.get("52110")).toBe(0); // was 1 under the 2017 threshold
+    expect(byCode.get("52800")).toBe(0); // was 1 under the 2017 threshold
+    expect(byCode.get("52130")).toBe(1); // 군산고(2026, still IN under 2021)
+    expect(byCode.get("52000")).toBe(1); // only 군산고
+  });
+
+  it("returns an all-zero aggregate for an empty row set", () => {
+    const empty = aggregateClosedSchools([], "2026-07-16");
     for (const metric of ["count", "unused", "recent"] as const) {
       expect(empty[metric].every((r) => r.value === 0)).toBe(true);
     }
+  });
+});
+
+describe("referenceYear", () => {
+  it("extracts the calendar year from an ISO YYYY-MM-DD date string", () => {
+    expect(referenceYear("2026-07-16")).toBe(2026);
+    expect(referenceYear("1999-01-01")).toBe(1999);
+  });
+
+  it("throws on a malformed date string", () => {
+    expect(() => referenceYear("2026/07/16")).toThrow();
+    expect(() => referenceYear("not-a-date")).toThrow();
+    expect(() => referenceYear("")).toThrow();
+  });
+});
+
+describe("assertPublishedAtNotBeforeReferenceDate", () => {
+  it("does not throw when publishedAt is on or after referenceDate", () => {
+    expect(() => assertPublishedAtNotBeforeReferenceDate("2026-07-16", "2026-07-16")).not.toThrow();
+    expect(() => assertPublishedAtNotBeforeReferenceDate("2026-07-16", "2026-07-20")).not.toThrow();
+  });
+
+  it("throws when publishedAt is before referenceDate", () => {
+    expect(() => assertPublishedAtNotBeforeReferenceDate("2026-07-16", "2026-07-01")).toThrow(
+      /날짜/,
+    );
   });
 });
