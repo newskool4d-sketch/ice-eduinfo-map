@@ -8,7 +8,7 @@
  * both redundant and wrong for ratio-kind indicators.
  */
 import { PROVINCE_CODE } from "./geo/regions";
-import type { IndicatorDef, IndicatorFile, Manifest, Polarity, SeriesFile } from "./indicators/types";
+import type { IndicatorDef, IndicatorFile, Manifest, SeriesFile } from "./indicators/types";
 
 /**
  * Extracts a region-code -> value map from an indicator file, keeping only
@@ -41,23 +41,19 @@ export function regionValues(map: Map<string, number | null>): RegionValue[] {
 }
 
 /**
- * Ranks the 14 시군 by descending raw value: rank 1 = the largest value,
- * for every polarity alike (the brief's spec states "큰 값이 1위" three
- * times, once per polarity, with the same direction each time — "가장
- * 주목할" reads as "worst" for higherWorse, "best" for higherBetter, and
- * "biggest" for neutral, but the underlying sort is identical in all three
- * cases). `polarity` is accepted for signature symmetry with
- * paletteFor()/domainOf() and to keep the door open for a future
- * direction-aware variant; it currently has no effect on the computed ranks.
- * Regions with a null value are omitted entirely (never assigned a rank).
- * Ties share the same rank, competition-style (e.g. values [10, 10, 8] ->
- * ranks [1, 1, 3], not [1, 1, 2]).
+ * Ranks the 14 시군 by descending raw value. 1위 = 가장 큰 값; polarity 와
+ * 무관 — every polarity (higherWorse/higherBetter/neutral) ranks in the
+ * same direction (the brief's spec states "큰 값이 1위" identically for all
+ * three). Regions with a null value are omitted entirely (never assigned a
+ * rank). Ties share the same rank, competition-style (e.g. values
+ * [10, 10, 8] -> ranks [1, 1, 3], not [1, 1, 2]).
+ *
+ * Fix round 1 (review finding #3): this function used to also accept a
+ * `polarity` parameter that had no effect on the result. Removed entirely
+ * per the controller's ruling, rather than keeping an unused parameter
+ * around — see task-2-report.md's "Fix round 1" section.
  */
-// `_polarity` is kept in the signature for symmetry with paletteFor()/
-// domainOf() and is documented above; this project's no-unused-vars config
-// has no argsIgnorePattern for `_`-prefixed names, hence the explicit disable.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function rank(map: Map<string, number | null>, _polarity: Polarity): Map<string, number> {
+export function rank(map: Map<string, number | null>): Map<string, number> {
   const values = regionValues(map).filter(
     (r): r is { code: string; value: number } => r.value !== null,
   );
