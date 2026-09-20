@@ -98,7 +98,20 @@ export default function MapFallback({ indicatorId, bundle, selectedCode, onSelec
                 className={`cursor-pointer border-b border-white/5 ${isSelected ? "bg-white/15" : "hover:bg-white/5"}`}
               >
                 <td className="py-1 pr-2">
-                  <button type="button" onClick={() => onSelect(code)} className="rounded px-1 text-left hover:underline">
+                  {/* Fix round 1/5, finding 3: the <tr>'s onClick above is a
+                      mouse-only convenience (mirrors RegionPanel's row
+                      pattern) — this <button> is the real keyboard/a11y
+                      affordance (tab stop, accessible name). Its handler
+                      stops propagation so a click ON the button doesn't ALSO
+                      bubble up and fire the row's own onClick a second time. */}
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelect(code);
+                    }}
+                    className="rounded px-1 text-left hover:underline"
+                  >
                     {regionName(code)}
                   </button>
                 </td>

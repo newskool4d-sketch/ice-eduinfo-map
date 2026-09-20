@@ -11,6 +11,20 @@ export default defineConfig({
   // the html reporter from trying to launch a browser tab after a headless
   // CI run. Locally, keep the plain interactive `list` reporter.
   reporter: process.env.CI ? [["html", { open: "never" }], ["github"]] : "list",
+  // Fix round 1/5, finding 2 — Playwright's own default `retries` is 0
+  // everywhere (local AND CI; there is no built-in CI-aware default, despite
+  // task-6-report.md's "우려 사항" section claiming otherwise — corrected
+  // here rather than repeated). 2 retries on CI absorbs known-flaky e2e
+  // timing (e.g. select-region.spec.ts's canvas-click test — see its own
+  // in-file comment for the documented cause: mjolnir.js gesture recognition
+  // occasionally missed under CPU contention from parallel workers, not a
+  // real regression). 0 locally: a real local failure should surface
+  // immediately, not be silently retried away. `workers` similarly caps CI
+  // parallelism (shared-runner CPUs make that same contention worse at full
+  // parallelism) while leaving local runs at Playwright's own default (all
+  // available cores).
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
   use: {
     baseURL: "http://localhost:3000",
   },

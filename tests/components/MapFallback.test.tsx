@@ -112,6 +112,29 @@ describe("MapFallback", () => {
     expect(onSelect).toHaveBeenCalledWith("52110");
   });
 
+  // Fix round 1/5, finding 3: the name <button> sits inside its <tr>, which
+  // has its own onClick — without stopPropagation a button click bubbles up
+  // and fires the row's handler too, calling onSelect twice for one click.
+  it("clicking the name button calls onSelect exactly once (review finding 3)", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(<MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={onSelect} reason="webgl" />);
+    await user.click(screen.getByRole("button", { name: /전주시/ }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("clicking another cell in the row (not the button) calls onSelect exactly once via the row's own handler", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(<MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={onSelect} reason="webgl" />);
+    const dataRows = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    // The value cell, not the name button — exercises the <tr>'s own
+    // onClick (the mouse-only convenience), not the button's handler.
+    await user.click(within(dataRows[0]).getByText("70,851"));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith("52110");
+  });
+
   it("marks the currently-selected region's row with aria-current", () => {
     render(
       <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode="52130" onSelect={vi.fn()} reason="webgl" />,

@@ -365,6 +365,23 @@ export default function DeckMap({
     [overview],
   );
 
+  // Fix round 1/5, finding 5 — its own useMemo (not inlined in `layers`
+  // below): makes "data는 선택이 바뀔 때만 새로" true by construction — `layers`
+  // also rebuilds on indicator/font/label/etc. changes that have nothing to
+  // do with selection, and inlining this call there would rebuild the ring's
+  // `data` array every one of those times too (harmless — deck.gl still
+  // diffs by id — but not what the brief asks for; this is exactly how it
+  // read before the Task 6 hook-extraction refactor dropped the separate
+  // memo, per `git show cda5f83^:src/components/map/DeckMap.tsx`). Deps are
+  // only `[selectedFeature, ringElevation]` — `makeSelectedRingLayer` itself
+  // takes no transitionDuration/motion option (it's an instant PathLayer,
+  // not one of the 4 elevation-transitioning layer factories), so adding
+  // `reduceMotion` here would just be a no-op dependency.
+  const selectedRingLayer = useMemo(
+    () => makeSelectedRingLayer(selectedFeature, ringElevation),
+    [selectedFeature, ringElevation],
+  );
+
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = reduceMotion ? 0 : undefined; // undefined -> each factory's own 600ms default
     const layerList: LayersList = [
@@ -385,7 +402,7 @@ export default function DeckMap({
         onClick: handleRegionClick,
         transitionDuration,
       }),
-      makeSelectedRingLayer(selectedFeature, ringElevation),
+      selectedRingLayer,
       makeSchoolsLayer(positionedRegionSchools, {
         elevationOf,
         radiusOf,
@@ -427,8 +444,7 @@ export default function DeckMap({
     indicatorId,
     selectedCode,
     handleRegionClick,
-    selectedFeature,
-    ringElevation,
+    selectedRingLayer,
     positionedRegionSchools,
     radiusOf,
     highlightedSchoolId,
