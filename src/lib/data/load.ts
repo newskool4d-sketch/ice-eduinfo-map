@@ -42,6 +42,25 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
   ]);
 
   const indicatorIds = INDICATORS.map((d) => d.id);
+
+  // The app only ever fetches indicators it knows about (the static
+  // registry) — it never derives its fetch list from the manifest. But the
+  // manifest is the pipeline's own record of what it actually built, so
+  // cross-check every registry id against it BEFORE issuing any
+  // indicator/series fetch below. A registry id missing from the manifest
+  // means the data build is stale relative to the registry (e.g. someone
+  // added an indicator to registry.ts without re-running the pipeline);
+  // fail loudly with the exact ids and the fix, instead of a confusing 404
+  // (or a silently-undefined bundle entry) partway through the Promise.all
+  // below. The reverse — a manifest id with no matching registry entry,
+  // e.g. a retired indicator — is fine and deliberately not checked here.
+  const missingFromManifest = indicatorIds.filter((id) => !(id in manifest.indicators));
+  if (missingFromManifest.length > 0) {
+    throw new Error(
+      `manifest.json 에 없는 지표: ${missingFromManifest.join(", ")} — npm run data:build 를 다시 실행하세요`,
+    );
+  }
+
   const seriesIds = INDICATORS.filter((d) => d.aggregate.kind !== "external").map((d) => d.id);
 
   const [indicatorFiles, seriesFiles] = await Promise.all([

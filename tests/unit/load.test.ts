@@ -98,6 +98,56 @@ describe("loadBundle", () => {
     expect(bundle.series.students_total).toBeTruthy();
   });
 
+  it("throws naming ids missing from manifest.indicators, before fetching any indicator/series file", async () => {
+    const manifest = manifestFixture();
+    const missingId = INDICATOR_IDS[0];
+    delete manifest.indicators[missingId];
+    const calls: string[] = [];
+    const impl = vi.fn(async (url: string) => {
+      calls.push(url);
+      if (url === "/data/regions.geojson") return jsonResponse(regionsFixture());
+      if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
+      if (url === "/data/charset.json") return jsonResponse(CHARSET);
+      if (url === "/data/manifest.json") return jsonResponse(manifest);
+      const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
+      if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
+      const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
+      if (seriesMatch) return jsonResponse(seriesFileFixture(seriesMatch[1]));
+      throw new Error(`unexpected url ${url}`);
+    });
+
+    let caught: Error | undefined;
+    try {
+      await loadBundle(impl);
+    } catch (err) {
+      caught = err as Error;
+    }
+
+    expect(caught).toBeDefined();
+    expect(caught?.message).toContain(missingId);
+    expect(caught?.message).toContain("manifest.json");
+    expect(calls.filter((u) => u.startsWith("/data/indicators/"))).toHaveLength(0);
+    expect(calls.filter((u) => u.startsWith("/data/series/"))).toHaveLength(0);
+  });
+
+  it("does not throw when the manifest lists extra ids beyond the registry (registry ⊆ manifest is the only requirement)", async () => {
+    const manifest = manifestFixture();
+    manifest.indicators["some_retired_indicator"] = { years: [2020] };
+    const impl = vi.fn(async (url: string) => {
+      if (url === "/data/regions.geojson") return jsonResponse(regionsFixture());
+      if (url === "/data/neighbors.geojson") return jsonResponse(neighborsFixture());
+      if (url === "/data/charset.json") return jsonResponse(CHARSET);
+      if (url === "/data/manifest.json") return jsonResponse(manifest);
+      const indicatorMatch = /^\/data\/indicators\/(.+)\.json$/.exec(url);
+      if (indicatorMatch) return jsonResponse(indicatorFileFixture(indicatorMatch[1]));
+      const seriesMatch = /^\/data\/series\/(.+)\.json$/.exec(url);
+      if (seriesMatch) return jsonResponse(seriesFileFixture(seriesMatch[1]));
+      throw new Error(`unexpected url ${url}`);
+    });
+
+    await expect(loadBundle(impl)).resolves.toBeTruthy();
+  });
+
   it("rejects when any request fails", async () => {
     const impl = vi.fn(async (url: string) => {
       if (url === "/data/regions.geojson") return jsonResponse(null, false);
