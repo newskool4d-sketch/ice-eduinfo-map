@@ -6,10 +6,10 @@ import { MapView } from "@deck.gl/core";
 import type { LayersList } from "@deck.gl/core";
 import { interpolateBlues } from "d3-scale-chromatic";
 
-import { isRegionCode, regionName } from "@/lib/geo/regions";
+import { isRegionCode, REGIONS, regionName } from "@/lib/geo/regions";
 import { unionBbox, type Bbox } from "@/lib/geo/geo";
 import { lightingEffect } from "@/components/map/lighting";
-import { CONTROLLER, fitOverview, PANEL_WIDTH } from "@/components/map/camera";
+import { CONTROLLER, fitOverview } from "@/components/map/camera";
 import {
   makeFootprintLayer,
   makeNeighborsLayer,
@@ -25,6 +25,18 @@ import { loadGeo, type LoadedGeo } from "@/components/map/loadGeo";
 // `document.fonts.check()` still resolves true via the browser's own
 // system-fallback glyph substitution for Hangul.
 const FALLBACK_FONT_FAMILY = "'Noto Sans KR', sans-serif";
+
+// Real Hangul text to gate on — see the `text` argument to
+// `document.fonts.load()`/`.check()` in the font-gating effect below.
+// Google Fonts serves a large CJK family like Noto Sans KR as ~370 small
+// `@font-face` blocks, each scoped to a `unicode-range` slice of a few dozen
+// characters (confirmed by inspecting the built CSS: 372 blocks, 19,602
+// ranges, 100% coverage of U+AC00-D7A3 — but no single block covering that
+// whole range, so the browser only fetches the specific slices a given
+// string of text actually needs). `fonts.load()`/`.check()` called with NO
+// `text` argument only resolves the slice covering U+0020 (space) per spec,
+// which says nothing about whether the Hangul-covering slices have loaded.
+const FONT_GATE_SAMPLE_TEXT = REGIONS.map((r) => r.name).join("");
 
 // No real indicator data yet (that lands in a later task) — every region's
 // height/color is a deterministic hash of its own code, so the scene is
@@ -119,8 +131,10 @@ export default function DeckMap() {
         // getComputedStyle can throw outside a browser; keep the fallback.
       }
       try {
-        await document.fonts.load(`600 16px ${family}`);
-        if (!document.fonts.check(`600 16px ${family}`)) {
+        // Pass real Hangul text, not just the default (space) — see
+        // FONT_GATE_SAMPLE_TEXT above for why this specific call matters.
+        await document.fonts.load(`600 16px ${family}`, FONT_GATE_SAMPLE_TEXT);
+        if (!document.fonts.check(`600 16px ${family}`, FONT_GATE_SAMPLE_TEXT)) {
           family = FALLBACK_FONT_FAMILY;
         }
       } catch {
@@ -138,16 +152,25 @@ export default function DeckMap() {
   }, []);
 
   // Uncontrolled camera: compute the initial view once, from the container's
-  // measured size and the loaded regions' combined bbox.
+  // measured size, the loaded regions' combined bbox, and every region's
+  // label point (fitOverview needs both — see camera.ts's fitViewToPoints —
+  // so a label doesn't end up clipped even when the polygon bbox itself
+  // just barely fits).
   useEffect(() => {
     if (!geo || !containerRef.current) return;
     const { width, height } = containerRef.current.getBoundingClientRect();
     if (width <= 0 || height <= 0) return;
     const bbox: Bbox = unionBbox(geo.regions.features);
-    setInitialViewState(fitOverview(bbox, { width, height }));
+    const labelPoints = geo.regions.features.map((f) => f.properties.labelPoint);
+    setInitialViewState(fitOverview(bbox, labelPoints, { width, height }));
   }, [geo]);
 
-  const views = useMemo(() => new MapView({ padding: { right: PANEL_WIDTH } }), []);
+  // No View-level `padding` here: Dashboard.tsx's CSS grid
+  // (`grid-cols-[1fr_360px]`) already keeps this canvas out of the right
+  // panel's 360px column, so an additional `padding: { right: 360 }` would
+  // shift content a further ~180px left inside an already-narrower canvas
+  // (double-counting the panel). See task-1A-report.md's fix-round-1 section.
+  const views = useMemo(() => new MapView(), []);
 
   const getTooltip = useMemo(() => makeTooltip(nameOf, valueTextOf), []);
 
