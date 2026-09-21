@@ -53,10 +53,16 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
         const delta = seriesFile ? deltaPrevYear(seriesFile, PROVINCE_CODE, latestYear) : null;
 
         // Direction always shows both a symbol AND a color (never color
-        // alone, per the brief's accessibility note) — only an increase on
-        // a higherWorse-polarity indicator (currently: small_schools) gets
-        // the warning tone; every other case (including a decrease on that
-        // same indicator, and an exact-zero delta) is neutral.
+        // alone, per the brief's accessibility note). `isWarn` still drives
+        // ONLY `data-tone` below (an increase on a higherWorse-polarity
+        // indicator, currently small_schools, is "warn"; everything else is
+        // "neutral") — KpiTiles.test.tsx asserts data-tone directly, so this
+        // semantic stays put. The VISIBLE color (`deltaClass` below) is now
+        // purely sign-based (▼ decrease = accent, ▲ increase = positive, no
+        // change/no data = muted) regardless of polarity — light-theme spec
+        // call, Task 1 — so small_schools' ▲ renders text-positive (green)
+        // while still carrying data-tone="warn"; the tone/color pairing is
+        // intentionally decoupled now, not a bug.
         //
         // "—" (no arrow, no title) means no prior-year data exists at all
         // (delta === null: e.g. teachers_total's single-year fixture case).
@@ -65,6 +71,7 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
         // so it gets its own symbol and an explanatory title rather than
         // collapsing into the same "—" the null case uses.
         const isWarn = delta !== null && delta > 0 && def.polarity === "higherWorse";
+        const deltaClass = delta === null || delta === 0 ? "text-ink-muted" : delta > 0 ? "text-positive" : "text-accent";
         const deltaText =
           delta === null ? "—" : delta === 0 ? "±0" : `${delta > 0 ? "▲" : "▼"} ${def.format(Math.abs(delta))}`;
         const deltaTitle = delta === 0 ? "전년과 동일" : undefined;
@@ -74,12 +81,12 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
             key={id}
             data-testid={`kpi-tile-${id}`}
             title={prevYear !== null ? `${prevYear} → ${latestYear}` : undefined}
-            className="flex w-[104px] shrink-0 flex-col gap-0.5 rounded bg-white/5 px-2 py-1"
+            className="flex w-[104px] shrink-0 flex-col gap-0.5 rounded bg-ink/5 px-2 py-1"
           >
-            <dt className="truncate text-[10px] text-[#e6e9f0]/70">{def.label}</dt>
+            <dt className="truncate text-[10px] text-ink-muted">{def.label}</dt>
             <dd
               data-testid={`kpi-value-${id}`}
-              className="tabular-nums text-sm font-semibold text-[#e6e9f0]"
+              className="tabular-nums text-sm font-semibold text-ink"
             >
               {value === null ? "—" : def.format(value)}
             </dd>
@@ -87,7 +94,7 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
               data-testid={`kpi-delta-${id}`}
               data-tone={isWarn ? "warn" : "neutral"}
               title={deltaTitle}
-              className={`tabular-nums text-[10px] ${isWarn ? "text-orange-400" : "text-[#e6e9f0]/70"}`}
+              className={`tabular-nums text-[10px] ${deltaClass}`}
             >
               {deltaText}
             </dd>

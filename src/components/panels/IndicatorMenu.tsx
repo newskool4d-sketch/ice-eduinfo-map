@@ -224,7 +224,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           if (event.key === "Enter") openedByEnterRef.current = true;
         }}
         onClick={() => setOpen((v) => !v)}
-        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-sm text-[#e6e9f0] hover:bg-white/10"
+        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-sm text-ink hover:bg-ink/10"
       >
         {`조건별 맵 · ${label} ▾`}
       </button>
@@ -238,7 +238,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           onClick={handlePopoverClick}
           onKeyDown={handlePopoverKeyDown}
           onKeyUp={handlePopoverKeyUp}
-          className="absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-[640px] overflow-y-auto rounded-lg border border-white/10 bg-[#121826] p-3 shadow-xl"
+          className="absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-[640px] overflow-y-auto rounded-lg border border-line bg-surface p-3 shadow-xl"
         >
           <IndicatorPicker value={indicatorId} onChange={handleChange} series={series} />
         </div>

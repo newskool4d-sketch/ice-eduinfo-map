@@ -9,6 +9,8 @@
  * and every value it plots is already shown as text elsewhere in the panel
  * — the current-indicator card and the 다른 지표 table).
  */
+import { THEME } from "@/lib/theme";
+
 export interface SparklinePoint {
   year: number;
   value: number | null;
@@ -34,11 +36,11 @@ const PAD_TOP = 6;
 const PAD_BOTTOM = 16; // room for the year-axis labels below the line
 
 // A single accent hue (dataviz skill: sequential/single-series = one hue) —
-// distinct from the app's neutral text tokens, legible on the dark panel
-// background (#121826-ish). Text (year labels) stays in the app's own muted
-// text token, never this line color, per the skill's "text wears text
+// distinct from the app's neutral text tokens, legible on the light panel
+// background (paper (#f5f2eb)). Text (year labels) stays in the app's own
+// muted text token, never this line color, per the skill's "text wears text
 // tokens" rule.
-const LINE_COLOR = "#60a5fa";
+const LINE_COLOR = THEME.accent;
 
 function buildPath(points: { year: number; value: number }[]): {
   d: string;
@@ -75,7 +77,7 @@ export default function Sparkline({ data, className }: SparklineProps) {
     .sort((a, b) => a.year - b.year);
 
   if (points.length < 2) {
-    return <p className={`text-xs text-[#e6e9f0]/50 ${className ?? ""}`}>추이 없음</p>;
+    return <p className={`text-xs text-ink-muted ${className ?? ""}`}>추이 없음</p>;
   }
 
   const { d, last } = buildPath(points);
@@ -94,10 +96,10 @@ export default function Sparkline({ data, className }: SparklineProps) {
     >
       <path d={d} fill="none" stroke={LINE_COLOR} strokeWidth={2} vectorEffect="non-scaling-stroke" />
       <circle cx={last.x} cy={last.y} r={3.5} fill={LINE_COLOR} />
-      <text x={PAD_X} y={VIEW_HEIGHT - 2} fontSize={10} fill="#e6e9f0" fillOpacity={0.5} textAnchor="start">
+      <text x={PAD_X} y={VIEW_HEIGHT - 2} fontSize={10} fill={THEME.inkMuted} textAnchor="start">
         {firstYear}
       </text>
-      <text x={VIEW_WIDTH - PAD_X} y={VIEW_HEIGHT - 2} fontSize={10} fill="#e6e9f0" fillOpacity={0.5} textAnchor="end">
+      <text x={VIEW_WIDTH - PAD_X} y={VIEW_HEIGHT - 2} fontSize={10} fill={THEME.inkMuted} textAnchor="end">
         {lastYear}
       </text>
     </svg>

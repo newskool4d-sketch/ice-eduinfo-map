@@ -61,14 +61,14 @@ export default function MapFallback({ indicatorId, bundle, selectedCode, onSelec
   const span = d1 - d0 || 1;
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-[#0b0f19] p-4 text-[#e6e9f0]">
-      <p data-testid="map-fallback-reason" className="mb-1 text-sm font-medium text-[#e6e9f0]">
+    <div className="flex h-full w-full flex-col overflow-y-auto bg-paper p-4 text-ink">
+      <p data-testid="map-fallback-reason" className="mb-1 text-sm font-medium text-ink">
         {REASON_TEXT[reason]}
       </p>
-      <p className="mb-3 text-xs text-[#e6e9f0]/60">{label} 기준 · 시군을 클릭하면 선택됩니다</p>
+      <p className="mb-3 text-xs text-ink-muted">{label} 기준 · 시군을 클릭하면 선택됩니다</p>
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-white/10 text-left text-xs text-[#e6e9f0]/60">
+          <tr className="border-b border-line text-left text-xs text-ink-muted">
             <th scope="col" className="py-1 pr-2 font-normal">
               시군
             </th>
@@ -95,7 +95,7 @@ export default function MapFallback({ indicatorId, bundle, selectedCode, onSelec
                 key={code}
                 aria-current={isSelected ? "true" : undefined}
                 onClick={() => onSelect(code)}
-                className={`cursor-pointer border-b border-white/5 ${isSelected ? "bg-white/15" : "hover:bg-white/5"}`}
+                className={`cursor-pointer border-b border-line ${isSelected ? "bg-accent-soft text-ink" : "hover:bg-ink/5"}`}
               >
                 <td className="py-1 pr-2">
                   {/* Fix round 1/5, finding 3: the <tr>'s onClick above is a
@@ -118,9 +118,9 @@ export default function MapFallback({ indicatorId, bundle, selectedCode, onSelec
                 <td className="py-1 pr-2 text-right tabular-nums">
                   {value === null || value === undefined ? "자료 없음" : def.format(value)}
                 </td>
-                <td className="py-1 pr-2 text-right tabular-nums text-[#e6e9f0]/70">{r !== undefined ? `${r}위` : "–"}</td>
+                <td className="py-1 pr-2 text-right tabular-nums text-ink-muted">{r !== undefined ? `${r}위` : "–"}</td>
                 <td className="py-1 pl-2">
-                  <div className="h-3 w-full rounded-sm bg-white/5">
+                  <div className="h-3 w-full rounded-sm bg-ink/5">
                     <div
                       data-testid="fallback-bar-fill"
                       className="h-3 rounded-sm"

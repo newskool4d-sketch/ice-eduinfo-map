@@ -35,7 +35,7 @@ export default function IndicatorPicker({ value, onChange, series = {} }: Indica
         if (items.length === 0) return null;
         return (
           <fieldset key={group} className="m-0 flex items-center gap-2 border-0 p-0">
-            <legend className="mr-1 text-[11px] uppercase tracking-wide text-[#e6e9f0]/60">
+            <legend className="mr-1 text-[11px] uppercase tracking-wide text-ink-muted">
               {GROUP_LABELS[group]}
             </legend>
             {items.map((def) => {
@@ -57,7 +57,7 @@ export default function IndicatorPicker({ value, onChange, series = {} }: Indica
                 <div key={def.id} className="flex flex-col">
                   <label
                     className={`cursor-pointer rounded px-2 py-1 text-xs transition-colors ${
-                      checked ? "bg-white/15 text-[#e6e9f0]" : "text-[#e6e9f0]/70 hover:bg-white/5"
+                      checked ? "bg-accent-soft text-ink" : "text-ink-muted hover:bg-ink/5"
                     }`}
                   >
                     <input
@@ -71,7 +71,7 @@ export default function IndicatorPicker({ value, onChange, series = {} }: Indica
                     />
                     {displayLabel(def, series)}
                   </label>
-                  <span id={descriptionId} className="max-w-[220px] pl-2 text-[10px] leading-snug text-[#e6e9f0]/50">
+                  <span id={descriptionId} className="max-w-[220px] pl-2 text-[10px] leading-snug text-ink-muted">
                     {def.description}
                   </span>
                 </div>

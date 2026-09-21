@@ -147,35 +147,35 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
   // missing data. What now scrolls out of view on a short viewport is the
   // footer, which reads unambiguously as "there's more below".
   return (
-    <div className="text-[#e6e9f0]">
+    <div className="text-ink">
       <div className="mb-3 flex items-start justify-between gap-2">
         <h2 className="text-lg font-semibold">{regionName(regionCode)}</h2>
         <button
           type="button"
           aria-label="선택 해제"
           onClick={() => setRegion(null)}
-          className="rounded px-2 py-1 text-[#e6e9f0]/60 hover:bg-white/10 hover:text-[#e6e9f0]"
+          className="rounded px-2 py-1 text-ink-muted hover:bg-ink/10 hover:text-ink"
         >
           ✕
         </button>
       </div>
 
-      <section className="mb-4 rounded-lg bg-white/5 p-3">
-        <p data-testid="region-panel-current-label" className="text-xs text-[#e6e9f0]/60">
+      <section className="mb-4 rounded-lg bg-ink/5 p-3">
+        <p data-testid="region-panel-current-label" className="text-xs text-ink-muted">
           {label}
         </p>
         <p className="mt-1 tabular-nums">
           <span data-testid="region-panel-current-value" className="text-2xl font-bold">
             {value === null || value === undefined ? "자료 없음" : def.format(value)}
           </span>
-          <span className="ml-1 text-sm text-[#e6e9f0]/50">{def.unit}</span>
+          <span className="ml-1 text-sm text-ink-muted">{def.unit}</span>
         </p>
-        <p className="mt-1 text-xs text-[#e6e9f0]/70">
+        <p className="mt-1 text-xs text-ink-muted">
           {regionRank !== null ? `${REGION_CODES.length}개 시군 중 ${regionRank}위` : "순위 없음"}
         </p>
         <p
           data-testid="region-panel-delta"
-          className={`text-xs ${isWarnDelta ? "text-orange-400" : "text-[#e6e9f0]/70"}`}
+          className={`text-xs ${isWarnDelta ? "text-accent" : "text-ink-muted"}`}
         >
           {def.kind === "count"
             ? share === null
@@ -185,23 +185,23 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
               ? "전북 평균 대비 자료 없음"
               : `전북 평균 대비 ${formatDelta(def, delta)}`}
         </p>
-        <p data-testid="region-panel-description" className="mt-2 text-[10px] leading-snug text-[#e6e9f0]/50">
+        <p data-testid="region-panel-description" className="mt-2 text-[10px] leading-snug text-ink-muted">
           {def.description}
         </p>
         {def.caveat && (
-          <p data-testid="region-panel-caveat" className="mt-1 text-[10px] leading-snug text-[#e6e9f0]/50">
+          <p data-testid="region-panel-caveat" className="mt-1 text-[10px] leading-snug text-ink-muted">
             {def.caveat}
           </p>
         )}
       </section>
 
       <section className="mb-4">
-        <p className="mb-1 text-xs text-[#e6e9f0]/60">추이</p>
-        {seriesFile ? <Sparkline data={trendRows} /> : <p className="text-xs text-[#e6e9f0]/50">추이 없음</p>}
+        <p className="mb-1 text-xs text-ink-muted">추이</p>
+        {seriesFile ? <Sparkline data={trendRows} /> : <p className="text-xs text-ink-muted">추이 없음</p>}
       </section>
 
       <section className="mb-4">
-        <p className="mb-1 text-xs text-[#e6e9f0]/60">다른 지표</p>
+        <p className="mb-1 text-xs text-ink-muted">다른 지표</p>
         <table className="w-full border-collapse text-xs">
           <tbody>
             {GROUP_ORDER.flatMap((group) => {
@@ -212,7 +212,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                   <th
                     scope="colgroup"
                     colSpan={3}
-                    className="pt-2 pb-1 text-left text-[10px] font-normal uppercase tracking-wide text-[#e6e9f0]/50"
+                    className="pt-2 pb-1 text-left text-[10px] font-normal uppercase tracking-wide text-ink-muted"
                   >
                     {GROUP_LABELS[group]}
                   </th>
@@ -232,7 +232,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                   <tr
                     key={row.id}
                     onClick={() => setIndicator(row.id)}
-                    className="cursor-pointer hover:bg-white/5"
+                    className="cursor-pointer hover:bg-ink/5"
                   >
                     <td className="py-0.5">
                       <button
@@ -244,14 +244,14 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                           setIndicator(row.id);
                         }}
                         className={`w-full rounded px-1 py-0.5 text-left ${
-                          row.isCurrent ? "bg-white/10 font-semibold" : ""
+                          row.isCurrent ? "bg-accent-soft text-ink font-semibold" : ""
                         }`}
                       >
                         {row.label}
                       </button>
                     </td>
-                    <td className="py-0.5 text-right tabular-nums text-[#e6e9f0]/80">{row.valueText}</td>
-                    <td className="py-0.5 pl-2 text-right tabular-nums text-[#e6e9f0]/50">{row.rankText}</td>
+                    <td className="py-0.5 text-right tabular-nums text-ink/80">{row.valueText}</td>
+                    <td className="py-0.5 pl-2 text-right tabular-nums text-ink-muted">{row.rankText}</td>
                   </tr>
                 )),
               ];
@@ -262,11 +262,11 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
 
       <section className="mb-4">
         <div className="mb-2 flex items-baseline justify-between gap-2">
-          <p className="text-xs text-[#e6e9f0]/60">
+          <p className="text-xs text-ink-muted">
             학교 {filteredSchools.length}개 · 소규모 {smallCount}개
             {noLocationCount > 0 && <> · 위치 없음 {noLocationCount}개</>}
           </p>
-          <p className="text-[10px] text-[#e6e9f0]/50">위치 기준 {bundle.schools.referenceDate.location}</p>
+          <p className="text-[10px] text-ink-muted">위치 기준 {bundle.schools.referenceDate.location}</p>
         </div>
 
         <div className="mb-2 flex flex-wrap gap-1">
@@ -277,7 +277,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
               onClick={() => setLevelFilter(level)}
               aria-pressed={levelFilter === level}
               className={`rounded px-2 py-0.5 text-xs ${
-                levelFilter === level ? "bg-white/20 font-semibold text-[#e6e9f0]" : "text-[#e6e9f0]/60 hover:bg-white/10"
+                levelFilter === level ? "bg-ink/10 font-semibold text-ink" : "text-ink-muted hover:bg-ink/10"
               }`}
             >
               {LEVEL_FILTER_LABELS[level]}
@@ -286,7 +286,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         </div>
 
         {filteredSchools.length === 0 ? (
-          <p className="text-xs text-[#e6e9f0]/50">해당 학교급의 학교가 없습니다</p>
+          <p className="text-xs text-ink-muted">해당 학교급의 학교가 없습니다</p>
         ) : (
           <table className="w-full border-collapse text-xs">
             <tbody>
@@ -298,10 +298,10 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                     data-testid={`school-row-${school.id}`}
                     aria-current={isHighlighted ? "true" : undefined}
                     onClick={() => onHighlightSchool(isHighlighted ? null : school.id)}
-                    className={`cursor-pointer ${isHighlighted ? "bg-white/15" : "hover:bg-white/5"}`}
+                    className={`cursor-pointer ${isHighlighted ? "bg-accent-soft text-ink" : "hover:bg-ink/5"}`}
                   >
                     <td className="py-0.5 pr-1">
-                      <span className="mr-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/70">
+                      <span className="mr-1 inline-block rounded bg-ink/5 px-1 text-[10px] text-ink-muted">
                         {SCHOOL_LEVEL_LABELS[school.level]}
                       </span>
                       {/* fix round, review finding #2: the <tr>'s onClick above is a
@@ -323,28 +323,28 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                         {school.name}
                       </button>
                       {school.branch && (
-                        <span className="ml-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/50">
+                        <span className="ml-1 inline-block rounded bg-ink/5 px-1 text-[10px] text-ink-muted">
                           분교장
                         </span>
                       )}
                       {school.small && (
-                        <span className="ml-1 inline-block rounded bg-orange-400/20 px-1 text-[10px] text-orange-300">
+                        <span className="ml-1 inline-block rounded bg-accent-soft px-1 text-[10px] text-accent">
                           소규모
                         </span>
                       )}
                       {school.lat === null && (
                         <span
-                          className="ml-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/50"
+                          className="ml-1 inline-block rounded bg-ink/5 px-1 text-[10px] text-ink-muted"
                           title={school.locationMissingReason}
                         >
                           위치 없음
                         </span>
                       )}
                     </td>
-                    <td className="py-0.5 text-right tabular-nums text-[#e6e9f0]/80">
+                    <td className="py-0.5 text-right tabular-nums text-ink/80">
                       {school.students === null ? "자료 없음" : `${school.students.toLocaleString("ko-KR")}명`}
                     </td>
-                    <td className="py-0.5 pl-2 text-right tabular-nums text-[#e6e9f0]/50">
+                    <td className="py-0.5 pl-2 text-right tabular-nums text-ink-muted">
                       {school.studentsPerClass === null ? "–" : school.studentsPerClass.toFixed(1)}
                     </td>
                   </tr>
@@ -357,24 +357,24 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
 
       <section className="mb-4">
         <details data-testid="closed-schools-section">
-          <summary className="cursor-pointer text-xs text-[#e6e9f0]/60 hover:text-[#e6e9f0]">
+          <summary className="cursor-pointer text-xs text-ink-muted hover:text-ink">
             폐교 목록 ({regionClosedSchools.length}개)
           </summary>
           {regionClosedSchools.length === 0 ? (
-            <p className="mt-2 text-xs text-[#e6e9f0]/50">폐교 이력이 없습니다</p>
+            <p className="mt-2 text-xs text-ink-muted">폐교 이력이 없습니다</p>
           ) : (
             <table className="mt-2 w-full border-collapse text-xs">
               <tbody>
                 {regionClosedSchools.map((school) => (
                   <tr key={`${school.name}-${school.year}`} data-testid={`closed-school-row-${school.name}-${school.year}`}>
                     <td className="py-0.5 pr-1">
-                      <span className="mr-1 inline-block rounded bg-white/10 px-1 text-[10px] text-[#e6e9f0]/70">
+                      <span className="mr-1 inline-block rounded bg-ink/5 px-1 text-[10px] text-ink-muted">
                         {SCHOOL_LEVEL_LABELS[school.level]}
                       </span>
                       {school.name}
                     </td>
-                    <td className="py-0.5 text-right tabular-nums text-[#e6e9f0]/70">{school.year}</td>
-                    <td className="py-0.5 pl-2 text-right text-[#e6e9f0]/50">{school.usage}</td>
+                    <td className="py-0.5 text-right tabular-nums text-ink-muted">{school.year}</td>
+                    <td className="py-0.5 pl-2 text-right text-ink-muted">{school.usage}</td>
                   </tr>
                 ))}
               </tbody>
@@ -383,7 +383,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         </details>
       </section>
 
-      <footer className="text-[10px] text-[#e6e9f0]/50">
+      <footer className="text-[10px] text-ink-muted">
         {def.source.name} · {referenceDateLabel(file)}
       </footer>
     </div>

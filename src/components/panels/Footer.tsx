@@ -18,7 +18,7 @@ export interface FooterProps {
  */
 export default function Footer({ manifest }: FooterProps) {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/10 px-4 py-1.5 text-[10px] text-[#e6e9f0]/50">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-1.5 text-[10px] text-ink-muted">
       {manifest.sources.map((source) => (
         // Fix round 2, finding 10 — `source.name` isn't guaranteed unique
         // (two different sources could coincidentally share a display
@@ -28,7 +28,7 @@ export default function Footer({ manifest }: FooterProps) {
             href={source.url}
             target="_blank"
             rel="noreferrer"
-            className="underline decoration-dotted underline-offset-2 hover:text-[#e6e9f0]"
+            className="underline decoration-dotted underline-offset-2 hover:text-ink"
           >
             {source.name}
           </a>

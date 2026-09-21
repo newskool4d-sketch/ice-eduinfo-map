@@ -18,7 +18,7 @@ import { useMapQuery } from "@/lib/state/urlState";
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-[#0b0f19] px-6 text-center text-sm text-[#e6e9f0]/50">
+    <div className="flex h-full w-full items-center justify-center bg-paper px-6 text-center text-sm text-ink-muted">
       {children}
     </div>
   );
@@ -35,13 +35,13 @@ function CenteredMessage({ children }: { children: ReactNode }) {
 function DataErrorMessage({ error }: { error: string }) {
   const retry = useRetry();
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[#0b0f19] px-6 text-center text-sm text-[#e6e9f0]/70">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-paper px-6 text-center text-sm text-ink-muted">
       <p>데이터를 불러오지 못했습니다.</p>
-      <p className="max-w-md text-xs text-[#e6e9f0]/50">{error}</p>
+      <p className="max-w-md text-xs text-ink-muted">{error}</p>
       <button
         type="button"
         onClick={retry}
-        className="rounded bg-white/10 px-3 py-1.5 text-[#e6e9f0] hover:bg-white/20"
+        className="rounded bg-ink/5 px-3 py-1.5 text-ink hover:bg-ink/15"
       >
         다시 시도
       </button>
@@ -132,7 +132,7 @@ function DashboardInner({
           />
         </main>
 
-        <aside className="w-[360px] overflow-y-auto border-l border-white/10 p-4">
+        <aside className="w-[360px] overflow-y-auto border-l border-line p-4">
           {regionCode ? (
             <RegionPanel
               bundle={bundle}
@@ -146,7 +146,7 @@ function DashboardInner({
       </div>
 
       <div>
-        <footer className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-x-auto border-t border-white/10 px-4 py-2">
+        <footer className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-x-auto border-t border-line px-4 py-2">
           <Legend
             def={legendDef}
             ticks={ticks}
@@ -177,7 +177,7 @@ function DashboardBody() {
   const bundle = state.status === "ready" ? state.bundle : null;
 
   return (
-    <div className="grid h-full grid-rows-[56px_1fr] bg-[#0b0f19] text-[#e6e9f0]">
+    <div className="grid h-full grid-rows-[56px_1fr] bg-paper text-ink">
       <TopBar indicatorId={indicatorId} bundle={bundle} />
       {state.status === "loading" && <CenteredMessage>데이터 불러오는 중…</CenteredMessage>}
       {state.status === "error" && <DataErrorMessage error={state.error} />}

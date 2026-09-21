@@ -15,7 +15,7 @@ export type RGBA = [number, number, number, number];
 /**
  * 학교급별 4색 — colorblind-safe (verified distinct under deuteranopia/
  * protanopia simulation: distinct hue AND lightness steps, not just hue),
- * and legible against this app's dark (#0b0f19) map background (all 4 are
+ * and legible against this app's dark map background (all 4 are
  * light/saturated enough to read clearly on a dark scene, unlike e.g. a
  * dark navy that would disappear into it).
  */

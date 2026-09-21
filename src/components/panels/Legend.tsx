@@ -63,12 +63,12 @@ export default function Legend({
   if (colorBuckets === "quantile") notes.push("색 구간: 고유값 5분위");
 
   return (
-    <div className="flex flex-wrap items-center gap-4 text-xs text-[#e6e9f0]/70">
+    <div className="flex flex-wrap items-center gap-4 text-xs text-ink-muted">
       <span className="flex shrink-0 flex-col">
-        <span className="text-sm font-semibold text-[#e6e9f0]" data-testid="legend-indicator-label">
+        <span className="text-sm font-semibold text-ink" data-testid="legend-indicator-label">
           {def.label}
         </span>
-        <span className="max-w-[280px] text-[10px] leading-snug text-[#e6e9f0]/50" data-testid="legend-description">
+        <span className="max-w-[280px] text-[10px] leading-snug text-ink-muted" data-testid="legend-description">
           {def.description}
         </span>
       </span>
@@ -82,10 +82,10 @@ export default function Legend({
               style={{ backgroundColor: rgbCss(rgb) }}
               aria-hidden
             />
-            <span className="tabular-nums text-[10px] text-[#e6e9f0]/50">{def.format(ticks[i])}</span>
+            <span className="tabular-nums text-[10px] text-ink-muted">{def.format(ticks[i])}</span>
           </div>
         ))}
-        <span className="pb-[18px] tabular-nums text-[10px] text-[#e6e9f0]/50">
+        <span className="pb-[18px] tabular-nums text-[10px] text-ink-muted">
           {def.format(ticks[ticks.length - 1])}
         </span>
         {hasNull && (
@@ -96,14 +96,14 @@ export default function Legend({
               style={{ backgroundColor: rgbCss(NULL_COLOR) }}
               aria-hidden
             />
-            <span className="text-[10px] text-[#e6e9f0]/50">자료 없음</span>
+            <span className="text-[10px] text-ink-muted">자료 없음</span>
           </div>
         )}
       </div>
 
       {schoolLevelsVisible && (
-        <div className="flex items-center gap-2 border-l border-white/10 pl-4">
-          <span className="shrink-0 text-[10px] text-[#e6e9f0]/50">학교</span>
+        <div className="flex items-center gap-2 border-l border-line pl-4">
+          <span className="shrink-0 text-[10px] text-ink-muted">학교</span>
           {SCHOOL_LEVEL_ORDER.map((level) => {
             const [r, g, b] = SCHOOL_LEVEL_COLORS[level];
             return (
@@ -119,12 +119,12 @@ export default function Legend({
                   style={{ backgroundColor: rgbCss([r, g, b]) }}
                   aria-hidden
                 />
-                <span className="text-[10px] text-[#e6e9f0]/50">{SCHOOL_LEVEL_LABELS[level]}</span>
+                <span className="text-[10px] text-ink-muted">{SCHOOL_LEVEL_LABELS[level]}</span>
               </span>
             );
           })}
           {hasSchoolsWithoutLocation && (
-            <span className="text-[10px] text-[#e6e9f0]/50">(특수학교는 위치 자료 없음)</span>
+            <span className="text-[10px] text-ink-muted">(특수학교는 위치 자료 없음)</span>
           )}
         </div>
       )}
@@ -135,7 +135,7 @@ export default function Legend({
         href={def.source.url}
         target="_blank"
         rel="noreferrer"
-        className="underline decoration-dotted underline-offset-2 hover:text-[#e6e9f0]"
+        className="underline decoration-dotted underline-offset-2 hover:text-ink"
       >
         {def.source.name}
       </a>
