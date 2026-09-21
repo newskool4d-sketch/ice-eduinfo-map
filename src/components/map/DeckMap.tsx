@@ -4,23 +4,26 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProper
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
-import type { LayersList, PickingInfo } from "@deck.gl/core";
-import { CompassWidget, DarkTheme, ResetViewWidget } from "@deck.gl/widgets";
+import type { Effect, LayersList, PickingInfo } from "@deck.gl/core";
+import { CompassWidget, DarkGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
 import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/geo/regions";
-import { lightingEffect } from "@/components/map/lighting";
+import { lightingEffect, lightingEffectNoShadow } from "@/components/map/lighting";
+import { createPostProcessEffects } from "@/components/map/effects";
+import { isMapFxOff } from "@/components/map/mapFx";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
 import {
   makeFootprintLayer,
   makeIslandsLayer,
   makeNeighborsLayer,
   makeRegionsLayer,
-  makeSelectedRingLayer,
+  makeRegionTopRingsLayer,
 } from "@/components/map/layers/regionLayers";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
+import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
 import { useCamera } from "@/components/map/useCamera";
 import { useFontGate } from "@/components/map/useFontGate";
 import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
@@ -33,7 +36,7 @@ import { makeSchoolRadiusScale } from "@/lib/schoolVisuals";
 import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipText";
 import { regionRankList, selectionAnnouncement } from "@/lib/selection";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import type { RegionFeature } from "@/lib/geo/geo";
+import { ringsOf } from "@/lib/geo/geo";
 
 /** zoom≥11 이 되어야 학교명 라벨을 그린다 (브리프 고정값 — DeckMap.tsx 의 onViewStateChange 스로틀 zoom 으로 판단). */
 const SCHOOL_LABEL_MIN_ZOOM = 11;
@@ -80,6 +83,12 @@ function recordE2eEvent(event: JbmapEvent) {
   (window.__jbmap.events ??= []).push(event);
 }
 
+// Task A — 비상 스위치 (mapFx.ts's isMapFxOff): a build-time-fixed constant,
+// same pattern as `E2E` above — read once at module scope, not per-render,
+// and deliberately INDEPENDENT of `E2E` (e2e runs with visual fx ON by
+// default; NEXT_PUBLIC_MAP_FX is a separate, manually-set escape hatch).
+const MAP_FX_OFF = isMapFxOff();
+
 function nameOf(code: string): string {
   return isRegionCode(code) ? regionName(code) : code;
 }
@@ -87,13 +96,15 @@ function nameOf(code: string): string {
 const VIEW = new MapView();
 
 // 추가 요구 #4: 16px margin (deck.gl/widgets' own default is 12px);
-// DarkTheme keeps the compass/전체보기 buttons legible against the varied 3D
-// scene behind them (the default LightTheme assumes a light page
-// background). A MODULE constant, not an inline object literal inside the
-// component — Task 6, Section C.3 ("widgetThemeStyle 등 매 렌더 새 객체를 모듈
-// 상수로"): an inline literal would be a NEW object reference every render,
-// pointlessly changing the wrapper div's `style` prop identity every time.
-const WIDGET_THEME_STYLE: CSSProperties = { ...DarkTheme, "--widget-margin": "16px" } as CSSProperties;
+// DarkGlassTheme (Task A — swapped from DarkTheme) keeps the
+// compass/전체보기/줌 buttons legible against the varied 3D scene behind them
+// (the default LightTheme assumes a light page background) while its
+// translucent, blurred buttons match this task's glass-widget aesthetic. A
+// MODULE constant, not an inline object literal inside the component — Task
+// 6, Section C.3 ("widgetThemeStyle 등 매 렌더 새 객체를 모듈 상수로"): an inline
+// literal would be a NEW object reference every render, pointlessly changing
+// the wrapper div's `style` prop identity every time.
+const WIDGET_THEME_STYLE: CSSProperties = { ...DarkGlassTheme, "--widget-margin": "16px" } as CSSProperties;
 
 export interface DeckMapProps {
   indicatorId: string;
@@ -223,19 +234,6 @@ export default function DeckMap({
   // the same pure function), RegionList's render order.
   const orderedCodes = useMemo(() => regionRankList(map), [map]);
 
-  // Task 6, Section C.1 — the ring traces the MAINLAND part only
-  // (bundle.regionsMain), never an island: islands aren't extruded, so a
-  // ring floating at `elevation + 10` over a flat island would look
-  // detached from anything actually rising off the ground.
-  const selectedFeature = useMemo<RegionFeature | null>(() => {
-    if (!selectedCode) return null;
-    return bundle.regionsMain.features.find((f) => f.properties.code === selectedCode) ?? null;
-  }, [bundle.regionsMain, selectedCode]);
-  const ringElevation = useMemo(
-    () => (selectedCode ? elevationOf(selectedCode) : 0),
-    [elevationOf, selectedCode],
-  );
-
   const announcement = useMemo(() => {
     if (!selectedCode) return "선택 해제됨, 전체 보기";
     const value = map.get(selectedCode);
@@ -281,6 +279,18 @@ export default function DeckMap({
         position: f.properties.labelPoint,
         labelOffset: f.properties.labelOffset,
       })),
+    [bundle.regionsMain],
+  );
+
+  // Task A — region-top-rings' data: one `{code, ring}` entry per ring (a
+  // MultiPolygon region, or one with interior holes, contributes multiple
+  // entries sharing the same code), for EVERY 시군 at once — see
+  // `makeRegionTopRingsLayer`'s own doc comment. Own useMemo (not inlined in
+  // `layers` below), same reasoning as `labels` just above: this reference
+  // only changes when `bundle.regionsMain` itself changes, never on a
+  // selection/indicator-only re-render.
+  const rings = useMemo(
+    () => bundle.regionsMain.features.flatMap((f) => ringsOf(f).map((ring) => ({ code: f.properties.code, ring }))),
     [bundle.regionsMain],
   );
 
@@ -427,14 +437,18 @@ export default function DeckMap({
     onHighlightSchool,
   });
 
-  // 추가 요구 #4: 나침반(bearing/pitch reset) + 전체보기(fit-to-overview)
-  // buttons, bottom-left inside the canvas. Both are official deck.gl
+  // 추가 요구 #4: 나침반(bearing/pitch reset) + 전체보기(fit-to-overview) +
+  // (Task A) 줌 버튼, bottom-left inside the canvas. All official deck.gl
   // widgets (already a direct dependency) rather than hand-rolled buttons.
   // ResetViewWidget defaults to `deck.props.initialViewState` when its own
   // `initialViewState` prop is unset — which, once a region is selected,
   // would be the REGION's fit (`cameraViewState`), not the true overview.
   // Passing `overview` explicitly keeps "전체보기" always meaning the
   // overview, regardless of what's currently selected (see task-4A-report.md).
+  // ZoomWidget is appended LAST (Task A requirement) — confirmed against
+  // e2e/a11y.spec.ts's "나침반/전체보기 위젯 버튼이 Tab 으로 도달 가능하다" test that
+  // Tab order among compass/reset-view is unaffected by a widget appended
+  // after them in this array.
   const widgets = useMemo(
     () => [
       new CompassWidget({ id: "compass", placement: "bottom-left", label: "나침반" }),
@@ -444,25 +458,49 @@ export default function DeckMap({
         label: "전체보기",
         initialViewState: overview ?? undefined,
       }),
+      new ZoomWidget({ id: "zoom", placement: "bottom-left", zoomInLabel: "확대", zoomOutLabel: "축소" }),
     ],
     [overview],
   );
 
-  // Fix round 1/5, finding 5 — its own useMemo (not inlined in `layers`
-  // below): makes "data는 선택이 바뀔 때만 새로" true by construction — `layers`
-  // also rebuilds on indicator/font/label/etc. changes that have nothing to
-  // do with selection, and inlining this call there would rebuild the ring's
-  // `data` array every one of those times too (harmless — deck.gl still
-  // diffs by id — but not what the brief asks for; this is exactly how it
-  // read before the Task 6 hook-extraction refactor dropped the separate
-  // memo, per `git show cda5f83^:src/components/map/DeckMap.tsx`). Deps are
-  // only `[selectedFeature, ringElevation]` — `makeSelectedRingLayer` itself
-  // takes no transitionDuration/motion option (it's an instant PathLayer,
-  // not one of the 4 elevation-transitioning layer factories), so adding
-  // `reduceMotion` here would just be a no-op dependency.
-  const selectedRingLayer = useMemo(
-    () => makeSelectedRingLayer(selectedFeature, ringElevation),
-    [selectedFeature, ringElevation],
+  // Task A — 발표 모드: a session-only (not persisted) toggle, surfaced via
+  // MapOverlay's "발표 모드" button (see `overlayItems` below). Adds a
+  // tilt-shift/미니어처 post-process pass (effects.ts's createPostProcessEffects)
+  // while on; resets to off on every fresh page load, by design.
+  const [presentation, setPresentation] = useState(false);
+
+  // Task A — `effects` (NOT `layers`): the lighting effect (shadow on/off
+  // per the NEXT_PUBLIC_MAP_FX=off emergency switch) plus the post-process
+  // chain (vibrance/brightnessContrast/vignette/[tiltShift]/fxaa). Memoized
+  // so the ARRAY and every `PostProcessEffect` instance inside it stay
+  // referentially stable across a re-render that doesn't touch
+  // presentation/fx — deck.gl's EffectManager does a depth-1 comparison
+  // (effect-manager.js) and would otherwise treat every render as "effects
+  // changed" and rebuild the whole post-process FBO chain each time.
+  // `lightingEffect`/`lightingEffectNoShadow` are themselves already module
+  // constants (lighting.ts) — only picking BETWEEN them varies here.
+  const effects = useMemo<Effect[]>(
+    () => [
+      MAP_FX_OFF ? lightingEffectNoShadow : lightingEffect,
+      ...createPostProcessEffects({ presentation, fxOff: MAP_FX_OFF }),
+    ],
+    [presentation],
+  );
+
+  // Task A — MapOverlay's controlled button list. Just one item this task
+  // (발표 모드); `items` stays an array (not fixed named props) so Task C can
+  // append a "배경 지도" button without changing MapOverlay's shape.
+  const overlayItems = useMemo<MapOverlayItem[]>(
+    () => [
+      {
+        id: "presentation",
+        label: "발표 모드",
+        pressed: presentation,
+        onToggle: () => setPresentation((p) => !p),
+        title: "틸트시프트·미니어처 효과",
+      },
+    ],
+    [presentation],
   );
 
   const layers = useMemo<LayersList>(() => {
@@ -485,7 +523,12 @@ export default function DeckMap({
         onClick: handleRegionClick,
         transitionDuration,
       }),
-      selectedRingLayer,
+      makeRegionTopRingsLayer(rings, {
+        elevationOf,
+        selectedCode,
+        triggerKey: indicatorId,
+        transitionDuration,
+      }),
       makeSchoolsLayer(positionedRegionSchools, {
         elevationOf,
         radiusOf,
@@ -527,7 +570,7 @@ export default function DeckMap({
     indicatorId,
     selectedCode,
     handleRegionClick,
-    selectedRingLayer,
+    rings,
     positionedRegionSchools,
     radiusOf,
     highlightedSchoolId,
@@ -621,7 +664,7 @@ export default function DeckMap({
           initialViewState={cameraViewState}
           views={views}
           controller={CONTROLLER}
-          effects={[lightingEffect]}
+          effects={effects}
           layers={layers}
           widgets={widgets}
           getTooltip={getTooltip}
@@ -630,8 +673,15 @@ export default function DeckMap({
           onClick={handleDeckClick}
           onViewStateChange={handleViewStateChange}
           onError={handleDeckError}
+          // Task A — DPR cap: `useDevicePixels` is an ABSOLUTE multiplier when
+          // given a number (NOT relative to the device's own DPR) — passing
+          // devicePixelRatio straight through supersamples on an already-high-DPR
+          // screen. `Math.min(..., 1.5)` caps render resolution without ever
+          // exceeding the device's native pixel ratio.
+          useDevicePixels={Math.min(window.devicePixelRatio || 1, 1.5)}
         />
       )}
+      <MapOverlay items={overlayItems} />
       {contextLost && (
         <div
           role="alert"
