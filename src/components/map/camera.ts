@@ -2,14 +2,14 @@ import { FlyToInterpolator, WebMercatorViewport } from "@deck.gl/core";
 
 import type { Bbox } from "@/lib/geo/geo";
 
-export const OVERVIEW_PITCH = 50;
+export const OVERVIEW_PITCH = 56;
 export const OVERVIEW_BEARING = -15;
 
 export const VIEW_LIMITS = {
   minZoom: 7.5,
   maxZoom: 12,
   minPitch: 0,
-  maxPitch: 60,
+  maxPitch: 72,
 } as const;
 
 // deck.gl 9.4's MapController accepts `maxBounds`/`rubberBand` directly (see
@@ -29,6 +29,15 @@ export const CONTROLLER = {
 
 type Size = { width: number; height: number };
 type LngLat = readonly [number, number];
+/**
+ * A ground point for containment/projection purposes, with an OPTIONAL
+ * elevation (meters, world/common space — same units as a layer's
+ * `getElevation`/z coordinate). `z` defaults to 0 when omitted, so every
+ * existing flat `LngLat` (a bbox corner, a label point) is already a valid
+ * `FitPoint` with no call-site changes needed — see `fitOverview`, which
+ * still hands `fitViewToPoints` plain 2-tuples.
+ */
+type FitPoint = readonly [number, number, number?];
 
 function bboxCorners(bbox: Bbox): LngLat[] {
   const [minLng, minLat, maxLng, maxLat] = bbox;
@@ -38,6 +47,18 @@ function bboxCorners(bbox: Bbox): LngLat[] {
     [maxLng, maxLat],
     [minLng, maxLat],
   ];
+}
+
+/**
+ * `bboxCorners(bbox)`, repeated at each given elevation — e.g.
+ * `bboxCorners3D(bbox, [0, maxElevation])` yields the 8 points (4 ground +
+ * 4 top-face corners) `fitRegion` below fits the camera to, so a tall
+ * region's top face is provably on-screen after selection, not just its
+ * flat footprint (see `fitRegion`'s own doc comment for why).
+ */
+function bboxCorners3D(bbox: Bbox, elevations: readonly number[]): FitPoint[] {
+  const flat = bboxCorners(bbox);
+  return elevations.flatMap((z) => flat.map(([lng, lat]): FitPoint => [lng, lat, z]));
 }
 
 export interface FitViewOptions {
@@ -53,12 +74,12 @@ type FitResult = { longitude: number; latitude: number; zoom: number };
 
 function isContained(
   viewport: WebMercatorViewport,
-  points: readonly LngLat[],
+  points: readonly FitPoint[],
   size: Size,
   padding: number,
 ): boolean {
   for (const point of points) {
-    const [x, y] = viewport.project([point[0], point[1]]);
+    const [x, y] = viewport.project([point[0], point[1], point[2] ?? 0]);
     if (x < padding || x > size.width - padding || y < padding || y > size.height - padding) {
       return false;
     }
@@ -88,8 +109,14 @@ function isContained(
  * Steps 1-2 together are one "pass"; a handful of passes converge quickly in
  * practice (re-centering shifts the projected pixel positions only a little
  * each time) — capped at 3 passes regardless.
+ *
+ * Task B — `points` may carry an elevation (`FitPoint`'s optional 3rd
+ * element, z, meters, defaults to 0): a point with z>0 projects to a
+ * DIFFERENT screen position than the ground point directly below it once
+ * `pitch` is non-zero, so `fitRegion`'s top-face corners (below) genuinely
+ * need their own containment check, not just the flat footprint's.
  */
-export function fitViewToPoints(points: readonly LngLat[], size: Size, opts: FitViewOptions): FitResult {
+export function fitViewToPoints(points: readonly FitPoint[], size: Size, opts: FitViewOptions): FitResult {
   const { pitch, bearing, padding, minZoom, maxZoom } = opts;
 
   let minLng = Infinity;
@@ -132,7 +159,7 @@ export function fitViewToPoints(points: readonly LngLat[], size: Size, opts: Fit
     let maxX = -Infinity;
     let maxY = -Infinity;
     for (const point of points) {
-      const [x, y] = viewport.project([point[0], point[1]]);
+      const [x, y] = viewport.project([point[0], point[1], point[2] ?? 0]);
       if (x < minX) minX = x;
       if (y < minY) minY = y;
       if (x > maxX) maxX = x;
@@ -158,7 +185,7 @@ type OverviewViewState = {
 /**
  * Computes the camera view state that frames `bbox` (e.g. `unionBbox` of all
  * 14 regions) and every region's label point in the overview camera style
- * (pitch 50 / bearing -15), used for DeckMap's initial (uncontrolled)
+ * (pitch 56 / bearing -15), used for DeckMap's initial (uncontrolled)
  * `initialViewState`. Label points are included (not just the bbox corners)
  * because a region's tallest/farthest label can otherwise land outside the
  * frame even when the polygon bbox itself just barely fits.
@@ -187,20 +214,42 @@ type RegionViewState = OverviewViewState & {
   transitionDuration: "auto";
 };
 
-const FIT_REGION_PITCH = 55;
+const FIT_REGION_PITCH = 58;
+
+export interface FitRegionOptions {
+  /**
+   * Task B — the region top-face height CEILING (meters, same units as
+   * `getElevation`) to also frame, e.g. `ELEVATION_MAX` (src/lib/scales.ts).
+   * Deliberately a fixed constant, not the region's CURRENT (indicator-
+   * dependent) height: `flyTo` (useCamera.ts) only re-fits the camera when
+   * `selectedCode` changes, not on every indicator switch — fitting to the
+   * tallest a bar can EVER get keeps the same fitted camera valid (top face
+   * still on-screen) no matter which indicator the user picks afterward,
+   * without needing to re-fly. Omitted/0 -> ground-only containment (the
+   * pre-Task-B behavior).
+   */
+  maxElevation?: number;
+}
 
 /**
  * Computes the camera view state that flies to a single selected region's
- * bbox (pitch 55, closer padding, capped zoom). Wired up by useCamera.ts's
+ * bbox (pitch 58, closer padding, capped zoom). Wired up by useCamera.ts's
  * `flyTo`, called whenever `selectedCode` changes (or is re-selected).
+ *
+ * Task B — height-aware containment: checks all 8 points (the bbox's 4
+ * corners at BOTH z=0 and z=`opts.maxElevation`), not just the flat 4-point
+ * footprint — see `FitRegionOptions.maxElevation`'s doc comment for why a
+ * ground-only fit isn't enough once the camera is pitched.
  */
-export function fitRegion(bbox: Bbox, size: Size): RegionViewState {
-  const { longitude, latitude, zoom } = fitViewToPoints(bboxCorners(bbox), size, {
+export function fitRegion(bbox: Bbox, size: Size, opts?: FitRegionOptions): RegionViewState {
+  const maxElevation = opts?.maxElevation ?? 0;
+  const points = bboxCorners3D(bbox, [0, maxElevation]);
+  const { longitude, latitude, zoom } = fitViewToPoints(points, size, {
     pitch: FIT_REGION_PITCH,
     bearing: OVERVIEW_BEARING,
     padding: 80,
     minZoom: VIEW_LIMITS.minZoom,
-    maxZoom: 10.5,
+    maxZoom: 11,
   });
   return {
     longitude,

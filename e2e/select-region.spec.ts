@@ -86,7 +86,8 @@ test.describe("시군 선택", () => {
     await page.waitForTimeout(2000);
 
     const selectedCamera = await readCamera(page);
-    expect(selectedCamera.pitch).toBe(55);
+    // Task B — FIT_REGION_PITCH 55 → 58 (camera.ts).
+    expect(selectedCamera.pitch).toBe(58);
     expect(selectedCamera.zoom).toBeGreaterThan(overviewCamera.zoom);
 
     await page.screenshot({ path: "test-results/select-region-after.png" });

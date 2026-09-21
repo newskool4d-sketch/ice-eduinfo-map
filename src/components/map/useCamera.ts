@@ -13,6 +13,7 @@ import { FlyToInterpolator } from "@deck.gl/core";
 
 import { unionBbox, type Bbox } from "@/lib/geo/geo";
 import { fitOverview, fitRegion } from "@/components/map/camera";
+import { ELEVATION_MAX } from "@/lib/scales";
 import type { RegionsFeatureCollection } from "@/lib/data/types";
 
 type OverviewViewState = ReturnType<typeof fitOverview>;
@@ -118,7 +119,12 @@ export function useCamera(
       if (code) {
         const feature = regions.features.find((f) => f.properties.code === code);
         if (!feature) return;
-        const view = fitRegion(feature.properties.bbox, size);
+        // Task B — `ELEVATION_MAX` (src/lib/scales.ts), NOT the region's
+        // current elevation: see fitRegion's own FitRegionOptions doc
+        // comment — a fixed ceiling keeps this same fitted camera framing
+        // the top face correctly across an indicator switch, since that
+        // never re-triggers this flyTo.
+        const view = fitRegion(feature.properties.bbox, size, { maxElevation: ELEVATION_MAX });
         setCameraViewState({
           ...view,
           transitionDuration: reduceMotion ? 0 : view.transitionDuration,
