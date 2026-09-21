@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("switching the indicator updates the legend, with no console errors", async ({ page }) => {
   const consoleErrors: string[] = [];

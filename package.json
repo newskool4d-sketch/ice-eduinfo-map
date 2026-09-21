@@ -25,7 +25,10 @@
   },
   "dependencies": {
     "@deck.gl/core": "9.4.0",
+    "@deck.gl/extensions": "9.4.0",
+    "@deck.gl/geo-layers": "9.4.0",
     "@deck.gl/layers": "9.4.0",
+    "@deck.gl/mesh-layers": "9.4.0",
     "@deck.gl/react": "9.4.0",
     "@deck.gl/widgets": "9.4.0",
     "@luma.gl/effects": "9.4.2",

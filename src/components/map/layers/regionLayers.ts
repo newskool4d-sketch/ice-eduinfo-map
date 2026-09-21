@@ -34,17 +34,35 @@ type NeighborFeatureCollection = FeatureCollection<
   { code: string; name: string }
 >;
 
+export interface NeighborsLayerOptions {
+  /**
+   * Task C — true once the VWorld basemap tiles are visible underneath:
+   * swaps the opaque backdrop for a translucent navy mask so the basemap
+   * actually reads through the neighbor silhouette/border instead of being
+   * fully hidden by it. Defaults to false (the original opaque backdrop),
+   * so every pre-Task-C call site (`makeNeighborsLayer(fc)`, no options)
+   * keeps rendering exactly as before.
+   */
+  masked?: boolean;
+}
+
 /** Flat, unpickable silhouette of the 시도 bordering 전북 (backdrop context only). */
-export function makeNeighborsLayer(fc: NeighborFeatureCollection) {
+export function makeNeighborsLayer(fc: NeighborFeatureCollection, opts: NeighborsLayerOptions = {}) {
+  const masked = opts.masked ?? false;
+
   return new GeoJsonLayer<{ code: string; name: string }>({
     id: "neighbors",
     data: fc,
     filled: true,
     stroked: true,
-    getFillColor: [22, 27, 40],
-    getLineColor: [40, 48, 66],
+    getFillColor: masked ? [11, 15, 25, 140] : [22, 27, 40],
+    getLineColor: masked ? [40, 48, 66, 160] : [40, 48, 66],
     lineWidthMinPixels: 1,
     pickable: false,
+    updateTriggers: {
+      getFillColor: [masked],
+      getLineColor: [masked],
+    },
   });
 }
 

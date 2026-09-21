@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Page } from "@playwright/test";
 
 async function waitForMapReady(page: Page) {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });

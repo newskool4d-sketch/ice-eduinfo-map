@@ -12,7 +12,9 @@ import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/g
 import { lightingEffect, lightingEffectNoShadow } from "@/components/map/lighting";
 import { createPostProcessEffects } from "@/components/map/effects";
 import { isMapFxOff } from "@/components/map/mapFx";
+import { readBasemapPref, writeBasemapPref } from "@/components/map/basemapPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
+import { makeBasemapLayer } from "@/components/map/layers/basemapLayer";
 import {
   makeFootprintLayer,
   makeIslandsLayer,
@@ -88,6 +90,17 @@ function recordE2eEvent(event: JbmapEvent) {
 // and deliberately INDEPENDENT of `E2E` (e2e runs with visual fx ON by
 // default; NEXT_PUBLIC_MAP_FX is a separate, manually-set escape hatch).
 const MAP_FX_OFF = isMapFxOff();
+
+// Task C — same module-scope-constant pattern as `E2E`/`MAP_FX_OFF` above:
+// NEXT_PUBLIC_* vars are inlined into the client bundle at build time, so
+// this never changes at runtime — no point re-reading it per render. Empty
+// string (Next.js's own behavior for an unset NEXT_PUBLIC_* var at runtime,
+// vs. simply undefined at build time) is treated the same as "no key" by
+// every `VWORLD_KEY &&` gate below.
+const VWORLD_KEY = process.env.NEXT_PUBLIC_VWORLD_KEY;
+
+/** Task C — shown next to the "배경 지도" MapOverlay toggle while the basemap is on. No "기준일" word, no date string — those two specifically break e2e/closed-schools.spec.ts's footer-source assertions and tests/components/Footer.test.tsx's 기준일 count (see task-C-brief.md). */
+const BASEMAP_ATTRIBUTION = "배경지도 © 국토교통부 브이월드(VWorld)";
 
 function nameOf(code: string): string {
   return isRegionCode(code) ? regionName(code) : code;
@@ -469,6 +482,23 @@ export default function DeckMap({
   // while on; resets to off on every fresh page load, by design.
   const [presentation, setPresentation] = useState(false);
 
+  // Task C — 배경 지도 (VWorld midnight): unlike `presentation`, this toggle
+  // IS persisted (localStorage, via basemapPref.ts) — `useState(() => ...)`
+  // (lazy initializer) so `readBasemapPref()`'s localStorage read only ever
+  // happens once, on mount, not every render. Defaults to ON when nothing
+  // is stored yet, per the task brief. Gated on `VWORLD_KEY` everywhere it's
+  // read below (`basemapLayer`, `overlayItems`, the attribution string) —
+  // with no key, the toggle never renders and the layer is always `null`,
+  // regardless of what's in localStorage.
+  const [basemapEnabled, setBasemapEnabled] = useState(() => readBasemapPref());
+  const handleBasemapToggle = useCallback(() => {
+    setBasemapEnabled((prev) => {
+      const next = !prev;
+      writeBasemapPref(next);
+      return next;
+    });
+  }, []);
+
   // Task A — `effects` (NOT `layers`): the lighting effect (shadow on/off
   // per the NEXT_PUBLIC_MAP_FX=off emergency switch) plus the post-process
   // chain (vibrance/brightnessContrast/vignette/[tiltShift]/fxaa). Memoized
@@ -487,11 +517,13 @@ export default function DeckMap({
     [presentation],
   );
 
-  // Task A — MapOverlay's controlled button list. Just one item this task
-  // (발표 모드); `items` stays an array (not fixed named props) so Task C can
-  // append a "배경 지도" button without changing MapOverlay's shape.
-  const overlayItems = useMemo<MapOverlayItem[]>(
-    () => [
+  // Task A — MapOverlay's controlled button list. `items` is an array (not
+  // fixed named props) specifically so Task C could append a "배경 지도"
+  // button without changing MapOverlay's shape — it does, below, but ONLY
+  // when a VWorld key is configured at all (per the task brief: no key ->
+  // no toggle, not a disabled one).
+  const overlayItems = useMemo<MapOverlayItem[]>(() => {
+    const items: MapOverlayItem[] = [
       {
         id: "presentation",
         label: "발표 모드",
@@ -499,14 +531,38 @@ export default function DeckMap({
         onToggle: () => setPresentation((p) => !p),
         title: "틸트시프트·미니어처 효과",
       },
-    ],
-    [presentation],
+    ];
+    if (VWORLD_KEY) {
+      items.push({
+        id: "basemap",
+        label: "배경 지도",
+        pressed: basemapEnabled,
+        onToggle: handleBasemapToggle,
+        title: "브이월드 배경 타일",
+      });
+    }
+    return items;
+  }, [presentation, basemapEnabled, handleBasemapToggle]);
+
+  // Task C — the VWorld basemap TileLayer, or `null` when there's no key or
+  // the toggle is off. Memoized on `basemapEnabled` only (not `[]`) — VWORLD_KEY
+  // is a build-time-fixed module constant (same reasoning as MAP_FX_OFF
+  // above), so it can never change across renders and including it as a dep
+  // would be a permanent no-op.
+  const basemapLayer = useMemo(
+    () => (VWORLD_KEY && basemapEnabled ? makeBasemapLayer(VWORLD_KEY) : null),
+    [basemapEnabled],
   );
 
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = reduceMotion ? 0 : undefined; // undefined -> each factory's own 600ms default
     const layerList: LayersList = [
-      makeNeighborsLayer(bundle.neighbors),
+      // Task C — always slot 0 (front of the array), `null` (not omitted,
+      // not nested) when off — e2e/basemap.spec.ts reads
+      // `deck.props.layers[0]` directly, and `layers` must stay a FLAT array
+      // (a nested array here would break that same test's plain `.find`).
+      basemapLayer,
+      makeNeighborsLayer(bundle.neighbors, { masked: basemapEnabled }),
       makeFootprintLayer(bundle.regions),
       makeRegionsLayer(bundle.regionsMain, {
         elevationOf,
@@ -561,6 +617,8 @@ export default function DeckMap({
     }
     return layerList;
   }, [
+    basemapLayer,
+    basemapEnabled,
     bundle.regions,
     bundle.regionsMain,
     bundle.regionsIslands,
@@ -681,7 +739,10 @@ export default function DeckMap({
           useDevicePixels={Math.min(window.devicePixelRatio || 1, 1.5)}
         />
       )}
-      <MapOverlay items={overlayItems} />
+      <MapOverlay
+        items={overlayItems}
+        attribution={VWORLD_KEY && basemapEnabled ? BASEMAP_ATTRIBUTION : undefined}
+      />
       {contextLost && (
         <div
           role="alert"
