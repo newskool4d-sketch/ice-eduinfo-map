@@ -13,8 +13,10 @@ import { lightingEffect, lightingEffectNoShadow } from "@/components/map/lightin
 import { createPostProcessEffects } from "@/components/map/effects";
 import { isMapFxOff } from "@/components/map/mapFx";
 import { readBasemapPref, writeBasemapPref } from "@/components/map/basemapPref";
+import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
 import { makeBasemapLayer } from "@/components/map/layers/basemapLayer";
+import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
 import {
   makeFootprintLayer,
   makeIslandsLayer,
@@ -27,6 +29,7 @@ import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/compo
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
 import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
 import { useCamera } from "@/components/map/useCamera";
+import { useEmdBoundaries } from "@/components/map/useEmdBoundaries";
 import { useFontGate } from "@/components/map/useFontGate";
 import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
 import { useBundle } from "@/lib/data/DataProvider";
@@ -523,6 +526,19 @@ export default function DeckMap({
     });
   }, []);
 
+  // Task E — 읍면동 경계: persisted (localStorage via emdPref.ts, same
+  // lazy-initializer pattern as basemapEnabled/basemapPref.ts just above)
+  // toggle, default ON. Unlike the basemap toggle, this one is never gated
+  // on an external key — it always renders.
+  const [emdEnabled, setEmdEnabled] = useState(() => readEmdPref());
+  const handleEmdToggle = useCallback(() => {
+    setEmdEnabled((prev) => {
+      const next = !prev;
+      writeEmdPref(next);
+      return next;
+    });
+  }, []);
+
   // Task A — `effects` (NOT `layers`): the lighting effect (shadow on/off
   // per the NEXT_PUBLIC_MAP_FX=off emergency switch) plus the post-process
   // chain (vibrance/brightnessContrast/vignette/[tiltShift]/fxaa). Memoized
@@ -565,8 +581,18 @@ export default function DeckMap({
         title: "브이월드 배경 타일",
       });
     }
+    // Task E — 읍면동 경계: always rendered (unlike "배경 지도", never gated
+    // on an external key), positioned last per the task brief ("발표
+    // 모드·배경 지도 버튼 뒤").
+    items.push({
+      id: "emd",
+      label: "읍면동 경계",
+      pressed: emdEnabled,
+      onToggle: handleEmdToggle,
+      title: "선택한 시군의 읍면동 경계선",
+    });
     return items;
-  }, [presentation, basemapEnabled, handleBasemapToggle]);
+  }, [presentation, basemapEnabled, handleBasemapToggle, emdEnabled, handleEmdToggle]);
 
   // Task C — the VWorld basemap TileLayer, or `null` when there's no key or
   // the toggle is off. Memoized on `basemapEnabled` only (not `[]`) — VWORLD_KEY
@@ -577,6 +603,11 @@ export default function DeckMap({
     () => (VWORLD_KEY && basemapEnabled ? makeBasemapLayer(VWORLD_KEY) : null),
     [basemapEnabled],
   );
+
+  // Only ever fetches while emdEnabled AND a 시군 is selected (see
+  // useEmdBoundaries' own doc comment for why it's also safe re: e2e's
+  // zero-console-error assertions) — null the rest of the time.
+  const emdFc = useEmdBoundaries(selectedCode, emdEnabled);
 
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = reduceMotion ? 0 : undefined; // undefined -> each factory's own 600ms default
@@ -609,6 +640,19 @@ export default function DeckMap({
         triggerKey: indicatorId,
         transitionDuration,
       }),
+      // Task E — 읍면동 경계: `null` (a flat array slot, same as
+      // `basemapLayer` above — e2e does a flat `find` on `deck.props.layers`)
+      // when off/nothing selected/not yet loaded. Sits just after
+      // region-top-rings and before schools, per the task brief's layer
+      // order — thin outline drawn on the selected region's top face,
+      // beneath the school columns.
+      emdEnabled && selectedCode && emdFc
+        ? makeEmdBoundaryLayer(emdFc, {
+            elevation: elevationOf(selectedCode),
+            triggerKey: indicatorId,
+            transitionDuration,
+          })
+        : null,
       makeSchoolsLayer(positionedRegionSchools, {
         elevationOf,
         heightOf,
@@ -681,6 +725,8 @@ export default function DeckMap({
     selectedCode,
     handleRegionClick,
     rings,
+    emdEnabled,
+    emdFc,
     positionedRegionSchools,
     heightOf,
     heightKey,
