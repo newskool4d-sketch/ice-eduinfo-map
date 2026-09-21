@@ -8,7 +8,7 @@ import { DEFAULT_INDICATOR_ID } from "@/lib/indicators/registry";
  * prerendering — this is the static shell Next renders in that gap, before
  * Dashboard itself takes over client-side.
  *
- * Layout skeleton only, dark, no data: reuses TopBar with `bundle={null}`
+ * Layout skeleton only, light theme, no data: reuses TopBar with `bundle={null}`
  * (its own loading state — indicator menu + KPI tiles render as skeleton
  * bars) rather than duplicating that markup here. `indicatorId` is never
  * displayed in the bundle-less state, so any valid id works.
