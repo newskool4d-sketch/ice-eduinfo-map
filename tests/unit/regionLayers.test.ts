@@ -123,8 +123,9 @@ describe("makeRegionsLayer", () => {
       fillColorOf: () => [0, 0, 0, 255],
       triggerKey: "v1",
     });
+    // Fix round 1, finding 4 (lighting.ts) — REGION_MATERIAL.ambient 0.35 -> 0.45.
     expect(layer.props.material).toEqual({
-      ambient: 0.35,
+      ambient: 0.45,
       diffuse: 0.7,
       shininess: 14,
       specularColor: [0.1, 0.1, 0.12],

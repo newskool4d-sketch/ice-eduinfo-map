@@ -20,9 +20,17 @@ function ambientLight(effect: { props: Record<string, NamedLight> }): AmbientLig
 }
 
 describe("lightingEffect", () => {
-  it("has exactly one shadow-casting DirectionalLight (the key light) among 2 directional lights", () => {
+  // Fix round 1, finding 4 — the fill light is gone (not just non-shadow-
+  // casting): LightingEffect creates one ShadowPass PER directional light
+  // unconditionally (lighting-effect.js's `_createShadowPasses`/
+  // `_calculateMatrices` both loop over `this.directionalLights` with no
+  // per-light `.shadow` filter), so a second light was silently doubling
+  // the shadow-pass cost for a light that was never meant to cast one. See
+  // lighting.ts's own comment for the full mechanism and the ambient/
+  // material compensation.
+  it("has exactly one directional light (the key light), and it casts a shadow", () => {
     const directional = directionalLights(lightingEffect);
-    expect(directional).toHaveLength(2); // key + fill
+    expect(directional).toHaveLength(1);
     expect(directional.filter((l) => l.shadow === true)).toHaveLength(1);
   });
 
@@ -34,8 +42,10 @@ describe("lightingEffect", () => {
     expect(key.direction[2]).toBeCloseTo(expected[2], 10);
   });
 
-  it("ambient light intensity is 0.7 (down from the pre-Task-A 0.8)", () => {
-    expect(ambientLight(lightingEffect).intensity).toBe(0.7);
+  // Fix round 1, finding 4 — 0.85 (up from Task A's 0.7): raised to
+  // compensate for removing the fill light, above.
+  it("ambient light intensity is 0.85 (compensating for the removed fill light)", () => {
+    expect(ambientLight(lightingEffect).intensity).toBe(0.85);
   });
 
   // The brief specifies shadowColor = [4, 6, 14, 0.3] (a dark-navy-at-alpha-0.3
@@ -60,20 +70,35 @@ describe("lightingEffect", () => {
   });
 });
 
-// Task A — CRITICAL picking regression, found empirically (not documented by
-// deck.gl): `@deck.gl/core`'s picking pass does
-// `effects: effects?.filter(e => e.useInPicking)` (pick-layers-pass.js), and
-// `LightingEffect` never sets `useInPicking` itself. With `_shadow: true`,
-// the shadow module's vertex-shader injection (`shadow_setVertexPosition`,
-// which can overwrite `gl_Position`) still applies during picking (it's a
-// DECK-WIDE default shader module once shadow is on), but WITHOUT
-// `useInPicking: true`, LightingEffect's own (safe) `getShaderModuleProps`
-// never runs for that pass — leaving the shader's `shadow` uniform block
-// uninitialized and silently corrupting picking-pass geometry. Verified
-// directly: with this unset, `deck.pickObject()` returned null for EVERY
-// layer at EVERY canvas pixel (a 1240x733 grid scan went from 86 hits on
-// the pre-Task-A baseline to 0) — every region click on the map silently
-// failed. See lighting.ts's own doc comment for the full mechanism.
+// Fix round 1, finding 1 — REWRITTEN: Task A's original comment here (and
+// its "corrupts gl_Position" theory) was wrong. Re-traced against the
+// installed deck.gl/luma.gl sources; the real mechanism never touches
+// `gl_Position`. `@deck.gl/core`'s picking pass does `effects:
+// effects?.filter(e => e.useInPicking)` (pick-layers-pass.js:48), and
+// `LightingEffect` never sets `useInPicking` itself, so its
+// `getShaderModuleProps` (the only source of a real `dummyShadowMap`) never
+// runs for picking. `LayersPass._getShaderModuleProps`'s "ensure every
+// default shader module has an entry" fallback (layers-pass.js:310-318)
+// still inserts an EMPTY `shadow: {}`, so `createShadowUniforms({})`
+// (shadow.js:147-156) hits its early-return branch: `drawShadowMap:false,
+// useShadowMap:false` (so the vertex shader's `shadow_setVertexPosition`
+// falls through both branches and returns `gl_Position` UNCHANGED — no
+// corruption), but ALSO `shadow_uShadowMap0/1: undefined`. Those are real
+// texture bindings every layer's compiled program now declares (shadow is a
+// deck-wide default shader module once `_shadow:true` registers it — see
+// lighting.ts's own comment). `WEBGLRenderPipeline._areTexturesRenderable`
+// (webgl-render-pipeline.js:143-152) finds the missing binding, logs the
+// exact observed warning, and returns false; `WEBGLRenderPass.draw()`
+// (webgl-render-pass.js:166-169) then ABORTS the draw call before any
+// `gl.drawArrays`/`gl.drawElements` — for every layer, in every picking
+// draw. That's why the picking buffer came back completely empty (0/86 hits
+// on a full canvas grid scan, not corrupted/glitched hits) rather than
+// merely wrong. Verified both by reading the installed sources end to end
+// and empirically (temporarily disabling the fix below reproduced 0/10
+// `deck.pickObject()` hits plus the exact predicted
+// `shadow_uShadowMap0/1 not found` warnings with a matching stack trace —
+// see lighting.ts's own comment and task-A-report.md's "Fix round 1"
+// section for the full methodology).
 describe("useInPicking (Task A — picking-pass regression fix)", () => {
   it("is true on both lightingEffect and lightingEffectNoShadow", () => {
     expect((lightingEffect as Effect).useInPicking).toBe(true);
@@ -82,21 +107,23 @@ describe("useInPicking (Task A — picking-pass regression fix)", () => {
 });
 
 describe("lightingEffectNoShadow (Task A — NEXT_PUBLIC_MAP_FX=off emergency switch)", () => {
-  it("has the same 2 directional lights but zero shadow casters", () => {
+  it("has the same 1 directional light (fill removed, fix round 1 finding 4) with shadow casting off", () => {
     const directional = directionalLights(lightingEffectNoShadow);
-    expect(directional).toHaveLength(2);
+    expect(directional).toHaveLength(1);
     expect(directional.filter((l) => l.shadow === true)).toHaveLength(0);
   });
 
   it("keeps the same ambient intensity as the shadowed variant", () => {
-    expect(ambientLight(lightingEffectNoShadow).intensity).toBe(0.7);
+    expect(ambientLight(lightingEffectNoShadow).intensity).toBe(0.85);
   });
 });
 
 describe("REGION_MATERIAL", () => {
-  it("matches Task A's re-tuned values", () => {
+  // Fix round 1, finding 4 — ambient 0.35 -> 0.45, same compensation as
+  // AMBIENT_INTENSITY above.
+  it("matches fix round 1's re-tuned values", () => {
     expect(REGION_MATERIAL).toEqual({
-      ambient: 0.35,
+      ambient: 0.45,
       diffuse: 0.7,
       shininess: 14,
       specularColor: [0.1, 0.1, 0.12],

@@ -37,15 +37,21 @@ describe("createPostProcessEffects", () => {
     expect(ids(createPostProcessEffects({ presentation: true, fxOff: false })).at(-1)).toBe("fxaa-pass");
   });
 
-  it("uses the brief's exact tuning values for each pass", () => {
+  // Fix round 1, finding 5 — controller visual-tuning pass: Task A's
+  // original values (vignette radius 0.72/amount 0.55, contrast 0.12,
+  // tiltShift blurRadius 6/gradientRadius 260) read too dark/murky in
+  // screenshots, and the presentation-mode blur was too strong. Re-tuned
+  // values below; see task-A-report.md's "Fix round 1" section for the
+  // before/after screenshots this was checked against.
+  it("uses fix round 1's re-tuned values for each pass", () => {
     const effects = createPostProcessEffects({ presentation: true, fxOff: false }) as {
       id: string;
       props: Record<string, unknown>;
     }[];
     const byId = Object.fromEntries(effects.map((e) => [e.id, e.props]));
     expect(byId["vibrance-pass"]).toEqual({ amount: 0.35 });
-    expect(byId["brightnessContrast-pass"]).toEqual({ brightness: 0.02, contrast: 0.12 });
-    expect(byId["vignette-pass"]).toEqual({ radius: 0.72, amount: 0.55 });
-    expect(byId["tiltShift-pass"]).toEqual({ blurRadius: 6, gradientRadius: 260 });
+    expect(byId["brightnessContrast-pass"]).toEqual({ brightness: 0.02, contrast: 0.06 });
+    expect(byId["vignette-pass"]).toEqual({ radius: 0.85, amount: 0.35 });
+    expect(byId["tiltShift-pass"]).toEqual({ blurRadius: 4, gradientRadius: 320 });
   });
 });
