@@ -34,7 +34,7 @@ import { useFontGate } from "@/components/map/useFontGate";
 import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
-import { displayLabel, rank, valueMap } from "@/lib/stats";
+import { collisionPriorityFromRank, displayLabel, rank, valueMap } from "@/lib/stats";
 import { makeColorScale } from "@/lib/colors";
 import { makeElevationScale } from "@/lib/scales";
 import { makeSchoolHeightScale } from "@/lib/schoolVisuals";
@@ -262,11 +262,11 @@ export default function DeckMap({
   // makeRegionLabelLayer itself, not here.
   const priorityOf = useMemo(() => {
     const ranks = rank(map);
-    const lowestPriority = -(REGION_CODES.length + 1);
-    return (code: string): number => {
-      const r = ranks.get(code);
-      return r === undefined ? lowestPriority : -r;
-    };
+    // B(b) — the rank -> collision-priority mapping itself now lives in
+    // stats.ts as a pure, unit-tested helper (collisionPriorityFromRank);
+    // this closure only supplies what's specific to THIS render (the rank
+    // lookup + REGION_CODES.length).
+    return (code: string): number => collisionPriorityFromRank(ranks.get(code), REGION_CODES.length);
   }, [map]);
 
   const announcement = useMemo(() => {
@@ -563,15 +563,19 @@ export default function DeckMap({
   // when a VWorld key is configured at all (per the task brief: no key ->
   // no toggle, not a disabled one).
   const overlayItems = useMemo<MapOverlayItem[]>(() => {
-    const items: MapOverlayItem[] = [
-      {
+    const items: MapOverlayItem[] = [];
+    // I-4 — NEXT_PUBLIC_MAP_FX=off strips the post-process chain down to
+    // nothing (createPostProcessEffects), so "발표 모드" would be a visible
+    // no-op toggle; don't surface it at all in that mode.
+    if (!MAP_FX_OFF) {
+      items.push({
         id: "presentation",
         label: "발표 모드",
         pressed: presentation,
         onToggle: () => setPresentation((p) => !p),
         title: "틸트시프트·미니어처 효과",
-      },
-    ];
+      });
+    }
     if (VWORLD_KEY) {
       items.push({
         id: "basemap",
@@ -594,14 +598,29 @@ export default function DeckMap({
     return items;
   }, [presentation, basemapEnabled, handleBasemapToggle, emdEnabled, handleEmdToggle]);
 
+  // I-1 — single source of truth for "is the basemap actually visually on,"
+  // computed once and reused everywhere that used to gate on
+  // `VWORLD_KEY`/`basemapEnabled` separately (the basemap TileLayer just
+  // below, the neighbors layer's `masked` option, and the attribution
+  // caption in the JSX below). Without this, a no-key deployment correctly
+  // left `basemapLayer` `null` but still passed `masked: basemapEnabled`
+  // (true by default) to `makeNeighborsLayer` — the masked fill color
+  // ([11,15,25,140]) sits almost exactly on top of the container's own
+  // `#0b0f19` background, silently hiding every neighboring 시도 silhouette
+  // even though no basemap tile was ever drawn to mask them against.
+  const basemapOn = !!VWORLD_KEY && basemapEnabled;
+
   // Task C — the VWorld basemap TileLayer, or `null` when there's no key or
-  // the toggle is off. Memoized on `basemapEnabled` only (not `[]`) — VWORLD_KEY
+  // the toggle is off. Memoized on `basemapOn` only (not `[]`) — VWORLD_KEY
   // is a build-time-fixed module constant (same reasoning as MAP_FX_OFF
   // above), so it can never change across renders and including it as a dep
-  // would be a permanent no-op.
+  // would be a permanent no-op. The extra `VWORLD_KEY &&` alongside
+  // `basemapOn` is redundant at runtime (basemapOn already implies it) —
+  // it's there purely so TypeScript narrows VWORLD_KEY to `string` for the
+  // makeBasemapLayer(VWORLD_KEY) call below.
   const basemapLayer = useMemo(
-    () => (VWORLD_KEY && basemapEnabled ? makeBasemapLayer(VWORLD_KEY) : null),
-    [basemapEnabled],
+    () => (VWORLD_KEY && basemapOn ? makeBasemapLayer(VWORLD_KEY) : null),
+    [basemapOn],
   );
 
   // Only ever fetches while emdEnabled AND a 시군 is selected (see
@@ -617,7 +636,7 @@ export default function DeckMap({
       // `deck.props.layers[0]` directly, and `layers` must stay a FLAT array
       // (a nested array here would break that same test's plain `.find`).
       basemapLayer,
-      makeNeighborsLayer(bundle.neighbors, { masked: basemapEnabled }),
+      makeNeighborsLayer(bundle.neighbors, { masked: basemapOn }),
       makeFootprintLayer(bundle.regions),
       makeRegionsLayer(bundle.regionsMain, {
         elevationOf,
@@ -668,13 +687,15 @@ export default function DeckMap({
       // Task D, fix round 1 — school-labels is pushed BEFORE region-labels
       // (was the other way around): two reasons, both from the review that
       // caught the 전주시 chip getting painted over by school-name chips.
-      // (1) Paint order: both label layers still draw with normal
-      // depth-testing at THIS z (they're billboarded text, not the
-      // depthCompare:'always' hack the old flat schools point layer used),
-      // but for two labels that happen to occupy the same screen pixels at
-      // similar depth, deck.gl's painter's-algorithm draw order still
-      // matters as a tiebreaker — region-labels must be the one drawn LAST
-      // so it's the one a viewer actually sees on top. (2) A narrower,
+      // (1) Paint order: BOTH label layers draw with `depthCompare: 'always'`
+      // (labelLayer.ts:154, schoolLayers.ts:292) — the exact same hack the
+      // old flat schools point layer used, not "normal depth-testing" as an
+      // earlier version of this comment wrongly claimed. With depth testing
+      // effectively off on both sides, deck.gl's painter's-algorithm draw
+      // order is the ONLY thing that decides which label wins when two
+      // labels' screen-space quads overlap at similar depth — region-labels
+      // must be drawn LAST (pushed after school-labels here) so it always
+      // ends up the one a viewer actually sees on top. (2) A narrower,
       // shared-collision-FBO edge case: now that both layers share
       // `collisionGroup: 'labels'` (schoolLayers.ts), a region label at
       // array index i and a school label ALSO at index i encode the SAME
@@ -714,7 +735,7 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
-    basemapEnabled,
+    basemapOn,
     bundle.regions,
     bundle.regionsMain,
     bundle.regionsIslands,
@@ -841,7 +862,7 @@ export default function DeckMap({
       )}
       <MapOverlay
         items={overlayItems}
-        attribution={VWORLD_KEY && basemapEnabled ? BASEMAP_ATTRIBUTION : undefined}
+        attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
       />
       {contextLost && (
         <div

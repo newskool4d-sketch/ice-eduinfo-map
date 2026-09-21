@@ -95,7 +95,7 @@ export function makeEmdBoundaryLayer(fc: FeatureCollection, opts: EmdBoundaryLay
     getPath: (d): Point3[] => d.path.map(([x, y]) => [x, y, opts.elevation + 3]),
     widthUnits: "pixels",
     getWidth: 1,
-    getColor: [236, 239, 245, 70] as RGBA,
+    getColor: [236, 239, 245, 100] as RGBA,
     jointRounded: true,
     // Same rationale as makeRegionTopRingsLayer's own shadowEnabled: false —
     // not part of PathLayer's public TS prop type (deck.gl's shadow pass

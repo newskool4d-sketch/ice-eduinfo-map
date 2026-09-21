@@ -72,6 +72,24 @@ export function rank(map: Map<string, number | null>): Map<string, number> {
   return result;
 }
 
+/**
+ * Task B, extracted (I-6/B(b)) — maps a `rank()` result to a
+ * CollisionFilterExtension `getCollisionPriority` value: a bigger indicator
+ * value (a SMALLER rank number, 1 = biggest) must win a label collision over
+ * a smaller one, so the rank is simply negated (rank 1 -> -1, rank 14 ->
+ * -14). A region with no rank at all (`rank()` omits null-valued regions
+ * entirely, so this is `undefined` from a `Map.get`; `null` is also accepted
+ * for callers that aren't going through a Map) gets the LOWEST priority of
+ * all, strictly below every real rank: `-(regionCount + 1)`. Pure, no
+ * deck.gl/React dependency — DeckMap.tsx's `priorityOf` is a thin closure
+ * over this plus a `rank(map)` lookup; unit tested directly here
+ * (tests/unit/stats.test.ts) as well as indirectly through DeckMap's own
+ * usage.
+ */
+export function collisionPriorityFromRank(rank: number | null | undefined, regionCount: number): number {
+  return rank === null || rank === undefined ? -(regionCount + 1) : -rank;
+}
+
 /** `value(code) - value(52000)`, or null if either side is null/missing. */
 export function vsProvince(map: Map<string, number | null>, code: string): number | null {
   const value = map.get(code);

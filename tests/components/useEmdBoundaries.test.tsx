@@ -110,6 +110,38 @@ describe("useEmdBoundaries", () => {
     expect(screen.getByTestId("result")).toHaveTextContent("2");
   });
 
+  it("(e) E-cache: a response that arrives AFTER the request was cancelled (unmount) is still cached — a later mount with the same code is a cache hit, no second fetch", async () => {
+    const code = "52710";
+    let resolveFetch!: (body: FeatureCollection) => void;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = (body) => resolve(okResponse(body));
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = render(<Harness code={code} enabled={true} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(`/data/emd/${code}.geojson`));
+
+    // Unmount BEFORE the fetch resolves — runs the effect's cleanup
+    // (`cancelled = true`) while the fetch is still in flight.
+    first.unmount();
+
+    // The now-cancelled fetch resolves late. E-cache: the response must
+    // still be written into the module-scope cache even though this
+    // (unmounted) hook instance's own setFc is skipped for a cancelled
+    // request.
+    resolveFetch(fcWith(4));
+    await new Promise((r) => setTimeout(r, 0));
+
+    // A brand-new mount with the SAME code must be a pure cache hit — no
+    // second fetch call.
+    render(<Harness code={code} enabled={true} />);
+    await waitFor(() => expect(screen.getByTestId("result")).toHaveTextContent("4"));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("(d) a network rejection resolves to null without ever calling console.error", async () => {
     const code = "52190";
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});

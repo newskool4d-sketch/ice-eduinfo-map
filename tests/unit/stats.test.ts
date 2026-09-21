@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   changeYearRange,
+  collisionPriorityFromRank,
   deltaPrevYear,
   displayLabel,
   rank,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/stats";
 import type { IndicatorDef, IndicatorFile, SeriesFile } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
+import { REGION_CODES } from "@/lib/geo/regions";
 
 function fileFixture(): IndicatorFile {
   return {
@@ -103,6 +105,38 @@ describe("rank", () => {
     const ranks = rank(map);
     expect(ranks.has("52130")).toBe(false);
     expect(ranks.get("52110")).toBe(1);
+  });
+});
+
+describe("collisionPriorityFromRank", () => {
+  const regionCount = REGION_CODES.length;
+
+  it("negates the rank: rank 1 -> -1, rank 14 -> -14", () => {
+    expect(collisionPriorityFromRank(1, regionCount)).toBe(-1);
+    expect(collisionPriorityFromRank(14, regionCount)).toBe(-14);
+  });
+
+  it("undefined or null (no rank at all, i.e. no data) maps to the lowest priority of all: -(regionCount+1) = -15", () => {
+    expect(collisionPriorityFromRank(undefined, regionCount)).toBe(-15);
+    expect(collisionPriorityFromRank(null, regionCount)).toBe(-15);
+  });
+
+  // A school label's collision priority (schoolLayers.ts's
+  // schoolCollisionPriority) is clamped to [-1000, -100] specifically so it
+  // can NEVER outrank a 시군 (region) label, selected or not — this pins
+  // down the region side of that guarantee: every real output this function
+  // can ever produce stays within [-15, -1], strictly above -100.
+  it("every output stays within [-15, -1], always above the school-label priority ceiling of -100", () => {
+    const outputs = [
+      ...Array.from({ length: regionCount }, (_, i) => collisionPriorityFromRank(i + 1, regionCount)),
+      collisionPriorityFromRank(undefined, regionCount),
+      collisionPriorityFromRank(null, regionCount),
+    ];
+    for (const priority of outputs) {
+      expect(priority).toBeGreaterThanOrEqual(-15);
+      expect(priority).toBeLessThanOrEqual(-1);
+      expect(priority).toBeGreaterThan(-100);
+    }
   });
 });
 

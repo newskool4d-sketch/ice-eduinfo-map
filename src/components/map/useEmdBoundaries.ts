@@ -44,10 +44,13 @@ function cachedOrNull(activeCode: string | null): FeatureCollection | null {
  * resolves to `null`, quietly — this module never calls `console.error`.
  *
  * Stale-response guard: if `code` changes while a fetch for the PREVIOUS
- * code is still in flight, that previous fetch's eventual result (success
- * or failure) is discarded — `cancelled` is captured per-effect-run, and
+ * code is still in flight, that previous fetch's eventual result never
+ * updates THIS hook's state (`cancelled` is captured per-effect-run, and
  * React runs the previous run's cleanup (setting it) before starting the
- * next one.
+ * next one) — but a SUCCESSFUL response is still written into the
+ * module-scope cache first (E-cache, see the effect body below), so it
+ * isn't wasted: re-selecting that same code later is a cache hit, not a
+ * second fetch.
  *
  * "disabled/no code/unknown code" and "already cached" are both handled
  * SYNCHRONOUSLY during render (React's documented "adjust state when a prop
@@ -82,8 +85,17 @@ export function useEmdBoundaries(code: string | null, enabled: boolean): Feature
           return;
         }
         const json = (await res.json()) as FeatureCollection;
-        if (cancelled) return;
+        // E-cache — cache the successful response BEFORE the cancelled
+        // check: the cache is keyed by `activeCode` (a real 시군 code), so a
+        // late-arriving response for an abandoned request can never
+        // contaminate a DIFFERENT code's entry — only `setFc` (this
+        // component instance's own state) needs to stay gated on
+        // `cancelled`. Caching unconditionally means a cancelled request
+        // (unmount, or the user re-selecting mid-flight) still pays off:
+        // re-selecting the SAME 시군 later is a cache hit, not a wasted
+        // re-fetch.
         cache.set(activeCode, json);
+        if (cancelled) return;
         setFc(json);
       } catch {
         // Network failure / aborted / malformed JSON — deliberately no
