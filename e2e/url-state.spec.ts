@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 
 async function waitForMapReady(page: import("@playwright/test").Page) {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
@@ -18,7 +18,7 @@ test("selecting an indicator from the menu updates the URL and survives a refres
 
   // Confirms the popover renders above the map canvas, not behind it (the
   // task instructions specifically ask for this to be visually verified).
-  await page.screenshot({ path: "test-results/indicator-menu-open.png" });
+  await docShot(page, "indicator-menu-open");
 
   await page.getByRole("radio", { name: "학급당 학생수" }).click();
   await expect(dialog).not.toBeVisible();

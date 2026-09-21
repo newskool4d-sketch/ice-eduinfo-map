@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 
 test("폐교 지표: /?indicator=closed_schools 진입 → 범례 라벨 → 시군 선택 → 폐교 목록 섹션 표시", async ({ page }) => {
   const consoleErrors: string[] = [];
@@ -50,7 +50,7 @@ test("폐교 지표: /?indicator=closed_schools 진입 → 범례 라벨 → 시
   await expect(page.getByTestId("footer-school-count-definition")).toBeVisible();
   await expect(page.getByTestId("footer-small-school-definition")).toBeVisible();
 
-  await page.screenshot({ path: "test-results/closed-schools-panel.png", fullPage: false });
+  await docShot(page, "closed-schools-panel");
 
   expect(consoleErrors).toEqual([]);
 });

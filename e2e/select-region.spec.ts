@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 async function waitForMapReady(page: Page) {
@@ -72,7 +72,7 @@ test.describe("시군 선택", () => {
     await expect(page.getByText("시군을 클릭하거나 목록에서 선택하세요")).toBeVisible();
     const overviewCamera = await readCamera(page);
 
-    await page.screenshot({ path: "test-results/select-region-before.png" });
+    await docShot(page, "select-region-before");
 
     await page.getByRole("button", { name: /전주시/ }).click();
 
@@ -92,7 +92,7 @@ test.describe("시군 선택", () => {
     const selectedCamera = await readCamera(page);
     expect(selectedCamera.zoom).toBeGreaterThan(overviewCamera.zoom);
 
-    await page.screenshot({ path: "test-results/select-region-after.png" });
+    await docShot(page, "select-region-after");
 
     // Esc deselects WITHOUT ever focusing the map wrapper first (fix round
     // 1, review finding #1): the just-clicked RegionList <button> unmounts

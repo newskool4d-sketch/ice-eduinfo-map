@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 
 test("home page renders the 3D map with 14 regions and no console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
@@ -61,7 +61,7 @@ test("home page renders the 3D map with 14 regions and no console errors", async
   });
   expect(koreanGlyphsReady).toBe(true);
 
-  await page.screenshot({ path: "test-results/overview.png" });
+  await docShot(page, "overview");
 
   expect(consoleErrors).toEqual([]);
 });

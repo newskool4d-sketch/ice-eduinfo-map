@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 
 // Task 6, Section A.1 — MapShell shows MapFallback's table instead of the 3D
 // map when the viewport is narrower than 768px (and returns to the map once
@@ -23,7 +23,7 @@ test("뷰포트가 768px 미만이면 지도 대신 표를 보여준다", async 
   // Fix round 2, finding 12 — this spec had no screenshot coverage at all;
   // captures the 600px fallback-table state alongside the other specs'
   // overview/select-region/schools screenshots.
-  await page.screenshot({ path: "test-results/fallback-viewport-600.png" });
+  await docShot(page, "fallback-viewport-600");
 
   expect(consoleErrors).toEqual([]);
 });
