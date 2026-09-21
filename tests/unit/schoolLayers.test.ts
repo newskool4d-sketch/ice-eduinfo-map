@@ -86,6 +86,15 @@ describe("SCHOOL_LEVEL_COLORS — 급별 색 alpha 255", () => {
     const values = SCHOOL_LEVEL_ORDER.map((l) => SCHOOL_LEVEL_COLORS[l].join(","));
     expect(new Set(values).size).toBe(4);
   });
+
+  // 밝은 디오라마 (spec §5) — deeper, more saturated hues than the dark theme's
+  // pastel-on-dark set, so a column reads against a light pastel top face.
+  it("SCHOOL_LEVEL_COLORS are the light-theme values", () => {
+    expect(SCHOOL_LEVEL_COLORS.elem).toEqual([29, 155, 209, 255]);
+    expect(SCHOOL_LEVEL_COLORS.mid).toEqual([224, 169, 43, 255]);
+    expect(SCHOOL_LEVEL_COLORS.high).toEqual([224, 89, 42, 255]);
+    expect(SCHOOL_LEVEL_COLORS.special).toEqual([90, 166, 74, 255]);
+  });
 });
 
 describe("makeSchoolsLayer (Task D — ColumnLayer)", () => {
@@ -105,7 +114,9 @@ describe("makeSchoolsLayer (Task D — ColumnLayer)", () => {
     expect(layer.props.extruded).toBe(true);
     expect(layer.props.flatShading).toBe(true);
     expect(layer.props.material).toBe(REGION_MATERIAL);
-    expect(layer.props.highlightColor).toEqual([255, 255, 255, 120]);
+    // 밝은 디오라마 — hover/selection darkens the column (black @ 70/255)
+    // instead of the dark theme's white wash.
+    expect(layer.props.highlightColor).toEqual([0, 0, 0, 70]);
   });
 
   it("visible 토글: reflects the given `visible` option", () => {
@@ -371,12 +382,14 @@ describe("makeSchoolLabelsLayer", () => {
   });
 
   // Task B — 칩 배경은 더 작게 (smaller than region-labels' [6,3]/6 — see
-  // labelLayer.test.ts's "renders a background chip" test). Untouched by
-  // Task D.
-  it("renders a smaller background chip than region-labels", () => {
+  // labelLayer.test.ts's "renders a background chip" test). 밝은 디오라마
+  // (spec §5): same white-chip/ink-text/white-outline colors as region-labels.
+  it("renders a smaller white background chip than region-labels, same ink text", () => {
     const layer = makeSchoolLabelsLayer([], baseOpts);
     expect(layer.props.background).toBe(true);
-    expect(layer.props.getBackgroundColor).toEqual([12, 14, 20, 170]);
+    expect(layer.props.getBackgroundColor).toEqual([255, 255, 255, 225]);
+    expect(layer.props.getColor).toEqual([28, 35, 49, 255]);
+    expect(layer.props.outlineColor).toEqual([255, 255, 255, 255]);
     expect(layer.props.backgroundPadding).toEqual([4, 2]);
     expect(layer.props.backgroundBorderRadius).toBe(4);
   });

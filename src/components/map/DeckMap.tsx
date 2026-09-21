@@ -11,6 +11,7 @@ import "@deck.gl/widgets/stylesheet.css";
 import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/geo/regions";
 import { lightingEffect, lightingEffectNoShadow } from "@/components/map/lighting";
 import { createPostProcessEffects } from "@/components/map/effects";
+import { applyDeckDepthPatch } from "@/components/map/deckDepthPatch";
 import { isMapFxOff } from "@/components/map/mapFx";
 import { readBasemapPref, writeBasemapPref, type BasemapMode } from "@/components/map/basemapPref";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
@@ -42,6 +43,11 @@ import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipTe
 import { regionRankList, selectionAnnouncement } from "@/lib/selection";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { ringsOf } from "@/lib/geo/geo";
+
+// Task 2 fix round 1 — give deck.gl's post-processing render buffers a depth
+// attachment (see deckDepthPatch.ts); module scope so the prototype is
+// patched before the first <DeckGL> ever constructs a DeckRenderer.
+applyDeckDepthPatch();
 
 /** zoom≥10 이 되어야 학교명 라벨을 그린다 (브리프 고정값 — DeckMap.tsx 의 onViewStateChange 스로틀 zoom 으로 판단; Task B: 11 → 10, 라벨 칩·CollisionFilterExtension 도입에 맞춰 더 낮은 줌에서도 학교명이 보이도록 낮춤). */
 const SCHOOL_LABEL_MIN_ZOOM = 10;
@@ -610,9 +616,12 @@ export default function DeckMap({
   // option and the attribution caption in the JSX below). Without this, a
   // no-key deployment correctly left `basemapLayer` `null` but still passed
   // `masked: true` (the default pref) to `makeNeighborsLayer` — the masked
-  // fill color sat almost exactly on top of the then-dark container
-  // background, silently hiding every neighboring 시도 silhouette even
-  // though no basemap tile was ever drawn to mask them against.
+  // fill color (the translucent white [255,255,255,90], meant to sit over
+  // basemap tiles/wash as a light silhouette) would land on the bare paper
+  // background instead and all but vanish there, silently hiding every
+  // neighboring 시도 silhouette even though no basemap tile was ever drawn
+  // to mask them against; the opaque unmasked variant is what a no-basemap
+  // scene needs.
   const basemapOn = !!VWORLD_KEY && basemapMode !== "off";
 
   // Task C / Task 3 — the VWorld basemap TileLayer (Satellite jpeg or Base

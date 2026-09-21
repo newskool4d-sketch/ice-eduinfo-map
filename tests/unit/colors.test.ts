@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NULL_COLOR, dim, makeColorScale, paletteFor, parseColor } from "@/lib/colors";
+import { NULL_COLOR, luminance, makeColorScale, mix, paletteFor, parseColor } from "@/lib/colors";
 import type { IndicatorDef } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
 
@@ -21,14 +21,13 @@ function def(overrides: Partial<IndicatorDef> = {}): IndicatorDef {
 }
 
 describe("parseColor", () => {
-  it("parses an rgb(...) css string (interpolateOrRd/interpolateBlues format)", () => {
+  it("parses an rgb(...) css string", () => {
     expect(parseColor("rgb(253, 211, 161)")).toEqual([253, 211, 161]);
   });
 
-  it("parses a #rrggbb hex string (interpolateViridis's actual output format)", () => {
-    // Confirmed empirically against the installed d3-scale-chromatic@3.1.0:
-    // interpolateViridis returns hex, not rgb(...), unlike interpolateOrRd/
-    // interpolateBlues — see task-2-report.md.
+  it("parses a #rrggbb hex string (hex stops)", () => {
+    // The light-theme palettes (colors.ts PALETTE_STOPS) are hex literals
+    // parsed through this same function.
     expect(parseColor("#3b528b")).toEqual([0x3b, 0x52, 0x8b]);
   });
 
@@ -52,7 +51,7 @@ describe("paletteFor", () => {
     }
   });
 
-  it("does not throw for neutral (interpolateViridis's hex output must parse)", () => {
+  it("does not throw for neutral (hex stops must parse)", () => {
     expect(() => paletteFor("neutral")).not.toThrow();
   });
 
@@ -67,8 +66,77 @@ describe("paletteFor", () => {
 });
 
 describe("NULL_COLOR", () => {
-  it("is a fixed gray, distinct from any palette step", () => {
-    expect(NULL_COLOR).toEqual([90, 96, 110]);
+  it("is the fixed warm gray [205,200,192]", () => {
+    expect(NULL_COLOR).toEqual([205, 200, 192]);
+  });
+
+  it("differs from every stop of every ramp (never mistaken for a data step)", () => {
+    for (const polarity of ["higherWorse", "higherBetter", "neutral"] as const) {
+      for (const stop of paletteFor(polarity)) expect(stop).not.toEqual(NULL_COLOR);
+    }
+  });
+});
+
+// 밝은 디오라마 (spec §4, Task 2 fix round 1 ruling) — step 1 of every ramp is
+// visibly darker than the paper floor (#f5f2eb) and the footprint plate
+// ([255,252,246]); the original near-white stops clipped to white under the
+// daylight lighting and could not be told from the floor.
+describe("paletteFor — pastel ramps (light theme)", () => {
+  it("higherWorse is cream → coral, exactly the spec stops", () => {
+    expect(paletteFor("higherWorse")).toEqual([
+      [249, 229, 200],
+      [249, 217, 176],
+      [243, 178, 127],
+      [232, 134, 90],
+      [217, 87, 43],
+    ]);
+  });
+
+  it("higherBetter is mint → teal, exactly the spec stops", () => {
+    expect(paletteFor("higherBetter")).toEqual([
+      [217, 239, 227],
+      [191, 230, 210],
+      [143, 209, 182],
+      [92, 181, 154],
+      [47, 143, 122],
+    ]);
+  });
+
+  it("neutral is lilac → violet, exactly the spec stops", () => {
+    expect(paletteFor("neutral")).toEqual([
+      [230, 223, 240],
+      [216, 207, 233],
+      [184, 169, 214],
+      [146, 130, 191],
+      [109, 91, 163],
+    ]);
+  });
+
+  it.each(["higherWorse", "higherBetter", "neutral"] as const)("%s step 1 is darker than the paper floor", (polarity) => {
+    expect(luminance(paletteFor(polarity)[0])).toBeLessThan(luminance([245, 242, 235]));
+  });
+
+  it.each(["higherWorse", "higherBetter", "neutral"] as const)("%s luminance strictly decreases (colorblind-safe)", (polarity) => {
+    const lums = paletteFor(polarity).map(luminance);
+    for (let i = 1; i < lums.length; i++) expect(lums[i]).toBeLessThan(lums[i - 1]);
+  });
+});
+
+describe("luminance", () => {
+  it("is Rec. 709 luma in 0..1 (white 1, black 0, primaries 0.2126/0.7152/0.0722)", () => {
+    expect(luminance([255, 255, 255])).toBeCloseTo(1, 10);
+    expect(luminance([0, 0, 0])).toBe(0);
+    expect(luminance([255, 0, 0])).toBeCloseTo(0.2126, 10);
+    expect(luminance([0, 255, 0])).toBeCloseTo(0.7152, 10);
+    expect(luminance([0, 0, 255])).toBeCloseTo(0.0722, 10);
+  });
+});
+
+describe("mix", () => {
+  it("t=0 returns the color, t=1 returns the target, t=0.5 the midpoint", () => {
+    expect(mix([0, 0, 0], [255, 255, 255], 0)).toEqual([0, 0, 0]);
+    expect(mix([0, 0, 0], [255, 255, 255], 1)).toEqual([255, 255, 255]);
+    expect(mix([0, 0, 0], [255, 255, 255], 0.5)).toEqual([128, 128, 128]);
   });
 });
 
@@ -284,16 +352,5 @@ describe("makeColorScale — colorBuckets option (Task 6, Section C-추가 #5)",
     }
     const colorsUsed = new Set(distinct14.map((_, i) => scale.colorOf(`code-${i}`).join(",")));
     expect(colorsUsed.size).toBe(5);
-  });
-});
-
-describe("dim", () => {
-  it("scales each channel by factor and rounds", () => {
-    expect(dim([100, 200, 50], 0.5)).toEqual([50, 100, 25]);
-  });
-
-  it("clamps to the 0-255 byte range", () => {
-    expect(dim([200, 200, 200], 2)).toEqual([255, 255, 255]);
-    expect(dim([10, 10, 10], -1)).toEqual([0, 0, 0]);
   });
 });

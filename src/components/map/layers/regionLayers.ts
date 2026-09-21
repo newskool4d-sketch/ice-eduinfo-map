@@ -4,23 +4,13 @@ import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson"
 
 import type { RegionFeature, Ring } from "@/lib/geo/geo";
 import { REGION_MATERIAL } from "@/components/map/lighting";
-import { dim } from "@/lib/colors";
+import { mix, type RGB } from "@/lib/colors";
 
 type RGBA = [number, number, number, number];
 
-/** Non-selected regions, once something IS selected: lightness only (dim(rgb, 0.55)), alpha unchanged — per the task brief's literal factor. */
-export const UNSELECTED_DIM = 0.55;
-/**
- * The selected region itself: 원색 그대로 (raw palette color, unmodified) —
- * changed from 1.15 (Task 4A's original choice) to 1.0 per Task 6, Section
- * C-추가 #4: brightening an ALREADY-bright top face (e.g. Viridis's
- * near-yellow high end) pushed it bright enough to wash out same-hue school
- * points on top of it (중학교's amber dot). The selection cue still reads
- * clearly without it — this region is no longer DIMMED like every other
- * non-selected one (UNSELECTED_DIM=0.55), plus the `region-top-rings` layer
- * (Task A) draws its outline wider and brighter than every other region's.
- */
-export const SELECTED_BRIGHTEN = 1.0;
+/** 시군 바닥판(`footprint`) 채움 색이자 종이 색 — 비선택 시군은 이 색 쪽으로 45% 페이드(라이트 테마: 어둡게 하면 탁해진다). 단일 원천: 바닥판 `getFillColor` 도 이 상수를 쓴다. */
+const PAPER: RGB = [255, 252, 246];
+const UNSELECTED_FADE = 0.45;
 /** Default deck.gl `transitions` duration (ms) for this layer's animated props — see the `transitionDuration` option below. */
 const DEFAULT_TRANSITION_DURATION = 600;
 
@@ -37,11 +27,12 @@ type NeighborFeatureCollection = FeatureCollection<
 export interface NeighborsLayerOptions {
   /**
    * Task C — true once the VWorld basemap tiles are visible underneath:
-   * swaps the opaque backdrop for a translucent navy mask so the basemap
-   * actually reads through the neighbor silhouette/border instead of being
-   * fully hidden by it. Defaults to false (the original opaque backdrop),
-   * so every pre-Task-C call site (`makeNeighborsLayer(fc)`, no options)
-   * keeps rendering exactly as before.
+   * swaps the opaque backdrop for a translucent white mask (밝은 디오라마,
+   * spec §2: a silhouette slightly brighter than the basemap wash) so the
+   * basemap actually reads through the neighbor silhouette/border instead
+   * of being fully hidden by it. Defaults to false (the opaque warm-gray
+   * backdrop), so every pre-Task-C call site (`makeNeighborsLayer(fc)`, no
+   * options) keeps rendering exactly as before.
    */
   masked?: boolean;
 }
@@ -55,8 +46,8 @@ export function makeNeighborsLayer(fc: NeighborFeatureCollection, opts: Neighbor
     data: fc,
     filled: true,
     stroked: true,
-    getFillColor: masked ? [11, 15, 25, 140] : [22, 27, 40],
-    getLineColor: masked ? [40, 48, 66, 160] : [40, 48, 66],
+    getFillColor: masked ? [255, 255, 255, 90] : [232, 228, 220],
+    getLineColor: masked ? [120, 110, 100, 120] : [190, 182, 170],
     lineWidthMinPixels: 1,
     pickable: false,
     updateTriggers: {
@@ -72,35 +63,42 @@ type RegionsFeatureCollection = FeatureCollection<
 >;
 
 /**
- * Ground-level outline of all 14 시군, drawn under the extruded `regions`
- * layer. `extruded: true` on a GeoJsonLayer suppresses its own stroke
- * sub-layer, so this flat footprint is what makes the base outline visible.
+ * Ground-level 바닥판 of all 14 시군, drawn under the extruded `regions`
+ * layer: a paper-colored plate (`PAPER` [255,252,246] — 밝은 디오라마, spec §4) with a
+ * warm gray outline. `extruded: true` on a GeoJsonLayer suppresses its own
+ * stroke sub-layer, so this flat footprint is what makes the base outline
+ * visible; the fill is what sits under the flat `region-islands` parts.
  */
 export function makeFootprintLayer(fc: RegionsFeatureCollection) {
   return new GeoJsonLayer<RegionFeature["properties"]>({
     id: "footprint",
     data: fc,
     extruded: false,
-    filled: false,
+    filled: true,
+    getFillColor: PAPER,
     stroked: true,
     lineWidthUnits: "pixels",
     getLineWidth: 1,
-    getLineColor: [90, 100, 125, 160],
+    getLineColor: [200, 192, 180, 200],
     pickable: false,
   });
 }
 
-/** Applies the shared selection dim/brighten rule to a raw `fillColorOf(code)` result — used by both `makeRegionsLayer` and `makeIslandsLayer` so a region's mainland and its islands always render the exact same color. */
-function selectionAwareFillColor(
-  code: string,
-  fillColorOf: (code: string) => RGBA,
-  selectedCode: string | null,
-): RGBA {
+/**
+ * Applies the shared selection rule to a raw `fillColorOf(code)` result —
+ * used by both `makeRegionsLayer` and `makeIslandsLayer` so a region's
+ * mainland and its islands always render the exact same color. The selected
+ * region keeps its raw palette color (원색 그대로 — Task 6, Section C-추가 #4:
+ * brightening an already-light top face washed out same-hue school columns
+ * on it); every OTHER region fades `UNSELECTED_FADE` toward `PAPER`, which
+ * keeps its hue while pushing it into the background. The `region-top-rings`
+ * layer additionally draws the selected region's outline wider and darker.
+ */
+function selectionAwareFillColor(code: string, fillColorOf: (code: string) => RGBA, selectedCode: string | null): RGBA {
   const [r, g, b, a] = fillColorOf(code);
-  if (!selectedCode) return [r, g, b, a];
-  const factor = code === selectedCode ? SELECTED_BRIGHTEN : UNSELECTED_DIM;
-  const [dr, dg, db] = dim([r, g, b], factor);
-  return [dr, dg, db, a];
+  if (!selectedCode || code === selectedCode) return [r, g, b, a];
+  const [fr, fg, fb] = mix([r, g, b], PAPER, UNSELECTED_FADE);
+  return [fr, fg, fb, a];
 }
 
 export interface RegionsLayerOptions {
@@ -113,13 +111,14 @@ export interface RegionsLayerOptions {
   /**
    * The currently-selected 시군 code, or null when nothing is selected.
    * Optional (defaults to null) for backward compatibility with pre-Task-4A
-   * call sites. When set, `getFillColor` brightens the selected region and
-   * dims every other one (lightness only — alpha always stays 255); also
-   * included in `updateTriggers.getFillColor` (alongside `triggerKey`) so a
-   * selection change re-evaluates fill color even when the indicator
-   * itself didn't change. Does NOT affect `getElevation` — selection has no
-   * effect on bar height, only color (the `region-top-rings` layer marks
-   * the selection with a wider, brighter outline instead).
+   * call sites. When set, `getFillColor` keeps the selected region's raw
+   * color and fades every other one toward the paper color (rgb only —
+   * alpha always stays 255); also included in `updateTriggers.getFillColor`
+   * (alongside `triggerKey`) so a selection change re-evaluates fill color
+   * even when the indicator itself didn't change. Does NOT affect
+   * `getElevation` — selection has no effect on bar height, only color (the
+   * `region-top-rings` layer marks the selection with a wider, darker
+   * outline instead).
    */
   selectedCode?: string | null;
   onClick?: (code: string) => void;
@@ -151,7 +150,9 @@ export function makeRegionsLayer(fc: RegionsFeatureCollection, opts: RegionsLaye
     material: REGION_MATERIAL,
     pickable: true,
     autoHighlight: true,
-    highlightColor: [255, 255, 255, 60],
+    // 밝은 디오라마 — hover darkens the pastel top face ~10% (black @ 25/255);
+    // a white wash (the dark theme's cue) is invisible on a near-white face.
+    highlightColor: [0, 0, 0, 25],
     updateTriggers: {
       getElevation: [opts.triggerKey],
       getFillColor: [opts.triggerKey, selectedCode],
@@ -179,7 +180,7 @@ export interface IslandsLayerOptions {
   /** Same injection point as `RegionsLayerOptions.fillColorOf` — MUST be the same function the caller hands `makeRegionsLayer`, so a region's mainland and its islands are always the exact same color. */
   fillColorOf: (code: string) => RGBA;
   triggerKey: string | number;
-  /** Same selection semantics as `RegionsLayerOptions.selectedCode` — kept in sync so an island brightens/dims exactly like its region's mainland part. */
+  /** Same selection semantics as `RegionsLayerOptions.selectedCode` — kept in sync so an island keeps/fades its color exactly like its region's mainland part. */
   selectedCode?: string | null;
   onClick?: (code: string) => void;
   /** deck.gl `transitions` duration (ms) for getFillColor. Defaults to 600 (matches `makeRegionsLayer`, so a color change morphs in sync across the mainland/islands split). Task 6, Section A.4. */
@@ -208,7 +209,7 @@ export function makeIslandsLayer(fc: RegionsFeatureCollection, opts: IslandsLaye
     getFillColor: (f) => selectionAwareFillColor(f.properties.code, opts.fillColorOf, selectedCode),
     pickable: true,
     autoHighlight: true,
-    highlightColor: [255, 255, 255, 60],
+    highlightColor: [0, 0, 0, 25], // same hover darken as `regions`
     updateTriggers: {
       getFillColor: [opts.triggerKey, selectedCode],
     },
@@ -255,8 +256,9 @@ export interface RegionTopRingsLayerOptions {
  * no stroke sub-layer of their own (`stroked` is only honored when NOT
  * extruded — see `makeFootprintLayer`'s ground-level equivalent), so without
  * this, a region's block has no visible top edge at all. The selected
- * region's ring is simply drawn wider (2px vs 1px) and brighter/more opaque
- * than every other region's — no separate layer needed for that emphasis.
+ * region's ring is simply drawn wider (2px vs 1px) and darker/more opaque
+ * (near-opaque ink vs. a translucent gray — 밝은 디오라마, spec §4) than every
+ * other region's — no separate layer needed for that emphasis.
  *
  * `shadowEnabled: false` (this ring never casts a shadow onto neighboring
  * geometry) isn't part of PathLayer's public TS prop type — deck.gl's shadow
@@ -278,7 +280,7 @@ export function makeRegionTopRingsLayer(rings: RegionTopRingDatum[], opts: Regio
     getPath: (d): Point3[] => d.ring.map(([x, y]) => [x, y, opts.elevationOf(d.code) + 5]),
     widthUnits: "pixels",
     getWidth: (d) => (d.code === selectedCode ? 2 : 1),
-    getColor: (d): RGBA => (d.code === selectedCode ? [255, 255, 255, 230] : [236, 239, 245, 90]),
+    getColor: (d): RGBA => (d.code === selectedCode ? [28, 35, 49, 230] : [60, 60, 70, 120]),
     jointRounded: true,
     shadowEnabled: false,
     pickable: false,

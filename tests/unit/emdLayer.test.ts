@@ -82,10 +82,12 @@ describe("makeEmdBoundaryLayer", () => {
     expect(layer.props.shadowEnabled).toBe(false);
   });
 
-  it("literal getWidth (1px) and getColor ([236,239,245,100]) — not per-datum accessors", () => {
+  // 밝은 디오라마 (spec §4) — a translucent gray line on the pastel top face
+  // (the dark theme's translucent white would vanish on it).
+  it("literal getWidth (1px) and getColor ([60,60,70,110]) — not per-datum accessors", () => {
     const layer = makeEmdBoundaryLayer(fixture(), { elevation: 100, triggerKey: "v1" });
     expect(layer.props.getWidth).toBe(1);
-    expect(layer.props.getColor).toEqual([236, 239, 245, 100]);
+    expect(layer.props.getColor).toEqual([60, 60, 70, 110]);
   });
 
   it("flattens every Polygon/MultiPolygon ring (outer + holes) into {path} data, one entry per ring", () => {

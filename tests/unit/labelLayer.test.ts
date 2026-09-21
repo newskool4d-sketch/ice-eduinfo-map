@@ -32,13 +32,15 @@ describe("makeRegionLabelLayer", () => {
     expect(layer.props.outlineWidth).toBe(0.25);
   });
 
-  // Task B — 라벨 칩: an opaque-ish dark chip behind each label (readable
-  // over the VWorld basemap tiles, Task C — see task-B-brief.md section 1),
-  // rendered by TextLayer's own `background` sub-layer (TextBackgroundLayer)
-  // — confirmed against the installed @deck.gl/layers' text-layer.js:
+  // Task B — 라벨 칩: an opaque-ish chip behind each label (readable over the
+  // VWorld basemap tiles, Task C — see task-B-brief.md section 1), rendered
+  // by TextLayer's own `background` sub-layer (TextBackgroundLayer) —
+  // confirmed against the installed @deck.gl/layers' text-layer.js:
   // `background && new BackgroundLayerClass(...)` only renders that
-  // sub-layer at all when `background: true`.
-  it("renders a background chip behind each label", () => {
+  // sub-layer at all when `background: true`. 밝은 디오라마 (spec §5): white
+  // chip, ink text, white outline — the dark chip's colors inverted, with
+  // the chip's structure (padding/radius/SDF) unchanged.
+  it("renders a white background chip with ink text behind each label", () => {
     const layer = makeRegionLabelLayer(labels, {
       elevationOf: () => 0,
       textOf: (code) => code,
@@ -47,7 +49,9 @@ describe("makeRegionLabelLayer", () => {
       characterSet: ["a"],
     });
     expect(layer.props.background).toBe(true);
-    expect(layer.props.getBackgroundColor).toEqual([12, 14, 20, 170]);
+    expect(layer.props.getBackgroundColor).toEqual([255, 255, 255, 225]);
+    expect(layer.props.getColor).toEqual([28, 35, 49, 255]);
+    expect(layer.props.outlineColor).toEqual([255, 255, 255, 255]);
     expect(layer.props.backgroundPadding).toEqual([6, 3]);
     expect(layer.props.backgroundBorderRadius).toBe(6);
   });

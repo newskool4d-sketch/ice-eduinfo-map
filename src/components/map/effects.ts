@@ -27,24 +27,20 @@ export interface CreatePostProcessEffectsOptions {
   fxOff: boolean;
 }
 
-// Fix round 1, finding 5 — controller visual-tuning pass: screenshots taken
-// against Task A's original values (vignette radius 0.72/amount 0.55,
-// brightnessContrast contrast 0.12, tiltShift blurRadius 6/gradientRadius
-// 260) looked too dark/murky, and presentation mode's tilt-shift blur was
-// too strong (obscured too much of the frame). Re-tuned here: a wider,
-// gentler vignette (radius 0.85, amount 0.35 — starts closer to the edge
-// and darkens less), less contrast punch (0.06, down from 0.12 — vibrance
-// stays at 0.35, unchanged), and a narrower/milder tilt-shift blur
-// (blurRadius 4, gradientRadius 320 — a wider sharp band, less blur
-// strength) for presentation mode. See task-A-report.md's "Fix round 1"
-// section for the before/after screenshots this was checked against.
+// 밝은 디오라마 (2026-09-21 spec §3) — a lighter touch than the dark-theme
+// values (vibrance 0.35, contrast 0.06, vignette radius 0.85/amount 0.35,
+// themselves fix round 1's re-tune of Task A's originals): pastel top faces
+// need far less saturation push (0.15) and only a hint of contrast (0.05),
+// and the vignette drops to a faint edge (radius 0.9, amount 0.15) so the
+// paper-colored corners don't turn gray. Presentation mode's tilt-shift
+// (blurRadius 4, gradientRadius 320) is unchanged.
 export function createPostProcessEffects({ presentation, fxOff }: CreatePostProcessEffectsOptions): Effect[] {
   if (fxOff) return [];
 
   const effects: Effect[] = [
-    new PostProcessEffect(vibrance, { amount: 0.35 }),
-    new PostProcessEffect(brightnessContrast, { brightness: 0.02, contrast: 0.06 }),
-    new PostProcessEffect(vignette, { radius: 0.85, amount: 0.35 }),
+    new PostProcessEffect(vibrance, { amount: 0.15 }),
+    new PostProcessEffect(brightnessContrast, { brightness: 0.02, contrast: 0.05 }),
+    new PostProcessEffect(vignette, { radius: 0.9, amount: 0.15 }),
   ];
   if (presentation) {
     effects.push(new PostProcessEffect(tiltShift, { blurRadius: 4, gradientRadius: 320 }));
