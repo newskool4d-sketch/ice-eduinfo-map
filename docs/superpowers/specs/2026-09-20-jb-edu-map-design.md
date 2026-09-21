@@ -110,8 +110,8 @@ interface IndicatorRow { regionCode: string; value: number | null; level?: strin
 - 결손 좌표 보정 순서: 학교알리미 `apiType=0`의 `LTTUD`/`LGTUD`(호출제한 없음, 출처표시, 소셜 로그인 즉시 발급) → 카카오 로컬 주소→좌표(무료 10만 건/일).
 - 나이스 학교기본정보 API는 실호출로 **좌표 없음** 확인(무키 시 5행 제한). 학교 마스터로 쓰지 않는다.
 
-### 배경지도 — 1차에서 사용하지 않음
-deck.gl 단독 동작은 공식 문서 확인. 후속 필요 시 우선순위: 브이월드 `white`/`midnight` WMTS(한글 완벽, 도메인 바인딩) → OpenFreeMap(키 없음) → Protomaps 자체 호스팅.
+### 배경지도 — 2차(2026-09-21)에서 브이월드 midnight 직접 호출로 도입
+deck.gl 단독 동작은 공식 문서 확인. 1차에서는 미사용 — 후속 필요 시 우선순위: 브이월드 `white`/`midnight` WMTS(한글 완벽, 도메인 바인딩) → OpenFreeMap(키 없음) → Protomaps 자체 호스팅. **2차(2026-09-21)**: 이 우선순위대로 브이월드 `midnight` WMTS를 채택해 도입 — WMTS 엔드포인트가 `access-control-allow-origin: *`를 반환함을 curl로 확인해 프록시 Route Handler 없이 브라우저에서 직접 호출(`src/components/map/layers/basemapLayer.ts`의 `makeBasemapLayer`). `NEXT_PUBLIC_VWORLD_KEY`가 없으면 토글 자체를 렌더하지 않음(README 참고).
 
 ## 교육통계 데이터 (리서치 검증 완료)
 
@@ -314,4 +314,4 @@ docs/superpowers/specs/2026-09-20-jb-edu-map-design.md
 8. **nuqs × Next 16** 초기 어댑터 이슈 보고 있음 → 최신 버전 고정, 0단계에서 확인.
 
 ## 비범위 (후속)
-배경 타일 토글, 읍면동 단위, 유치원, 실시간 API 갱신, 로그인·권한, 내부 파일 업로드, 예산·학업성취·교육복지 지표, 전 지표 연도 슬라이더, 학교 시설 노후도(학교알리미 시설 API 확인 후).
+배경 타일 토글(2차(2026-09-21)에서 브이월드 midnight 직접 호출로 도입 — 더 이상 비범위 아님, 위 "배경지도" 절 참고), 읍면동 단위, 유치원, 실시간 API 갱신, 로그인·권한, 내부 파일 업로드, 예산·학업성취·교육복지 지표, 전 지표 연도 슬라이더, 학교 시설 노후도(학교알리미 시설 API 확인 후).
