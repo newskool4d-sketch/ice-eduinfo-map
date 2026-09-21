@@ -40,12 +40,12 @@ describe("THEME contrast (WCAG 2.1)", () => {
   // The two surfaces the *-text tokens actually sit on that are NOT paper or
   // surface: the KPI tile (ink 5% over paper) and the accent-soft badge fill.
   // Floors sit just under the measured values (accentText 4.45 / 4.62,
-  // positiveText 4.25 / 4.42) so a token nudge that erodes them fails loudly.
-  it("accentText ≥ 4.4 and positiveText ≥ 4.2 on the KPI tile fill and on accent-soft", () => {
+  // positiveText 5.01 / 5.21) so a token nudge that erodes them fails loudly.
+  it("accentText ≥ 4.4 and positiveText ≥ 4.5 on the KPI tile fill and on accent-soft", () => {
     expect(contrastRatio(THEME.accentText, KPI_TILE_BG)).toBeGreaterThanOrEqual(4.4);
     expect(contrastRatio(THEME.accentText, THEME.accentSoft)).toBeGreaterThanOrEqual(4.4);
-    expect(contrastRatio(THEME.positiveText, KPI_TILE_BG)).toBeGreaterThanOrEqual(4.2);
-    expect(contrastRatio(THEME.positiveText, THEME.accentSoft)).toBeGreaterThanOrEqual(4.2);
+    expect(contrastRatio(THEME.positiveText, KPI_TILE_BG)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(THEME.positiveText, THEME.accentSoft)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("relativeLuminance: white 1, black 0", () => {

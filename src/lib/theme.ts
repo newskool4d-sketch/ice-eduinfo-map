@@ -19,7 +19,7 @@ export const THEME = {
   // these reach ≥ 4.5 on paper/surface and ≥ 4.2 on the KPI tile fill
   // (ink 5% over paper) and on accent-soft (tests/unit/theme.test.ts).
   accentText: "#b8431a",
-  positiveText: "#27796a",
+  positiveText: "#236d5f",
 } as const;
 
 export type ThemeToken = keyof typeof THEME;
