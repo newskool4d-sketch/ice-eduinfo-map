@@ -1,5 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
+// Orchestrator (3D improvement, Task D/E parallel runs) — the dev/prod server
+// port defaults to 3000 but can be moved with PW_PORT so two worktrees can run
+// e2e at the same time without one silently reusing the other's server
+// (`reuseExistingServer` below). Everything port-related derives from this.
+const PORT = Number(process.env.PW_PORT ?? 3000);
+const BASE_URL = `http://localhost:${PORT}`;
+
 export default defineConfig({
   testDir: "e2e",
   // Task 6, Section D.1 — CI's own "실패 시 playwright-report/ 아티팩트
@@ -41,7 +48,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: BASE_URL,
     // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — no added
     // dependency (both reporters are built into @playwright/test); gives the
     // uploaded playwright-report/ artifact an actual trace + screenshot for
@@ -61,8 +68,8 @@ export default defineConfig({
     // "`npm run build && npm run start &` then `CI=1 npm run e2e`" — using
     // Playwright's own `webServer` for both local and CI keeps exactly one
     // server-lifecycle mechanism instead of two.
-    command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
-    url: "http://localhost:3000",
+    command: process.env.CI ? `npm run build && npm run start -- -p ${PORT}` : `npm run dev -- -p ${PORT}`,
+    url: BASE_URL,
     // Task C — if a dev server started WITHOUT NEXT_PUBLIC_VWORLD_KEY set
     // (e.g. a stale `npm run dev` left running from before this env var
     // existed, or one started by hand) is reused here instead of a fresh
