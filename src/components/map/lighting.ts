@@ -5,6 +5,10 @@ import type { Effect, Material, PreRenderOptions } from "@deck.gl/core";
 // school-labels, labelLayer.ts/schoolLayers.ts). Root-caused end to end
 // against the installed sources (@deck.gl/core 9.4.0, @deck.gl/extensions
 // 9.4.0) and confirmed empirically; full methodology in task-B-report.md.
+// (2026-09-21, Task 2 fix round 1: shadows are now off on BOTH variants, so
+// step 1 below no longer triggers for either — the subclass is harmless and
+// stays so the collision pass still receives the lighting uniforms and so
+// the record below stays with the code; see `lightingEffect`'s comment.)
 //
 // Symptom: as soon as ANY layer used CollisionFilterExtension (region-labels
 // always does, from Task B on), EVERY region-name label vanished completely
@@ -90,25 +94,31 @@ class CollisionAwareLightingEffect extends LightingEffect {
   }
 }
 
-// 밝은 디오라마 (2026-09-21 spec §3) — daylight from the upper-left at a high
-// angle: [-0.5, -1, -2.5]. Shadow RECEIVING can't be turned off per layer
-// (only casting — see `shadowEnabled:false` on region-labels/school-labels/
-// region-top-rings in labelLayer.ts/schoolLayers.ts/regionLayers.ts), so a
-// steep key light keeps a short shadow footprint, reducing how much a tall
-// region's shadow spills across a neighboring region's labels/school
-// columns (see task-A-brief.md's "검증된 사실").
+// 밝은 디오라마 (2026-09-21 spec §3) — daylight from the upper-right
+// (north-east) at a high angle. deck.gl's `direction` is the light's TRAVEL
+// vector: [-0.5, -1, -2.5] travels west/south/down, so the light arrives from
+// east/north/above. A steep angle keeps the lit/unlit wall difference
+// gentle (the east and north walls are only partly lit; the west and south
+// walls are ambient-only).
 const KEY_DIRECTION: [number, number, number] = [-0.5, -1, -2.5];
-// Ambient 0.95 (tuning range 0.9~1.05 per spec §3): high enough that a
-// block's side walls read as "slightly darker than its top", never black —
-// the single key light below is the only other light (fix round 1, finding
-// 4 removed the fill light; see the comment on `lightingEffect`).
+// Ambient 0.95 (tuning range 0.9~1.05 per spec §3). With REGION_MATERIAL
+// below (ambient 0.7), an ambient-only wall lands at 0.7×0.95 ≈ 0.67 of
+// the surface color, i.e. ≈0.72× the lit top — the intended miniature
+// side-shading, never black (measured on screen ≈0.67× after the contrast
+// pass). The single key light below is the only other light (fix round 1,
+// finding 4 removed the fill light; see the comment on `lightingEffect`).
 const AMBIENT_INTENSITY = 0.95;
 // Warm daylight tint on both lights (spec §3): slightly warm white ambient,
-// warmer/brighter key (1.15, tuning range 1.0~1.3) so top faces pop against
-// the paper backdrop without blowing out the lightest pastel step.
+// slightly warmer key. Key 0.9 (tuning range 0.9~1.1; Task 2 fix round 1
+// screenshot tuning — the ruling's 1.0 put the lightest step at (252,239,242)
+// on screen, paper-white, because luma's phong specular (+≈0.04 at this
+// shininess) and the post-process brightness/contrast lift the top on top of
+// the ≈0.985 the ruling modelled): top face ≈ 0.7×0.95 + 0.3×0.9×cosθ ≈ 0.91
+// before specular, which lands the lit top at ≈ the raw palette stop on
+// screen — step 1 (232,220,223) now sits visibly below the paper floor.
 const AMBIENT_COLOR: [number, number, number] = [255, 250, 240];
 const KEY_COLOR: [number, number, number] = [255, 245, 225];
-const KEY_INTENSITY = 1.15;
+const KEY_INTENSITY = 0.9;
 
 // Created once at module scope (not per-render): deck.gl effects/materials are
 // plain config objects, and re-creating them on every DeckMap render would
@@ -132,29 +142,33 @@ const KEY_INTENSITY = 1.15;
 // consulted. The lost fill-light contribution is compensated by raising
 // AMBIENT_INTENSITY and REGION_MATERIAL.ambient instead (both since re-tuned
 // again for the light theme — see each constant's own comment).
+//
+// Task 2 fix round 1 ruling (2026-09-21, spec §3) — `_shadow: false`: shadows
+// are OFF on both variants. deck.gl 9.4's shadow module judged the entire
+// top face of a tall extruded block as self-shadowed (it behaved like a
+// global tint — confirmed by pixel modelling), while the cast shadows it was
+// meant to add were invisible at the overview zoom. Depth now comes from the
+// ambient-only wall shading (see AMBIENT_INTENSITY) and the vignette.
+// `shadowColor` is deliberately not assigned (never sampled with no
+// shadow-casting light). Everything below that talks about shadow passes
+// (`useInPicking`, `CollisionAwareLightingEffect`, findings 1-4) describes
+// machinery that only engages when some light has `_shadow: true`; it is
+// kept because it is harmless with shadows off and still supplies the
+// lighting uniforms to the collision pass (Task B) — and so the historical
+// root-cause record stays with the code it explains.
 export const lightingEffect = new CollisionAwareLightingEffect({
   ambient: new AmbientLight({ color: AMBIENT_COLOR, intensity: AMBIENT_INTENSITY }),
-  key: new DirectionalLight({ color: KEY_COLOR, intensity: KEY_INTENSITY, direction: KEY_DIRECTION, _shadow: true }),
+  key: new DirectionalLight({ color: KEY_COLOR, intensity: KEY_INTENSITY, direction: KEY_DIRECTION, _shadow: false }),
 });
 
-// 밝은 디오라마 (spec §3) — soft daylight shadow: a warm gray-brown tint at
-// alpha 0.18 (tuning range 0.15~0.25), replacing the dark-theme navy at 0.3.
-// `LightingEffect#shadowColor` is consumed directly as a WebGL `vec4`
-// uniform mixed against already-0..1 fragment colors (confirmed against the
-// installed source: `@deck.gl/core`'s shadow shader module does
-// `mix(color.rgb, shadow.color.rgb, shadowAlpha / blendedAlpha)`, and
-// lighting-effect.js's own `DEFAULT_SHADOW_COLOR` is `[0, 0, 0, 200 / 255]` —
-// note the `/ 255` on alpha) — i.e. this property is 0..1 FLOAT per channel,
-// NOT the 0..255 scale every layer's `getFillColor`/`getColor` accessor uses
-// elsewhere in this app. [60, 50, 40] (a 0..255-style warm gray-brown) is
-// divided by 255 here to match that format; assigning it unconverted would
-// push R/G/B past 1.0 and clamp to a blown-out near-white shadow.
-lightingEffect.shadowColor = [60 / 255, 50 / 255, 40 / 255, 0.18];
-
-// Task A — 비상 스위치 (`mapFx.ts`'s `isMapFxOff`): the SAME lights, but the key
-// light's `_shadow` is off, so DeckMap can swap to a shadow-free effect
-// (`NEXT_PUBLIC_MAP_FX=off`) without constructing a new LightingEffect on
-// every render — see DeckMap.tsx's `effects` useMemo.
+// Task A — 비상 스위치 (`mapFx.ts`'s `isMapFxOff`): historically the SAME lights
+// with the key light's `_shadow` off, so DeckMap could swap to a shadow-free
+// effect (`NEXT_PUBLIC_MAP_FX=off`) without constructing a new LightingEffect
+// on every render — see DeckMap.tsx's `effects` useMemo. Since the Task 2
+// fix round 1 ruling turned shadows off on `lightingEffect` too, the two
+// variants are configured identically; the separate instance and the
+// fx-off swap path are kept so the emergency switch stays structurally
+// intact (and so shadows could be re-enabled on one variant only).
 // Fix round 1, finding 4 — fill removed here too, though the shadow-pass
 // cost argument above does NOT apply to this variant: `this.shadow` is
 // false here (no light has `_shadow:true`), so `LightingEffect.setup()`'s
@@ -250,7 +264,11 @@ export const lightingEffectNoShadow = new CollisionAwareLightingEffect({
 (lightingEffectNoShadow as Effect).useInPicking = true;
 
 // Fix round 1, finding 3 — performance cost of the fix above, MEASURED (not
-// just estimated). `DeckPicker._drawAndSample`/`_drawAndSampleAsync` — used
+// just estimated). (2026-09-21, Task 2 fix round 1: with `_shadow: false` on
+// both variants no ShadowPass exists, so the per-pick cost described below
+// is now nil — `preRender` only does its matrix math. Kept as the record of
+// what re-enabling shadows would cost.)
+// `DeckPicker._drawAndSample`/`_drawAndSampleAsync` — used
 // by every `pickObject` call, including deck.gl's own hover picking —
 // do `for (const effect of effects) if (effect.useInPicking)
 // effect.preRender(opts)` before the actual picking draw
@@ -316,13 +334,22 @@ export const lightingEffectNoShadow = new CollisionAwareLightingEffect({
 // explanations for why it fired at all in their session but not in either
 // of mine.
 
-// 밝은 디오라마 (spec §3) — matte, paper-like blocks: higher ambient (side
-// walls stay light under the daylight ambient above), a touch less diffuse,
-// and low shininess/specular so pastel top faces don't get a plastic
-// highlight. Shared by the region bodies and the school columns.
+// 밝은 디오라마 (spec §3, Task 2 fix round 1 ruling + screenshot tuning) —
+// matte, paper-like blocks, exposure set for luma.gl's phong model with
+// shadows off (material ambient 0.7, tuning range 0.7~0.8; see
+// KEY_INTENSITY for why the low end):
+//   lit top    ≈ ambient·A + diffuse·K·cosθ = 0.7×0.95 + 0.3×0.9×0.91 ≈ 0.91
+//   unlit wall ≈ ambient·A                 = 0.7×0.95             ≈ 0.67
+// (+ a broad, faint specular ≈0.04 on the top at shininess 8) so the top
+// never clips and a wall facing away from the key reads ≈0.72× the top.
+// Low shininess so pastel faces don't get a plastic highlight.
+// `specularColor` is on luma.gl 9.4's 0..255 BYTE scale — the phong shader
+// applies `floatColors_normalize(material.specularColor)` (= /255) and its
+// own default is [38.25, 38.25, 38.25] — so [20, 20, 20] ≈ 0.08. Shared by
+// the region bodies and the school columns.
 export const REGION_MATERIAL: Material = {
-  ambient: 0.55,
-  diffuse: 0.65,
+  ambient: 0.7,
+  diffuse: 0.3,
   shininess: 8,
-  specularColor: [0.08, 0.08, 0.08],
+  specularColor: [20, 20, 20],
 };

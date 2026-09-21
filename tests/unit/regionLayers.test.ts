@@ -123,12 +123,13 @@ describe("makeRegionsLayer", () => {
       fillColorOf: () => [0, 0, 0, 255],
       triggerKey: "v1",
     });
-    // 밝은 디오라마 (lighting.ts) — matte daylight material.
+    // 밝은 디오라마 (lighting.ts, Task 2 fix round 1) — matte daylight material,
+    // phong exposure with shadows off (specularColor on luma's byte scale).
     expect(layer.props.material).toEqual({
-      ambient: 0.55,
-      diffuse: 0.65,
+      ambient: 0.7,
+      diffuse: 0.3,
       shininess: 8,
-      specularColor: [0.08, 0.08, 0.08],
+      specularColor: [20, 20, 20],
     });
     const transitions = layer.props.transitions as {
       getElevation: { duration: number; type: string };

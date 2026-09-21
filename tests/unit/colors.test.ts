@@ -66,15 +66,25 @@ describe("paletteFor", () => {
 });
 
 describe("NULL_COLOR", () => {
-  it("is a fixed warm gray, distinct from any palette step", () => {
+  it("is the fixed warm gray [205,200,192]", () => {
     expect(NULL_COLOR).toEqual([205, 200, 192]);
+  });
+
+  it("differs from every stop of every ramp (never mistaken for a data step)", () => {
+    for (const polarity of ["higherWorse", "higherBetter", "neutral"] as const) {
+      for (const stop of paletteFor(polarity)) expect(stop).not.toEqual(NULL_COLOR);
+    }
   });
 });
 
+// 밝은 디오라마 (spec §4, Task 2 fix round 1 ruling) — step 1 of every ramp is
+// visibly darker than the paper floor (#f5f2eb) and the footprint plate
+// ([255,252,246]); the original near-white stops clipped to white under the
+// daylight lighting and could not be told from the floor.
 describe("paletteFor — pastel ramps (light theme)", () => {
   it("higherWorse is cream → coral, exactly the spec stops", () => {
     expect(paletteFor("higherWorse")).toEqual([
-      [253, 243, 225],
+      [249, 229, 200],
       [249, 217, 176],
       [243, 178, 127],
       [232, 134, 90],
@@ -82,16 +92,43 @@ describe("paletteFor — pastel ramps (light theme)", () => {
     ]);
   });
 
-  it("higherBetter is mint → teal, neutral is lilac (first/last stop)", () => {
-    expect(paletteFor("higherBetter")[0]).toEqual([233, 246, 239]);
-    expect(paletteFor("higherBetter")[4]).toEqual([47, 143, 122]);
-    expect(paletteFor("neutral")[0]).toEqual([242, 238, 247]);
-    expect(paletteFor("neutral")[4]).toEqual([109, 91, 163]);
+  it("higherBetter is mint → teal, exactly the spec stops", () => {
+    expect(paletteFor("higherBetter")).toEqual([
+      [217, 239, 227],
+      [191, 230, 210],
+      [143, 209, 182],
+      [92, 181, 154],
+      [47, 143, 122],
+    ]);
+  });
+
+  it("neutral is lilac → violet, exactly the spec stops", () => {
+    expect(paletteFor("neutral")).toEqual([
+      [230, 223, 240],
+      [216, 207, 233],
+      [184, 169, 214],
+      [146, 130, 191],
+      [109, 91, 163],
+    ]);
+  });
+
+  it.each(["higherWorse", "higherBetter", "neutral"] as const)("%s step 1 is darker than the paper floor", (polarity) => {
+    expect(luminance(paletteFor(polarity)[0])).toBeLessThan(luminance([245, 242, 235]));
   });
 
   it.each(["higherWorse", "higherBetter", "neutral"] as const)("%s luminance strictly decreases (colorblind-safe)", (polarity) => {
     const lums = paletteFor(polarity).map(luminance);
     for (let i = 1; i < lums.length; i++) expect(lums[i]).toBeLessThan(lums[i - 1]);
+  });
+});
+
+describe("luminance", () => {
+  it("is Rec. 709 luma in 0..1 (white 1, black 0, primaries 0.2126/0.7152/0.0722)", () => {
+    expect(luminance([255, 255, 255])).toBeCloseTo(1, 10);
+    expect(luminance([0, 0, 0])).toBe(0);
+    expect(luminance([255, 0, 0])).toBeCloseTo(0.2126, 10);
+    expect(luminance([0, 255, 0])).toBeCloseTo(0.7152, 10);
+    expect(luminance([0, 0, 255])).toBeCloseTo(0.0722, 10);
   });
 });
 

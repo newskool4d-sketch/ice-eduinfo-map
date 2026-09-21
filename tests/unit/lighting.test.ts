@@ -20,6 +20,37 @@ function ambientLight(effect: { props: Record<string, NamedLight> }): AmbientLig
   return ambient;
 }
 
+// 밝은 디오라마 (2026-09-21 spec §3, Task 2 fix round 1 ruling) — the light
+// SET is identical on both variants (shadows are off everywhere now, so the
+// only historical difference — the key light's `_shadow` flag — is gone
+// too); these assertions run once per variant so a drift between the two
+// can't slip through.
+function expectDaylightRig(effect: typeof lightingEffect) {
+  const directional = directionalLights(effect);
+  expect(directional).toHaveLength(1);
+  const [key] = directional;
+
+  // deck.gl's `direction` is the light's TRAVEL vector: [-0.5,-1,-2.5]
+  // travels west/south/down, so the light arrives from the upper-right
+  // (north-east) at a high angle.
+  const expected = new Vector3([-0.5, -1, -2.5]).normalize().toArray();
+  expect(key.direction[0]).toBeCloseTo(expected[0], 10);
+  expect(key.direction[1]).toBeCloseTo(expected[1], 10);
+  expect(key.direction[2]).toBeCloseTo(expected[2], 10);
+
+  // Key 0.9 (low end of the 0.9~1.1 tuning range — Task 2 fix round 1
+  // screenshot tuning) with the phong-matched material below: top ≈ 0.7×0.95
+  // + 0.3×0.9×cosθ ≈ 0.91, which (plus specular and the post-process lift)
+  // lands the lit top at ≈ the raw palette stop on screen — no clipping.
+  expect(key.color).toEqual([255, 245, 225]);
+  expect(key.intensity).toBe(0.9);
+
+  // Ambient 0.95 (tuning range 0.9~1.05): the ambient-only walls sit at
+  // ≈0.72× the top face — the intended miniature side-shading, never black.
+  expect(ambientLight(effect).color).toEqual([255, 250, 240]);
+  expect(ambientLight(effect).intensity).toBe(0.95);
+}
+
 describe("lightingEffect", () => {
   // Fix round 1, finding 4 — the fill light is gone (not just non-shadow-
   // casting): LightingEffect creates one ShadowPass PER directional light
@@ -29,54 +60,25 @@ describe("lightingEffect", () => {
   // the shadow-pass cost for a light that was never meant to cast one. See
   // lighting.ts's own comment for the full mechanism and the ambient/
   // material compensation.
-  it("has exactly one directional light (the key light), and it casts a shadow", () => {
+  // Task 2 fix round 1 ruling — and now NO light casts a shadow at all: deck
+  // 9.4's shadow module judged the whole top face of a tall block as
+  // self-shadowed (a global tint), while real cast shadows were invisible
+  // at the overview zoom. Depth now comes from wall shading + vignette.
+  it("has exactly one directional light (the key light), and it casts NO shadow", () => {
     const directional = directionalLights(lightingEffect);
     expect(directional).toHaveLength(1);
-    expect(directional.filter((l) => l.shadow === true)).toHaveLength(1);
+    expect(directional.filter((l) => l.shadow === true)).toHaveLength(0);
   });
 
-  // 밝은 디오라마 (2026-09-21 spec §3) — [-0.5, -1, -2.5]: daylight from the
-  // upper-left at a high angle, so shadows stay short and soft.
-  it("the shadow-casting key light points in the normalized [-0.5,-1,-2.5] direction", () => {
-    const [key] = directionalLights(lightingEffect).filter((l) => l.shadow === true);
-    const expected = new Vector3([-0.5, -1, -2.5]).normalize().toArray();
-    expect(key.direction[0]).toBeCloseTo(expected[0], 10);
-    expect(key.direction[1]).toBeCloseTo(expected[1], 10);
-    expect(key.direction[2]).toBeCloseTo(expected[2], 10);
+  it("uses the daylight rig (key [255,245,225] @ 0.9 from the upper-right, ambient [255,250,240] @ 0.95)", () => {
+    expectDaylightRig(lightingEffect);
   });
 
-  // 밝은 디오라마 (spec §3) — 0.95 (tuning range 0.9~1.05): daylight ambient so
-  // side walls read as "slightly darker than the top", not black.
-  it("ambient light intensity is 0.95 (daylight)", () => {
-    expect(ambientLight(lightingEffect).intensity).toBe(0.95);
-  });
-
-  it("uses warm daylight colors (ambient [255,250,240], key [255,245,225] @ 1.15)", () => {
-    expect(ambientLight(lightingEffect).color).toEqual([255, 250, 240]);
-    const key = directionalLights(lightingEffect)[0];
-    expect(key.color).toEqual([255, 245, 225]);
-    expect(key.intensity).toBe(1.15);
-  });
-
-  // 밝은 디오라마 (spec §3) — a warm gray-brown tint at alpha 0.18 (tuning
-  // range 0.15~0.25): soft daylight shadows. `LightingEffect#shadowColor`
-  // must match lighting-effect.js's own DEFAULT_SHADOW_COLOR format —
-  // confirmed from source (node_modules/@deck.gl/core/dist/effects/lighting/
-  // lighting-effect.js: `[0, 0, 0, 200 / 255]`) and the shadow shader module
-  // (shadow.js: `mix(color.rgb, shadow.color.rgb, ...)` against already-0..1
-  // fragment colors) to be 0..1 FLOAT per channel, not the 0..255 scale every
-  // layer's getFillColor/getColor accessor uses elsewhere in this app. So
-  // [60,50,40] must be divided by 255; passing it unconverted would push
-  // R/G/B past 1.0 and clamp to a blown-out near-white shadow.
-  it("shadowColor is [60,50,40,0.18] converted to 0..1 float (not raw 0..255)", () => {
-    expect(lightingEffect.shadowColor).toEqual([60 / 255, 50 / 255, 40 / 255, 0.18]);
-  });
-
-  it("every shadowColor channel is within the valid 0..1 uniform range", () => {
-    for (const channel of lightingEffect.shadowColor) {
-      expect(channel).toBeGreaterThanOrEqual(0);
-      expect(channel).toBeLessThanOrEqual(1);
-    }
+  // With `_shadow:false` `shadowColor` is never sampled; it is deliberately
+  // NOT assigned in lighting.ts, so it stays at LightingEffect's own
+  // DEFAULT_SHADOW_COLOR (lighting-effect.js: `[0, 0, 0, 200 / 255]`).
+  it("leaves shadowColor at deck.gl's default (not configured — shadows are off)", () => {
+    expect(lightingEffect.shadowColor).toEqual([0, 0, 0, 200 / 255]);
   });
 });
 
@@ -181,20 +183,29 @@ describe("lightingEffectNoShadow (Task A — NEXT_PUBLIC_MAP_FX=off emergency sw
     expect(directional.filter((l) => l.shadow === true)).toHaveLength(0);
   });
 
-  it("keeps the same ambient intensity as the shadowed variant", () => {
-    expect(ambientLight(lightingEffectNoShadow).intensity).toBe(0.95);
+  it("uses the identical daylight rig as lightingEffect (same key/ambient color, intensity, direction)", () => {
+    expectDaylightRig(lightingEffectNoShadow);
+  });
+
+  it("is a distinct instance from lightingEffect (the fx-off swap path stays structurally intact)", () => {
+    expect(lightingEffectNoShadow).not.toBe(lightingEffect);
   });
 });
 
 describe("REGION_MATERIAL", () => {
-  // 밝은 디오라마 (spec §3) — higher ambient, lower shininess/specular: matte
-  // paper-like blocks rather than glossy plastic.
+  // 밝은 디오라마 (spec §3, Task 2 fix round 1 ruling + screenshot tuning) —
+  // exposure re-set for luma's phong model with shadows off: ambient-heavy
+  // (0.7, low end of the 0.7~0.8 range) so the ambient-only walls land at
+  // ≈0.72× the lit top, a light diffuse (0.3) so the top face doesn't clip,
+  // low shininess. `specularColor` is on luma.gl 9.4's 0..255 BYTE scale
+  // (the phong module normalizes it with `floatColors_normalize` = /255),
+  // so [20,20,20] ≈ 0.08 — matte paper.
   it("matches the light-theme (daylight) material", () => {
     expect(REGION_MATERIAL).toEqual({
-      ambient: 0.55,
-      diffuse: 0.65,
+      ambient: 0.7,
+      diffuse: 0.3,
       shininess: 8,
-      specularColor: [0.08, 0.08, 0.08],
+      specularColor: [20, 20, 20],
     });
   });
 });

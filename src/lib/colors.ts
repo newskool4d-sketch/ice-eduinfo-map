@@ -36,11 +36,14 @@ export function parseColor(css: string): RGB {
 /**
  * 라이트 테마 파스텔 램프(스펙 4절). 정지점 5개가 곧 5단계라 보간·샘플링이
  * 필요 없다. 밝기(luminance)는 단조 감소 — tests/unit/colors.test.ts 가 검사.
+ * 1단계는 종이 바닥(#f5f2eb)·바닥판([255,252,246])보다 눈에 띄게 진하다(Task 2
+ * fix round 1 룰링: 원래의 #fdf3e1/#e9f6ef/#f2eef7 은 낮 조명 아래 흰색으로
+ * 클리핑돼 바닥과 구분되지 않았다).
  */
 const PALETTE_STOPS: Record<Polarity, readonly string[]> = {
-  higherWorse: ["#fdf3e1", "#f9d9b0", "#f3b27f", "#e8865a", "#d9572b"],
-  higherBetter: ["#e9f6ef", "#bfe6d2", "#8fd1b6", "#5cb59a", "#2f8f7a"],
-  neutral: ["#f2eef7", "#d8cfe9", "#b8a9d6", "#9282bf", "#6d5ba3"],
+  higherWorse: ["#f9e5c8", "#f9d9b0", "#f3b27f", "#e8865a", "#d9572b"],
+  higherBetter: ["#d9efe3", "#bfe6d2", "#8fd1b6", "#5cb59a", "#2f8f7a"],
+  neutral: ["#e6dff0", "#d8cfe9", "#b8a9d6", "#9282bf", "#6d5ba3"],
 };
 
 /** 5-step palette for a polarity: the ramp's stops, lightest first. */
