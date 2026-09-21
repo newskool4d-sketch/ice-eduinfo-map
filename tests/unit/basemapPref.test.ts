@@ -19,34 +19,45 @@ describe("readBasemapPref/writeBasemapPref", () => {
     vi.unstubAllGlobals();
   });
 
-  it("defaults to true (ON) when nothing is stored yet", () => {
+  it("defaults to 'satellite' when nothing is stored yet", () => {
     vi.stubGlobal("window", { localStorage: fakeStorage() });
-    expect(readBasemapPref()).toBe(true);
+    expect(readBasemapPref()).toBe("satellite");
   });
 
-  it("reads a stored '0' as false (OFF)", () => {
-    vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": "0" }) });
-    expect(readBasemapPref()).toBe(false);
-  });
-
-  it("reads a stored '1' as true (ON)", () => {
+  // Task 3 (bright diorama) — the pref used to be a boolean stored as "1"/"0"
+  // (2차 개선 Task C). Those values must keep reading back as something
+  // sensible for returning users, under the SAME storage key.
+  it("migrates the old boolean values: '1' → satellite, '0' → off", () => {
     vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": "1" }) });
-    expect(readBasemapPref()).toBe(true);
+    expect(readBasemapPref()).toBe("satellite");
+    vi.unstubAllGlobals();
+    vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": "0" }) });
+    expect(readBasemapPref()).toBe("off");
   });
 
-  it("write then read round-trips through the same 'jbmap.basemap' key", () => {
+  it("reads the three modes back verbatim and falls back to satellite on garbage", () => {
+    for (const mode of ["off", "satellite", "base"] as const) {
+      vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": mode }) });
+      expect(readBasemapPref()).toBe(mode);
+      vi.unstubAllGlobals();
+    }
+    vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": "midnight" }) });
+    expect(readBasemapPref()).toBe("satellite");
+  });
+
+  it("write stores the mode string under 'jbmap.basemap' and reads back round-trip", () => {
     const storage = fakeStorage();
     vi.stubGlobal("window", { localStorage: storage });
-    writeBasemapPref(false);
-    expect(storage.setItem).toHaveBeenCalledWith("jbmap.basemap", "0");
-    expect(readBasemapPref()).toBe(false);
+    writeBasemapPref("base");
+    expect(storage.setItem).toHaveBeenCalledWith("jbmap.basemap", "base");
+    expect(readBasemapPref()).toBe("base");
 
-    writeBasemapPref(true);
-    expect(storage.setItem).toHaveBeenCalledWith("jbmap.basemap", "1");
-    expect(readBasemapPref()).toBe(true);
+    writeBasemapPref("off");
+    expect(storage.setItem).toHaveBeenCalledWith("jbmap.basemap", "off");
+    expect(readBasemapPref()).toBe("off");
   });
 
-  it("defaults to true (ON) when localStorage.getItem throws (private-mode Safari etc.)", () => {
+  it("defaults to 'satellite' when localStorage.getItem throws (private-mode Safari etc.)", () => {
     vi.stubGlobal("window", {
       localStorage: {
         getItem: () => {
@@ -54,7 +65,7 @@ describe("readBasemapPref/writeBasemapPref", () => {
         },
       },
     });
-    expect(readBasemapPref()).toBe(true);
+    expect(readBasemapPref()).toBe("satellite");
   });
 
   it("writeBasemapPref silently no-ops when localStorage.setItem throws", () => {
@@ -65,12 +76,12 @@ describe("readBasemapPref/writeBasemapPref", () => {
         },
       },
     });
-    expect(() => writeBasemapPref(false)).not.toThrow();
+    expect(() => writeBasemapPref("off")).not.toThrow();
   });
 
-  it("defaults to true (ON) when window/localStorage is unavailable entirely (SSR-safety)", () => {
+  it("defaults to 'satellite' when window/localStorage is unavailable entirely (SSR-safety)", () => {
     vi.stubGlobal("window", undefined);
-    expect(readBasemapPref()).toBe(true);
-    expect(() => writeBasemapPref(false)).not.toThrow();
+    expect(readBasemapPref()).toBe("satellite");
+    expect(() => writeBasemapPref("off")).not.toThrow();
   });
 });

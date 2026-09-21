@@ -86,8 +86,11 @@ test("arrow-key navigation in the indicator menu previews live (URL updates, pop
 
   // Read the actual rendered radio order/ids from the DOM rather than
   // hardcoding indicator ids, so this test tracks IndicatorPicker's real
-  // group/registry order instead of duplicating it.
-  const radios = page.getByRole("radio");
+  // group/registry order instead of duplicating it. Scoped to the popover:
+  // the map overlay's "배경 지도" segmented control (Task 3) is a radiogroup
+  // too, and a page-wide `getByRole("radio")` would pick up its three
+  // radios (as empty `value`s) after the indicator ones.
+  const radios = dialog.getByRole("radio");
   const radioIds = await radios.evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));
   expect(radioIds.length).toBeGreaterThan(2);
 
