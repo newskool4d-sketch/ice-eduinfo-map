@@ -165,35 +165,36 @@ describe("makeBasemapWashLayer", () => {
     expect(makeBasemapWashLayer("base").props.getFillColor).toEqual([255, 255, 255, 60]);
   });
 
-  // The wash is one closed ring around CONTROLLER.maxBounds padded by one
-  // min-zoom (z=6) tile width on every side — tiles that straddle the
-  // extent edge are drawn whole, so a wash cut exactly at the extent left a
-  // band of unwashed dark satellite around a lighter rectangle (Task 3
-  // screenshot round 1). Pinned against the literal AND derived from the
-  // same constants the layer uses, so neither can drift.
-  it("covers CONTROLLER.maxBounds padded by one z=6 tile (5.625°) — one polygon, 5 closed ring points", () => {
+  // Task 3 fix round 1 (review ruling) — the wash is ONE fixed oversized
+  // rectangle, not the basemap extent (or a padded version of it):
+  // TileLayer's `extent` only decides WHICH tiles load, a tile straddling
+  // the edge is still drawn whole, so any wash cut near the extent leaves a
+  // visible unwashed band / brightness edge. `[120,30]–[135,41]` is larger
+  // than any area the camera can ever show (minZoom 7.5 at 1600px ≈ 12.4°
+  // of longitude; maxBounds keeps the center within ±6.2° of the ring's
+  // middle), so no edge of it is ever on screen. Pinned as a literal — it is
+  // deliberately NOT derived from CONTROLLER.maxBounds or the tile zoom.
+  it("is one fixed closed ring [120,30]–[135,41], larger than anything the viewport can reach", () => {
     const data = makeBasemapWashLayer("satellite").props.data as { polygon: number[][] }[];
     expect(data).toHaveLength(1);
     const [d] = data;
-    const pad = 360 / 2 ** 6;
-    expect(pad).toBe(5.625);
-    const [[w, s], [e, n]] = CONTROLLER.maxBounds;
     expect(d.polygon).toEqual([
-      [w - pad, s - pad],
-      [e + pad, s - pad],
-      [e + pad, n + pad],
-      [w - pad, n + pad],
-      [w - pad, s - pad],
+      [120, 30],
+      [135, 30],
+      [135, 41],
+      [120, 41],
+      [120, 30],
     ]);
-    // …which, with today's bounds, is this rectangle:
-    expect(d.polygon[0][0]).toBeCloseTo(119.975, 6);
-    expect(d.polygon[0][1]).toBeCloseTo(29.075, 6);
-    expect(d.polygon[2][0]).toBeCloseTo(134.325, 6);
-    expect(d.polygon[2][1]).toBeCloseTo(42.325, 6);
     expect(d.polygon).toHaveLength(5);
     expect(d.polygon[4]).toEqual(d.polygon[0]);
-    // The tile layer's own minZoom is the number the pad is derived from.
-    expect(makeBasemapLayer("k", "satellite").props.minZoom).toBe(6);
+    // …and it strictly contains the tile extent (CONTROLLER.maxBounds) with
+    // room to spare on every side, so tiles spilling past the extent are
+    // still under the wash.
+    const [[w, s], [e, n]] = CONTROLLER.maxBounds;
+    expect(w).toBeGreaterThan(120);
+    expect(s).toBeGreaterThan(30);
+    expect(e).toBeLessThan(135);
+    expect(n).toBeLessThan(41);
     // getPolygon reads the same ring back (accessor, not a fixed literal).
     // Cast through unknown: deck.gl's AccessorFunction takes a second
     // `objectInfo` argument this unit test doesn't need to supply.

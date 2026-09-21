@@ -46,7 +46,6 @@ const BASEMAP_EXTENT: [number, number, number, number] = [WEST, SOUTH, EAST, NOR
 /**
  * Lowest tile zoom the TileLayer will ever request (far tiles in the
  * pitched view get lower z than the viewport's own zoom, floored here).
- * Shared with the wash padding below — see `WASH_PAD_DEG`.
  */
 const TILE_MIN_ZOOM = 6;
 
@@ -131,32 +130,42 @@ const WASH_ALPHA: Record<BasemapTiles, number> = { satellite: 110, base: 60 };
 type WashDatum = { polygon: [number, number][] };
 
 /**
- * How far past `BASEMAP_EXTENT` the wash reaches, in degrees: one tile at
- * `TILE_MIN_ZOOM` (360° / 2^6 = 5.625°). TileLayer's `extent` only decides
- * WHICH tiles load — a tile that straddles the extent edge is still drawn
- * whole, so at the overview a band of tiles spills up to one tile width
- * beyond the rectangle. A wash cut exactly at the extent left that band
- * unwashed (dark satellite around a visibly lighter rectangle — Task 3
- * screenshot round 1). One min-zoom tile width is the largest possible
- * spill in longitude, and more than the largest in latitude (Mercator
- * tiles cover fewer degrees of latitude the further north). Beyond the
- * tiles the wash just lands on the paper background, which it barely
- * changes (#f5f2eb → ≈#f9f8f4 at alpha 110).
+ * The wash geometry: ONE fixed rectangle, deliberately much larger than
+ * `BASEMAP_EXTENT` and NOT derived from it (Task 3 review ruling).
+ *
+ * Why not the extent itself: TileLayer's `extent` only decides WHICH tiles
+ * load — a tile that straddles the extent edge is still drawn whole, so at
+ * low zoom a band of tiles spills past the rectangle. A wash cut at the
+ * extent left that band unwashed (dark satellite framing a visibly lighter
+ * rectangle — Task 3 screenshot round 1), and padding the extent by a tile
+ * width still leaves an edge that some zoom/pitch can bring on screen, plus
+ * a brightness step where washed paper meets bare paper (≈10 levels).
+ *
+ * Why this size: it is bigger than any area the camera can show. At the
+ * nominal zoom floor (VIEW_LIMITS.minZoom 7.5, pitch 56) a 1600px viewport
+ * spans ≈12.3° of longitude corner to corner, and `CONTROLLER.maxBounds`
+ * (125.6–128.7 / 34.7–36.7) keeps the camera center within ≈2° of this
+ * ring's middle (127.5°E, 35.5°N) — so the ring always covers the whole
+ * screen and none of its edges can ever be seen. In practice the margin is
+ * larger still: deck.gl's MapController keeps the whole (pitch-0) viewport
+ * inside `maxBounds`, which raises the effective zoom floor (≈8.5 at 1600px
+ * wide); measured with WebMercatorViewport at pitch 56, settled camera
+ * states see at most lng 124.1–130.2 / lat 34.5–39.2 for every viewport
+ * ≥768px, and a drag's `rubberBand` overshoot at most 122.5–131.8 /
+ * 33.5–40.1 (wheel/widget zoom is hard-clamped, no overshoot). Where the
+ * ring lies past the tiles it just tints the paper background (#f5f2eb →
+ * ≈#f9f8f4 at alpha 110) — uniform across the viewport, so invisible.
  */
-const WASH_PAD_DEG = 360 / 2 ** TILE_MIN_ZOOM;
-
-/** One closed ring around the padded basemap extent — module constant so the layer's `data` reference is stable across renders. */
-const WASH_DATA: WashDatum[] = [
-  {
-    polygon: [
-      [WEST - WASH_PAD_DEG, SOUTH - WASH_PAD_DEG],
-      [EAST + WASH_PAD_DEG, SOUTH - WASH_PAD_DEG],
-      [EAST + WASH_PAD_DEG, NORTH + WASH_PAD_DEG],
-      [WEST - WASH_PAD_DEG, NORTH + WASH_PAD_DEG],
-      [WEST - WASH_PAD_DEG, SOUTH - WASH_PAD_DEG],
-    ],
-  },
+const WASH_RING: [number, number][] = [
+  [120, 30],
+  [135, 30],
+  [135, 41],
+  [120, 41],
+  [120, 30],
 ];
+
+/** One datum holding the ring — module constant so the layer's `data` reference is stable across renders. */
+const WASH_DATA: WashDatum[] = [{ polygon: WASH_RING }];
 
 /**
  * The translucent white wash drawn right on top of the tiles — what turns
