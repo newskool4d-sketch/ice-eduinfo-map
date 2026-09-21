@@ -95,7 +95,7 @@ export default function MapFallback({ indicatorId, bundle, selectedCode, onSelec
                 key={code}
                 aria-current={isSelected ? "true" : undefined}
                 onClick={() => onSelect(code)}
-                className={`cursor-pointer border-b border-line ${isSelected ? "bg-accent-soft text-ink" : "hover:bg-ink/5"}`}
+                className={`cursor-pointer border-b border-l-2 border-line ${isSelected ? "border-l-accent bg-accent-soft font-semibold text-ink" : "border-l-transparent hover:bg-ink/5"}`}
               >
                 <td className="py-1 pr-2">
                   {/* Fix round 1/5, finding 3: the <tr>'s onClick above is a

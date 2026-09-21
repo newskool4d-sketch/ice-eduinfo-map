@@ -59,8 +59,8 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
               onClick={item.onToggle}
               className={`pointer-events-auto rounded px-2.5 py-1 text-xs backdrop-blur-sm transition-colors ${
                 item.pressed
-                  ? "bg-accent-soft font-semibold text-ink"
-                  : "bg-surface/85 text-ink-muted hover:bg-ink/10"
+                  ? "border border-accent/40 bg-accent-soft font-semibold text-ink shadow-sm"
+                  : "border border-line bg-surface/85 text-ink-muted shadow-sm hover:bg-surface"
               }`}
             >
               {item.label}
@@ -71,7 +71,7 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
       {attribution && (
         <div
           data-testid="basemap-attribution"
-          className="rounded bg-surface/85 px-2 py-0.5 text-[10px] text-ink-muted backdrop-blur-sm"
+          className="rounded border border-line bg-surface/85 px-2 py-0.5 text-[10px] text-ink-muted shadow-sm backdrop-blur-sm"
         >
           {attribution}
         </div>

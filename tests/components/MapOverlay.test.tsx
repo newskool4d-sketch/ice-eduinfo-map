@@ -21,6 +21,21 @@ describe("MapOverlay", () => {
     expect(button).toHaveAttribute("title", "틸트시프트·미니어처 효과");
   });
 
+  // Task 1 fix round 1 — the rest-state chip must keep a visible surface on
+  // hover (the old `hover:bg-ink/10` swapped the translucent white surface
+  // for a translucent ink wash and made the chip look like it vanished over
+  // the light map). Pinned by class token, not substring: `hover:bg-surface`
+  // is a whole utility that must be present, `hover:bg-ink/10` must be gone.
+  it("rest-state (unpressed) chip hovers to bg-surface, not to an ink wash", () => {
+    const items: MapOverlayItem[] = [
+      { id: "presentation", label: "발표 모드", pressed: false, onToggle: vi.fn() },
+    ];
+    render(<MapOverlay items={items} />);
+    const button = screen.getByRole("button", { name: "발표 모드" });
+    expect(button.className).toMatch(/(^|\s)hover:bg-surface(\s|$)/);
+    expect(button.className).not.toMatch(/(^|\s)hover:bg-ink\/10(\s|$)/);
+  });
+
   it("calls the item's onToggle when clicked", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();

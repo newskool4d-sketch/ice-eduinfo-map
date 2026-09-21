@@ -3,7 +3,9 @@
 /* 라이트 테마 토큰 — src/lib/theme.ts 의 THEME 와 값이 같아야 한다
    (tests/unit/theme.test.ts 가 검사). Tailwind v4 는 이 변수들로
    bg-paper / text-ink / text-ink-muted / border-line / bg-surface /
-   bg-accent-soft / text-accent / text-positive 유틸리티를 만든다. */
+   bg-accent-soft / ring-accent / border-accent 유틸리티를 만든다.
+   accent / positive 는 채움·링·테두리·큰 글자용(대비 3:1), 작은 글자
+   (10~12px) 에는 진한 accent-text / positive-text 를 쓴다(대비 ≥ 4.5:1). */
 @theme {
   --color-paper: #f5f2eb;
   --color-surface: #ffffff;
@@ -12,7 +14,9 @@
   --color-line: #e1dbd0;
   --color-accent: #d9572b;
   --color-accent-soft: #fbe9df;
+  --color-accent-text: #a63d17;
   --color-positive: #2f8f7a;
+  --color-positive-text: #236d5f;
 }
 
 html,

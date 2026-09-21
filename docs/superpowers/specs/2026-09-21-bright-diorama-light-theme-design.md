@@ -37,41 +37,43 @@
 | `--color-line` | `#e1dbd0` | 테두리·구분선 |
 | `--color-accent` | `#d9572b` | 선택·강조(코랄) |
 | `--color-accent-soft` | `#fbe9df` | 선택 행 배경 |
+| `--color-positive` | `#2f8f7a` | 긍정 강조(채움·선·큰 글자, 대비 ≥ 3:1) |
+| `--color-accent-text` | `#a63d17` | 작은 글자(10~12px)용 코랄 — paper·surface·타일·accent-soft 위 ≥ 4.5:1 |
+| `--color-positive-text` | `#236d5f` | 작은 글자용 틸 — 같은 네 표면에서 ≥ 4.5:1 |
 
 - 다크 유틸리티 클래스는 토큰 클래스로 치환한다: `bg-[#0b0f19]`→`bg-paper`, `text-[#e6e9f0]`→`text-ink`, `text-[#e6e9f0]/NN`→`text-ink-muted`(50~70) 또는 `text-ink/NN`, `bg-white/5|10`→`bg-ink/5`, `bg-white/15|20`→`bg-ink/10`, `border-white/10`→`border-line`, `bg-black/30`→`bg-surface/80`, `ring-white/70`→`ring-accent`. `#121826` 등 단발 리터럴도 같은 규칙.
 - 대상 파일: `Dashboard.tsx`, `DashboardSkeleton.tsx`, `TopBar.tsx`, `KpiTiles.tsx`, `IndicatorMenu.tsx`, `IndicatorPicker.tsx`, `RegionList.tsx`, `RegionPanel.tsx`, `Legend.tsx`, `Footer.tsx`, `Sparkline.tsx`, `MapShell.tsx`, `MapFallback.tsx`, `MapOverlay.tsx`, `DeckMap.tsx`(컨테이너·`WIDGET_THEME_STYLE`), `globals.css`, `colors.ts`(`dim` 등 UI 색 유틸), `schoolVisuals.ts`(범례 스와치 색).
 - deck.gl 위젯 테마는 `DarkGlassTheme`→`LightGlassTheme`. 스파크라인 선은 `--color-accent`, 축·격자는 `--color-line`.
-- KPI 타일의 증감 표시(▼)는 코랄(감소)·틸 `#2f8f7a`(증가) 로, 상단 지표 메뉴의 선택 항목은 `accent-soft` 배경.
-- 대비: `tests/unit/theme.test.ts` 가 WCAG 상대 휘도 공식으로 (ink, paper), (ink, surface), (ink-muted, paper), (ink-muted, surface), (accent, surface) 쌍의 대비를 계산해 본문 쌍 ≥ 4.5, 강조 쌍 ≥ 3.0 을 단언한다(토큰 값은 CSS 에서 읽지 않고 `src/lib/theme.ts` 의 상수 객체를 단일 원천으로 두고 CSS 는 그 값을 복제 — 테스트가 `globals.css` 를 파싱해 두 곳이 일치하는지도 확인한다).
+- KPI 타일의 증감 표시는 **극성 기준**으로 칠한다: 지표에 좋은 변화(higherBetter 의 증가, higherWorse 의 감소)는 `positive-text`, 나쁜 변화는 `accent-text`(둘 다 작은 글자용 진한 토큰), 변화 없음·중립 지표는 `ink-muted`. 기존 `data-tone`(warn/neutral) 과 같은 극성 규칙을 색에도 적용한다(부호 기준이 아님 — Task 1 리뷰 룰링). 상단 지표 메뉴의 선택 항목은 `accent-soft` 배경.
+- 대비: `tests/unit/theme.test.ts` 가 WCAG 상대 휘도 공식으로 (ink, paper), (ink, surface), (ink-muted, paper), (ink-muted, surface), (accent, surface) 쌍의 대비를 계산해 본문 쌍 ≥ 4.5, 강조 쌍 ≥ 3.0 을 단언하고, `accent-text`/`positive-text` 는 paper·surface·KPI 타일 채움(ink 5% over paper)·accent-soft 네 표면 모두에서 ≥ 4.5 를 단언한다(토큰 값은 CSS 에서 읽지 않고 `src/lib/theme.ts` 의 상수 객체를 단일 원천으로 두고 CSS 는 그 값을 복제 — 테스트가 `globals.css` 를 파싱해 두 곳이 일치하는지도 확인한다).
 - 폴백 화면(좁은 뷰포트·WebGL 불가)과 스켈레톤도 같은 토큰을 쓴다. `data-testid`·aria·문구는 바꾸지 않는다.
 
 ### 2. 배경 지도 3단(끄기 · 위성 · 일반)
 
 - 상태: `basemapPref.ts` 의 값을 `boolean` 에서 `BasemapMode = "off" | "satellite" | "base"` 로 확장한다. 저장 키 `jbmap.basemap` 유지, 기존 저장값 `"1"`→`satellite`, `"0"`→`off` 로 읽어 호환. 기본값 `satellite`(키가 있을 때). 키가 없으면 항상 `off` 이고 컨트롤을 표시하지 않는다.
-- UI: `MapOverlay` 의 "배경 지도" 토글 버튼을 **세그먼트 컨트롤**(`role="radiogroup"`, 항목 `role="radio"` + `aria-checked`, 라벨 "배경 지도: 끄기 / 위성 / 일반")로 바꾼다. `MapOverlayItem` 에 `kind: "toggle" | "segmented"` 를 추가해 발표 모드·읍면동 경계는 토글 그대로 둔다. 출처 표기는 `off` 가 아닐 때 표시.
+- UI: `MapOverlay` 의 "배경 지도" 토글 버튼을 **세그먼트 컨트롤**(`role="radiogroup"`, 항목 `role="radio"` + `aria-checked`, roving tabindex + 화살표/Home/End 키 이동, inset 포커스 링, 라벨 "배경 지도: 끄기 / 위성 / 일반")로 바꾼다. `MapOverlayItem` 에 `kind: "toggle" | "segmented"` 를 추가해 발표 모드·읍면동 경계는 토글 그대로 둔다. 출처 표기는 `off` 가 아닐 때 표시.
 - 레이어: `makeBasemapLayer(key, mode)` — `satellite` 는 `Satellite/{z}/{y}/{x}.jpeg`, `base` 는 `Base/{z}/{y}/{x}.png` (`vworldTileUrl(key, layer, ext)`). `base` 의 BitmapLayer 는 `desaturate: 0.5`. 그 외 옵션(extent·zoom 범위·`onTileError` no-op·`depthWriteEnabled:false`)은 동일.
-- 워시: 타일 바로 위에 `SolidPolygonLayer` id `basemap-wash`(extent 사각형 1개, `getFillColor` 위성 `[255,255,255,110]`, 일반 `[255,255,255,60]`, `pickable:false`, `shadowEnabled:false`, `parameters:{depthWriteEnabled:false}`). `off` 면 `null`. 스크린샷 튜닝으로 알파 ±30 조정 허용.
+- 워시: 타일 바로 위에 `SolidPolygonLayer` id `basemap-wash`(고정 대형 사각형 `[120,30]–[135,41]` 1개 — 타일은 extent 로 선택만 되고 잘리지 않아 경계에 걸친 타일이 extent 밖까지 그려지므로, 뷰포트가 도달할 수 있는 어떤 영역보다 큰 사각형으로 가장자리를 없앤다(Task 3 리뷰 룰링); `getFillColor` 위성 `[255,255,255,110]`, 일반 `[255,255,255,60]`, `pickable:false`, `shadowEnabled:false`, `parameters:{depthWriteEnabled:false}`). `off` 면 `null`. 스크린샷 튜닝으로 알파 ±30 조정 허용.
 - 주변 시도(`neighbors`): 배경이 켜지면 `[255,255,255,90]`(워시 위 살짝 더 밝은 실루엣, 윤곽 `[120,110,100,120]`), 꺼지면 불투명 `[232,228,220]`(윤곽 `[190,182,170]`).
 - e2e `basemap.spec.ts`: 라디오 3개 존재, 기본 `위성` checked + 레이어 id `basemap` + 출처 표기 → `끄기` 선택 시 레이어 null·출처 사라짐 → `일반` 선택 시 레이어 존재(URL 에 `/Base/`) → 새로고침 후 유지. 기존 fixture 의 `api.vworld.kr` 스텁은 jpeg 요청도 같은 1×1 PNG 로 응답해도 무방(BitmapLayer 는 content-type 이 아니라 디코드 결과만 본다 — 실패 시 `onTileError` no-op).
 
 ### 3. 낮 조명·후처리
 
-`lighting.ts` / `effects.ts` 상수를 다음으로 바꾼다(스크린샷 튜닝 범위를 괄호에 표기).
+`lighting.ts` / `effects.ts` 상수를 다음으로 바꾼다(스크린샷 튜닝 범위를 괄호에 표기). **Task 2 리뷰 룰링(2026-09-21)** 으로 그림자는 끄고 노출을 phong 모델에 맞춰 재설정했다: deck.gl 9.4 의 그림자 모듈은 높은 돌출 블록의 상단면 전체를 셀프섀도우로 판정해 전역 틴트처럼 작용했고(픽셀 모델링으로 확인), 실제 드리운 그림자는 overview 줌에서 보이지 않았다. 깊이감은 벽면 음영·비네팅으로 준다.
 
 - AmbientLight color `[255, 250, 240]`, intensity `0.95` (0.9~1.05).
-- 키 DirectionalLight color `[255, 245, 225]`, intensity `1.15` (1.0~1.3), direction `[-0.5, -1, -2.5]`(좌상단 높은 각도, 그림자 짧게), `_shadow: true`. fx-off 변형도 같은 값.
-- `shadowColor` `[60/255, 50/255, 40/255, 0.18]` (0.15~0.25).
-- `REGION_MATERIAL` `{ ambient: 0.55, diffuse: 0.65, shininess: 8, specularColor: [0.08, 0.08, 0.08] }`.
+- 키 DirectionalLight color `[255, 245, 225]`, intensity `1.0` (0.9~1.1), direction `[-0.5, -1, -2.5]` — deck.gl 의 `direction` 은 빛이 진행하는 방향이므로 빛은 **우상단(북동, 높은 각도)** 에서 온다. `_shadow: false`(양 변형 동일). `shadowColor` 는 설정하지 않는다.
+- `REGION_MATERIAL` `{ ambient: 0.75, diffuse: 0.3, shininess: 8, specularColor: [20, 20, 20] }` — luma.gl 9.4 의 `specularColor` 는 0~255 바이트 스케일(≈0.08). 상단면 밝기 ≈ 0.75×0.95 + 0.3×1.0×cosθ ≈ 0.985(클리핑 없음), 빛을 등진 벽면 ≈ 0.72× 상단면.
 - 후처리: `vibrance 0.15`, `brightnessContrast { brightness: 0.02, contrast: 0.05 }`, `vignette { radius: 0.9, amount: 0.15 }`, 발표 모드 `tiltShift` 유지, `fxaa` 마지막. 구조·메모화·비상 스위치(`NEXT_PUBLIC_MAP_FX=off`)는 그대로.
-- `useInPicking`·`CollisionAwareLightingEffect` 등 우회책은 변경하지 않는다.
+- **깊이 버퍼 패치(Task A 결함 수정)**: deck.gl 9.4.0 은 후처리 효과가 있으면 레이어 패스를 `DeckRenderer.renderBuffers` 오프스크린 프레임버퍼에 그리는데 이 버퍼에 depth 첨부가 없어(`deck-renderer.js:112-115`, luma.gl 9 는 depth 를 자동 생성하지 않음) 깊이 테스트가 무력화되고 나중에 그려진 시군이 앞의 시군 상단면을 덮어썼다(전주시가 완주군에 가려짐). `src/components/map/deckDepthPatch.ts` 가 `DeckRenderer.prototype._resizeRenderBuffers` 를 감싸 두 버퍼에 `depth16unorm` 텍스처(섀도 패스와 같은 포맷)를 첨부한다. 단위 테스트가 가짜 device 로 첨부를 검증한다. `useInPicking`·`CollisionAwareLightingEffect` 는 그대로 둔다(무해).
 
 ### 4. 팔레트·블록·바닥·주변
 
-- `colors.ts`: d3 `interpolateOrRd/Blues/Viridis` 를 자체 램프(`interpolateRgbBasis`, d3-interpolate 는 이미 의존성)로 교체한다.
-  - `higherWorse`(높을수록 진함, 따뜻한 파스텔): `["#fdf3e1", "#f9d9b0", "#f3b27f", "#e8865a", "#d9572b"]`
-  - `higherBetter`(민트→틸): `["#e9f6ef", "#bfe6d2", "#8fd1b6", "#5cb59a", "#2f8f7a"]`
-  - `neutral`(연보라): `["#f2eef7", "#d8cfe9", "#b8a9d6", "#9282bf", "#6d5ba3"]`
-  - `PALETTE_SAMPLE_T` 는 `[0, 0.25, 0.5, 0.75, 1]` 로(램프 자체가 5개 정지점이라 극단값 회피가 필요 없다). `NULL_COLOR` `[205, 200, 192]`.
+- `colors.ts`: d3 `interpolateOrRd/Blues/Viridis` 를 정지점 5개짜리 자체 램프로 교체한다(정지점이 곧 5단계라 보간·샘플링 없이 그대로 반환; `d3-scale-chromatic` import 제거).
+  - `higherWorse`(높을수록 진함, 따뜻한 파스텔): `["#f9e5c8", "#f9d9b0", "#f3b27f", "#e8865a", "#d9572b"]`
+  - `higherBetter`(민트→틸): `["#d9efe3", "#bfe6d2", "#8fd1b6", "#5cb59a", "#2f8f7a"]`
+  - `neutral`(연보라): `["#e6dff0", "#d8cfe9", "#b8a9d6", "#9282bf", "#6d5ba3"]`
+  - 1단계는 종이 바닥(`#f5f2eb`)·바닥판보다 눈에 띄게 진하다(Task 2 리뷰 룰링: 원래의 `#fdf3e1/#e9f6ef/#f2eef7` 은 낮 조명 아래 흰색으로 클리핑돼 바닥과 구분되지 않았다). `NULL_COLOR` `[205, 200, 192]`.
   - 밝기 단조성(colorblind-safe) 유지: 테스트가 각 램프의 5단계 상대 휘도가 단조 감소임을 단언.
 - 시군 블록(`regions`/`region-islands`): 채움은 팔레트 그대로, `highlightColor [0, 0, 0, 25]`. 바닥판 `footprint` 채움 `[255, 252, 246]`, 윤곽 `[200, 192, 180, 200]`. 상단 링 비선택 `[60, 60, 70, 120]` 1px, 선택 `[28, 35, 49, 230]` 2px. 읍면동 경계선 `[60, 60, 70, 110]`.
 - 색 구간·높이 스케일·전환(600ms)·updateTriggers·`data` 참조 규칙은 변경 없음.

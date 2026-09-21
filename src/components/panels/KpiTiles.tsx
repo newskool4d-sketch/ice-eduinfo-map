@@ -53,16 +53,21 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
         const delta = seriesFile ? deltaPrevYear(seriesFile, PROVINCE_CODE, latestYear) : null;
 
         // Direction always shows both a symbol AND a color (never color
-        // alone, per the brief's accessibility note). `isWarn` still drives
-        // ONLY `data-tone` below (an increase on a higherWorse-polarity
-        // indicator, currently small_schools, is "warn"; everything else is
-        // "neutral") — KpiTiles.test.tsx asserts data-tone directly, so this
-        // semantic stays put. The VISIBLE color (`deltaClass` below) is now
-        // purely sign-based (▼ decrease = accent, ▲ increase = positive, no
-        // change/no data = muted) regardless of polarity — light-theme spec
-        // call, Task 1 — so small_schools' ▲ renders text-positive (green)
-        // while still carrying data-tone="warn"; the tone/color pairing is
-        // intentionally decoupled now, not a bug.
+        // alone, per the brief's accessibility note). `isWarn` drives ONLY
+        // `data-tone` below (an increase on a higherWorse-polarity indicator,
+        // currently small_schools, is "warn"; everything else is "neutral")
+        // — KpiTiles.test.tsx asserts data-tone directly, so this semantic
+        // stays put (and its warn/neutral vocabulary is deliberately
+        // narrower than the color's good/bad/muted one).
+        //
+        // The VISIBLE color (`deltaClass`) follows the indicator's POLARITY,
+        // not the raw sign (spec §1, Task 1 review ruling): a change that is
+        // good for the indicator (higherBetter ▲, higherWorse ▼) is teal
+        // `text-positive-text`, a bad one (higherBetter ▼, higherWorse ▲) is
+        // coral `text-accent-text`, and a neutral-polarity indicator (no
+        // good/bad reading) or no/zero change is `text-ink-muted`. The
+        // `*-text` variants are the darker small-text tokens (theme.ts) —
+        // the plain `accent`/`positive` fills only clear 3:1 at this 10px.
         //
         // "—" (no arrow, no title) means no prior-year data exists at all
         // (delta === null: e.g. teachers_total's single-year fixture case).
@@ -71,7 +76,15 @@ export default function KpiTiles({ indicators, series, manifest }: KpiTilesProps
         // so it gets its own symbol and an explanatory title rather than
         // collapsing into the same "—" the null case uses.
         const isWarn = delta !== null && delta > 0 && def.polarity === "higherWorse";
-        const deltaClass = delta === null || delta === 0 ? "text-ink-muted" : delta > 0 ? "text-positive" : "text-accent";
+        const isGoodChange =
+          delta !== null &&
+          delta !== 0 &&
+          ((def.polarity === "higherBetter" && delta > 0) || (def.polarity === "higherWorse" && delta < 0));
+        const isBadChange =
+          delta !== null &&
+          delta !== 0 &&
+          ((def.polarity === "higherBetter" && delta < 0) || (def.polarity === "higherWorse" && delta > 0));
+        const deltaClass = isGoodChange ? "text-positive-text" : isBadChange ? "text-accent-text" : "text-ink-muted";
         const deltaText =
           delta === null ? "—" : delta === 0 ? "±0" : `${delta > 0 ? "▲" : "▼"} ${def.format(Math.abs(delta))}`;
         const deltaTitle = delta === 0 ? "전년과 동일" : undefined;

@@ -34,6 +34,13 @@ function manifestFixture(): Manifest {
  * - teachers_total: only one year of series data -> no previous year -> "—".
  * - small_schools: increase, polarity higherWorse -> "▲" in the WARNING
  *   tone (the one case the brief calls out by name: 증가가 나쁜 지표).
+ *
+ * Task 1 fix round 1 (spec §1 ruling): the delta's visible COLOR follows the
+ * same polarity rule as data-tone — good change (higherBetter ▲ / higherWorse
+ * ▼) = text-positive-text, bad change = text-accent-text, no change or a
+ * neutral-polarity indicator = text-ink-muted. The class assertions below
+ * use a whole-token regex, never toContain: "text-accent-text" contains
+ * "text-accent" as a substring, so a substring check can't tell them apart.
  */
 function fixture() {
   return {
@@ -67,6 +74,25 @@ function fixture() {
  * year over year (751 -> 751) — an exact-zero delta, distinct from
  * teachers_total's null (no prior year at all) case above.
  */
+/**
+ * Same shape as fixture(), except small_schools DEcreases year over year
+ * (330 -> 320): a good change on a higherWorse indicator, so its ▼ must wear
+ * the positive (teal) text token — the mirror image of fixture()'s warn case.
+ */
+function fixtureWithSmallSchoolsDecrease() {
+  const base = fixture();
+  return {
+    ...base,
+    series: {
+      ...base.series,
+      small_schools: seriesFile("small_schools", [
+        { year: 2025, value: 330 },
+        { year: 2026, value: 320 },
+      ]),
+    },
+  };
+}
+
 function fixtureWithZeroDelta() {
   const base = fixture();
   return {
@@ -147,5 +173,39 @@ describe("KpiTiles", () => {
     expect(delta).not.toHaveTextContent("—");
     expect(delta).toHaveAttribute("data-tone", "neutral");
     expect(delta).toHaveAttribute("title", "전년과 동일");
+  });
+
+  describe("delta color follows indicator polarity, not sign (Task 1 fix round 1, spec §1)", () => {
+    const hasToken = (token: string) => new RegExp(`(^|\\s)${token}(\\s|$)`);
+
+    it("small_schools (higherWorse) increase is a bad change -> text-accent-text", () => {
+      render(<KpiTiles {...fixture()} />);
+      const delta = screen.getByTestId("kpi-delta-small_schools");
+      expect(delta.className).toMatch(hasToken("text-accent-text"));
+      expect(delta.className).not.toMatch(hasToken("text-positive-text"));
+      expect(delta.className).not.toMatch(hasToken("text-ink-muted"));
+    });
+
+    it("small_schools (higherWorse) decrease is a good change -> text-positive-text", () => {
+      render(<KpiTiles {...fixtureWithSmallSchoolsDecrease()} />);
+      const delta = screen.getByTestId("kpi-delta-small_schools");
+      expect(delta).toHaveTextContent(`▼ ${formatInt(10)}`);
+      expect(delta.className).toMatch(hasToken("text-positive-text"));
+      expect(delta.className).not.toMatch(hasToken("text-accent-text"));
+    });
+
+    it("students_total (neutral polarity) decrease stays text-ink-muted — no good/bad reading", () => {
+      render(<KpiTiles {...fixture()} />);
+      const delta = screen.getByTestId("kpi-delta-students_total");
+      expect(delta.className).toMatch(hasToken("text-ink-muted"));
+      expect(delta.className).not.toMatch(hasToken("text-accent-text"));
+      expect(delta.className).not.toMatch(hasToken("text-positive-text"));
+    });
+
+    it("an exact-zero delta is text-ink-muted regardless of polarity", () => {
+      render(<KpiTiles {...fixtureWithZeroDelta()} />);
+      const delta = screen.getByTestId("kpi-delta-schools_total");
+      expect(delta.className).toMatch(hasToken("text-ink-muted"));
+    });
   });
 });

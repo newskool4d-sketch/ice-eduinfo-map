@@ -18,7 +18,7 @@ export interface TopBarProps {
 }
 
 function SkeletonBar({ className }: { className: string }) {
-  return <div aria-hidden className={`animate-pulse rounded bg-ink/5 ${className}`} />;
+  return <div aria-hidden className={`animate-pulse rounded bg-ink/10 ${className}`} />;
 }
 
 /**
