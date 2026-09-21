@@ -611,10 +611,11 @@ export default function DeckMap({
   // caption in the JSX below). Without this, a no-key deployment correctly
   // left `basemapLayer` `null` but still passed `masked: basemapEnabled`
   // (true by default) to `makeNeighborsLayer` — the masked fill color
-  // ([11,15,25,140]) sat almost exactly on top of the then-dark (#0b0f19)
-  // container background, silently hiding every neighboring 시도
+  // (now the translucent white [255,255,255,90], meant to sit over basemap
+  // tiles as a light silhouette) would land on the bare paper background
+  // instead and all but vanish there, hiding every neighboring 시도
   // silhouette even though no basemap tile was ever drawn to mask them
-  // against.
+  // against; the opaque unmasked variant is what a no-basemap scene needs.
   const basemapOn = !!VWORLD_KEY && basemapEnabled;
 
   // Task C — the VWorld basemap TileLayer, or `null` when there's no key or

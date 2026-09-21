@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NULL_COLOR, dim, luminance, makeColorScale, mix, paletteFor, parseColor } from "@/lib/colors";
+import { NULL_COLOR, luminance, makeColorScale, mix, paletteFor, parseColor } from "@/lib/colors";
 import type { IndicatorDef } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
 
@@ -352,16 +352,5 @@ describe("makeColorScale — colorBuckets option (Task 6, Section C-추가 #5)",
     }
     const colorsUsed = new Set(distinct14.map((_, i) => scale.colorOf(`code-${i}`).join(",")));
     expect(colorsUsed.size).toBe(5);
-  });
-});
-
-describe("dim", () => {
-  it("scales each channel by factor and rounds", () => {
-    expect(dim([100, 200, 50], 0.5)).toEqual([50, 100, 25]);
-  });
-
-  it("clamps to the 0-255 byte range", () => {
-    expect(dim([200, 200, 200], 2)).toEqual([255, 255, 255]);
-    expect(dim([10, 10, 10], -1)).toEqual([0, 0, 0]);
   });
 });

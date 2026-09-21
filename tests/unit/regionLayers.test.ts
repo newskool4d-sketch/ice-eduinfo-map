@@ -12,7 +12,7 @@ import {
   makeRegionTopRingsLayer,
 } from "@/components/map/layers/regionLayers";
 import { ELEVATION_FLOOR, ELEVATION_MAX, makeElevationScale } from "@/lib/scales";
-import { makeColorScale, mix } from "@/lib/colors";
+import { makeColorScale } from "@/lib/colors";
 import { valueMap } from "@/lib/stats";
 import type { IndicatorDef, IndicatorFile } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
@@ -213,8 +213,13 @@ describe("makeRegionsLayer", () => {
     });
 
     // 밝은 디오라마 — a non-selected region fades TOWARD the paper color
-    // ([255,252,246]) rather than darkening: dim() on a pastel just muddies
-    // it, whereas a paper fade keeps the hue and reads as "in the background".
+    // ([255,252,246]) rather than darkening: scaling a pastel down just
+    // muddies it, whereas a paper fade keeps the hue and reads as "in the
+    // background". Expected value is computed BY HAND (not via colors.ts's
+    // `mix`, so this test can't pass by mirroring a bug in it):
+    //   [40,50,60] → paper [255,252,246] at 45%
+    //   = [40+(255-40)*.45, 50+(252-50)*.45, 60+(246-60)*.45]
+    //   = [136.75, 140.9, 143.7] → rounded [137, 141, 144]
     it("fades a non-selected region 45% toward paper, alpha stays 255", () => {
       const fixture = regionsFixture();
       const layer = makeRegionsLayer(fixture, {
@@ -227,8 +232,7 @@ describe("makeRegionsLayer", () => {
       type Ctx = typeof ctx;
       const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
       const [r, g, b, a] = getFillColor(fixture.features[1], ctx) as [number, number, number, number];
-      const [er, eg, eb] = mix([40, 50, 60], [255, 252, 246], 0.45);
-      expect([r, g, b, a]).toEqual([er, eg, eb, 255]);
+      expect([r, g, b, a]).toEqual([137, 141, 144, 255]);
       expect(a).toBe(255);
       // Genuinely lighter than the raw color (a fade toward paper), never darker.
       expect(r).toBeGreaterThan(40);
@@ -318,7 +322,7 @@ describe("makeRegionsLayer", () => {
       const getElevation = layer.props.getElevation as (f: typeof featureA, ctx: Ctx) => number;
       const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
 
-      // 52110 has the domain max (100 of [0,100]) -> tallest, brightest step.
+      // 52110 has the domain max (100 of [0,100]) -> tallest, deepest (step 5) color.
       expect(getElevation(fixture.features[0], ctx)).toBeCloseTo(ELEVATION_MAX, 5);
       // 52130 has the domain min (0) -> the floor, not an arbitrary mock value.
       expect(getElevation(fixture.features[1], ctx)).toBeCloseTo(ELEVATION_FLOOR, 5);
@@ -336,7 +340,7 @@ describe("makeRegionsLayer", () => {
 // Task A — replaces the old per-selection `makeSelectedRingLayer`: ALL 14
 // 시군 now get a top-face outline ring (id "region-top-rings", a single
 // PathLayer instead of one conditionally-visible layer), with the selected
-// region's ring simply drawn wider/brighter than the rest.
+// region's ring simply drawn wider/darker (near-opaque ink) than the rest.
 describe("makeRegionTopRingsLayer", () => {
   const rings = [
     { code: "52110", ring: [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]] as [number, number][] },
@@ -396,7 +400,7 @@ describe("makeRegionTopRingsLayer", () => {
     expect(getColor(rings[1], ctx)).toEqual([60, 60, 70, 120]);
   });
 
-  it("getWidth/getColor read as unselected (1px, dim) when selectedCode is null", () => {
+  it("getWidth/getColor read as unselected (1px, translucent gray) when selectedCode is null", () => {
     const layer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: null, triggerKey: "v1" });
     type Datum = (typeof rings)[number];
     type Ctx = { index: number; data: Datum[]; target: number[] };
@@ -536,8 +540,9 @@ describe("makeIslandsLayer", () => {
     type Ctx = typeof ctx;
     const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
     expect(getFillColor(featureA, ctx)).toEqual([10, 20, 30, 255]); // 52110 — selected
-    const [er, eg, eb] = mix([10, 20, 30], [255, 252, 246], 0.45);
-    expect(getFillColor(fixture.features[1], ctx)).toEqual([er, eg, eb, 255]); // 52130 — not selected
+    // Hand-computed (see makeRegionsLayer's fade test): [10,20,30] → paper
+    // [255,252,246] at 45% = [120.25, 124.4, 127.2] → [120, 124, 127].
+    expect(getFillColor(fixture.features[1], ctx)).toEqual([120, 124, 127, 255]); // 52130 — not selected
   });
 
   it("forwards clicks with the clicked feature's code, same as makeRegionsLayer", () => {

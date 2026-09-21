@@ -205,8 +205,3 @@ export function makeColorScale(
 function clampByte(v: number): number {
   return Math.min(255, Math.max(0, Math.round(v)));
 }
-
-/** Darkens/lightens an RGB triple by `factor` (e.g. 0.5 = half brightness), clamped to [0,255]. UI color utility; the map's non-selected-region fade uses `mix` toward the paper color instead (regionLayers.ts), since darkening a pastel muddies it. */
-export function dim(rgb: RGB, factor: number): RGB {
-  return [clampByte(rgb[0] * factor), clampByte(rgb[1] * factor), clampByte(rgb[2] * factor)];
-}

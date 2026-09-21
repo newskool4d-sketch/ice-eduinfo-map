@@ -8,7 +8,7 @@ import { mix, type RGB } from "@/lib/colors";
 
 type RGBA = [number, number, number, number];
 
-/** 시군 바닥판/종이 색 — 비선택 시군은 이 색 쪽으로 45% 페이드(라이트 테마: 어둡게 하면 탁해진다). */
+/** 시군 바닥판(`footprint`) 채움 색이자 종이 색 — 비선택 시군은 이 색 쪽으로 45% 페이드(라이트 테마: 어둡게 하면 탁해진다). 단일 원천: 바닥판 `getFillColor` 도 이 상수를 쓴다. */
 const PAPER: RGB = [255, 252, 246];
 const UNSELECTED_FADE = 0.45;
 /** Default deck.gl `transitions` duration (ms) for this layer's animated props — see the `transitionDuration` option below. */
@@ -64,7 +64,7 @@ type RegionsFeatureCollection = FeatureCollection<
 
 /**
  * Ground-level 바닥판 of all 14 시군, drawn under the extruded `regions`
- * layer: a paper-colored plate ([255,252,246] — 밝은 디오라마, spec §4) with a
+ * layer: a paper-colored plate (`PAPER` [255,252,246] — 밝은 디오라마, spec §4) with a
  * warm gray outline. `extruded: true` on a GeoJsonLayer suppresses its own
  * stroke sub-layer, so this flat footprint is what makes the base outline
  * visible; the fill is what sits under the flat `region-islands` parts.
@@ -75,7 +75,7 @@ export function makeFootprintLayer(fc: RegionsFeatureCollection) {
     data: fc,
     extruded: false,
     filled: true,
-    getFillColor: [255, 252, 246],
+    getFillColor: PAPER,
     stroked: true,
     lineWidthUnits: "pixels",
     getLineWidth: 1,
