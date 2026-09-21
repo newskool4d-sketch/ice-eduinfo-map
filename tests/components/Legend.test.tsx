@@ -164,6 +164,25 @@ describe("Legend", () => {
     expect(screen.getByText("특수")).toBeInTheDocument();
   });
 
+  // Task D — 학교 레이어가 점(ScatterplotLayer)에서 기둥(ColumnLayer)으로 바뀌면서,
+  // 범례 스와치도 원(rounded-full)이 아니라 작은 사각형으로 바뀐다(기둥을 위에서
+  // 내려다본 모양의 상징).
+  it("renders 학교급 swatches as small squares (기둥 상징), not circles", () => {
+    render(
+      <Legend
+        def={baseDef()}
+        ticks={TICKS}
+        palette={paletteFor("neutral")}
+        hasNull={false}
+        referenceDate="2026-04-01"
+        schoolLevelsVisible
+      />,
+    );
+    for (const swatch of screen.getAllByTestId("legend-school-swatch")) {
+      expect(swatch.className).not.toContain("rounded-full");
+    }
+  });
+
   // fix round, review finding #4: the "(특수학교는 위치 자료 없음)" caveat used
   // to render for EVERY selected region whenever schoolLevelsVisible was
   // true, even one where every school actually has a coordinate — false

@@ -3,6 +3,7 @@ import type { Position } from "@deck.gl/core";
 import { CollisionFilterExtension } from "@deck.gl/extensions";
 
 import { makeRegionLabelLayer, type RegionLabel } from "@/components/map/layers/labelLayer";
+import { SCHOOL_HEIGHT_MAX_M } from "@/lib/schoolVisuals";
 
 const labels: RegionLabel[] = [
   { code: "52110", name: "전주시", position: [127.1, 35.8] },
@@ -314,5 +315,84 @@ describe("makeRegionLabelLayer — CollisionFilterExtension (Task B)", () => {
     const getCollisionPriority = layer.props.getCollisionPriority as (d: RegionLabel, ctx: Ctx) => number;
     expect(getCollisionPriority(labels[0], ctxFor(labels))).toBe(0);
     expect(layer.props.updateTriggers.getCollisionPriority).toEqual(["v1", null]);
+  });
+});
+
+// Task D — 선택 시군 라벨 z: the selected region's OWN label must clear the
+// tallest a school column in it can ever get (SCHOOL_HEIGHT_MAX_M — see
+// schoolVisuals.ts's makeSchoolHeightScale) plus the usual +200 clearance,
+// so a forest of tall columns never pierces its own 시군 name chip. Every
+// OTHER (non-selected) region's label is unaffected by this — its own
+// schools are never even rendered (DeckMap only ever hands the schools
+// layers the SELECTED region's schools) — so it keeps the plain +200.
+describe("makeRegionLabelLayer — selected-region label z clears the school-column forest (Task D)", () => {
+  type Ctx = { index: number; data: RegionLabel[]; target: number[] };
+  const ctxFor = (data: RegionLabel[]): Ctx => ({ index: 0, data, target: [] });
+
+  it("getPosition is elevationOf(code)+200 for a NON-selected region", () => {
+    const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: "52130", // labels[0] (52110) is NOT the selected one
+    });
+    const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
+    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1200]);
+  });
+
+  it(`getPosition is elevationOf(code)+${SCHOOL_HEIGHT_MAX_M}+200 for the SELECTED region`, () => {
+    const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: "52110", // labels[0] IS the selected one
+    });
+    const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
+    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1000 + SCHOOL_HEIGHT_MAX_M + 200]);
+  });
+
+  it("only the selected region's own label gets the +SCHOOL_HEIGHT_MAX_M bump, not every label", () => {
+    const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: "52110", // labels[0] selected; labels[1] (52130) is not
+    });
+    const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
+    expect(getPosition(labels[1], ctxFor(labels))).toEqual([126.7, 35.9, 2200]);
+  });
+
+  it("updateTriggers.getPosition includes both triggerKey and selectedCode", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "indicator-7",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: "52110",
+    });
+    expect(layer.props.updateTriggers.getPosition).toEqual(expect.arrayContaining(["indicator-7", "52110"]));
+  });
+
+  it("defaults to the plain +200 (no selectedCode bump) when selectedCode is omitted", () => {
+    const elevationOf = vi.fn(() => 1000);
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+    });
+    const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
+    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1200]);
   });
 });

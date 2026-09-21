@@ -1,6 +1,8 @@
 import { TextLayer } from "@deck.gl/layers";
 import { CollisionFilterExtension, type CollisionFilterExtensionProps } from "@deck.gl/extensions";
 
+import { SCHOOL_HEIGHT_MAX_M } from "@/lib/schoolVisuals";
+
 // Task B — module-scope constant (same pattern as regionLayers.ts's
 // `REGION_MATERIAL`/lighting.ts's `lightingEffect`): a fresh
 // `new CollisionFilterExtension()` on every render would be equally safe —
@@ -68,10 +70,18 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
   return new TextLayer<RegionLabel, CollisionFilterExtensionProps<RegionLabel>>({
     id: "region-labels",
     data: labels,
+    // Task D — 기둥 숲 위로: the SELECTED region's own label must clear the
+    // tallest a school column in it can ever get (SCHOOL_HEIGHT_MAX_M —
+    // schoolVisuals.ts's makeSchoolHeightScale, the same constant the
+    // schools ColumnLayer's height domain is built from) on top of the
+    // usual +200 clearance, so a forest of tall columns never pierces its
+    // own 시군 name chip. Every other (non-selected) region's label keeps
+    // the plain +200 — its own schools are never even rendered (DeckMap
+    // only ever hands the schools layers the SELECTED region's schools).
     getPosition: (d): [number, number, number] => [
       d.position[0],
       d.position[1],
-      opts.elevationOf(d.code) + 200,
+      opts.elevationOf(d.code) + (d.code === selectedCode ? SCHOOL_HEIGHT_MAX_M : 0) + 200,
     ],
     getText: (d) => opts.textOf(d.code),
     // Task B, fix round 1 — 라벨 겹침 완화 (전주·익산·완주·김제)의 넛지는 더 이상
@@ -154,7 +164,7 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
       background: { shadowEnabled: false },
     },
     updateTriggers: {
-      getPosition: [opts.triggerKey],
+      getPosition: [opts.triggerKey, selectedCode],
       getText: [opts.triggerKey],
       getCollisionPriority: [opts.triggerKey, selectedCode],
     },
