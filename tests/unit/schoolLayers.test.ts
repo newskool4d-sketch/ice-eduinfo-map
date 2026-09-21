@@ -233,7 +233,7 @@ describe("makeSchoolsLayer (Task D — ColumnLayer)", () => {
 
   it("zeroes both transitions when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
     const layer = makeSchoolsLayer([], { ...baseOpts, transitionDuration: 0 });
-    expect(layer.props.transitions).toMatchObject({ getPosition: 0, getElevation: 0 });
+    expect(layer.props.transitions).toBeUndefined(); // 0ms → omitted
   });
 });
 
@@ -316,7 +316,7 @@ describe("makeSchoolLabelsLayer", () => {
 
   it("zeroes the getPosition transition when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
     const layer = makeSchoolLabelsLayer([], { ...baseOpts, transitionDuration: 0 });
-    expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
+    expect(layer.props.transitions).toBeUndefined(); // 0ms → omitted
   });
 
   // Task D, fix round 1 — CollisionFilterExtension: collisionGroup is now

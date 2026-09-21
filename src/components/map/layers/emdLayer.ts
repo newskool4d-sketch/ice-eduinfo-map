@@ -108,8 +108,7 @@ export function makeEmdBoundaryLayer(fc: FeatureCollection, opts: EmdBoundaryLay
     updateTriggers: {
       getPath: [opts.triggerKey, opts.elevation],
     },
-    transitions: {
-      getPath: transitionDuration,
-    },
+    // Omitted when 0 — see regionLayers.ts (collision FBO re-render per frame).
+    transitions: transitionDuration > 0 ? { getPath: transitionDuration } : undefined,
   });
 }

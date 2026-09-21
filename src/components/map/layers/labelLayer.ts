@@ -168,8 +168,11 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
       getText: [opts.triggerKey],
       getCollisionPriority: [opts.triggerKey, selectedCode],
     },
-    transitions: {
-      getPosition: transitionDuration,
-    },
+    // `transitions` is OMITTED (undefined) when the duration is 0: deck.gl's
+    // CollisionFilterEffect re-renders its collision FBO every frame while any
+    // layer has a truthy `transitions` object (collision-filter-effect.js
+    // `needsRender`), even for a 0ms transition. Under reduced motion / CI
+    // that was pure per-frame waste.
+    transitions: transitionDuration > 0 ? { getPosition: transitionDuration } : undefined,
   });
 }

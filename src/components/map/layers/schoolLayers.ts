@@ -198,10 +198,10 @@ export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayer
       getPosition: [opts.triggerKey],
       getElevation: [opts.heightKey],
     },
-    transitions: {
-      getPosition: transitionDuration,
-      getElevation: transitionDuration,
-    },
+    // Omitted when 0 — see labelLayer.ts (collision FBO re-render per frame
+    // while any layer carries a truthy `transitions`).
+    transitions:
+      transitionDuration > 0 ? { getPosition: transitionDuration, getElevation: transitionDuration } : undefined,
     onClick: opts.onClick
       ? (info: PickingInfo<PositionedSchool>) => {
           if (info.object) opts.onClick?.(info.object.id);
@@ -302,8 +302,7 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
       getPosition: [opts.triggerKey, opts.heightKey],
       getText: [opts.triggerKey],
     },
-    transitions: {
-      getPosition: transitionDuration,
-    },
+    // Omitted when 0 — see labelLayer.ts.
+    transitions: transitionDuration > 0 ? { getPosition: transitionDuration } : undefined,
   });
 }

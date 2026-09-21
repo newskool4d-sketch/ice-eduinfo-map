@@ -167,19 +167,14 @@ describe("makeRegionsLayer", () => {
       expect(transitions.getFillColor.duration).toBe(600);
     });
 
-    it("zeroes both transitions when transitionDuration: 0 (prefers-reduced-motion)", () => {
+    it("omits transitions entirely when transitionDuration: 0 (prefers-reduced-motion — no per-frame collision FBO re-render)", () => {
       const layer = makeRegionsLayer(regionsFixture(), {
         elevationOf: () => 1,
         fillColorOf: () => [0, 0, 0, 255],
         triggerKey: "v1",
         transitionDuration: 0,
       });
-      const transitions = layer.props.transitions as {
-        getElevation: { duration: number };
-        getFillColor: { duration: number };
-      };
-      expect(transitions.getElevation.duration).toBe(0);
-      expect(transitions.getFillColor.duration).toBe(0);
+      expect(layer.props.transitions).toBeUndefined();
     });
   });
 
@@ -429,7 +424,7 @@ describe("makeRegionTopRingsLayer", () => {
       triggerKey: "v1",
       transitionDuration: 0,
     });
-    expect(instantLayer.props.transitions).toMatchObject({ getPath: 0 });
+    expect(instantLayer.props.transitions).toBeUndefined(); // 0ms → omitted
   });
 });
 

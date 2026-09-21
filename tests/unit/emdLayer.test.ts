@@ -138,7 +138,7 @@ describe("makeEmdBoundaryLayer", () => {
     expect(defaultLayer.props.transitions).toMatchObject({ getPath: 600 });
 
     const instantLayer = makeEmdBoundaryLayer(fixture(), { elevation: 0, triggerKey: "v1", transitionDuration: 0 });
-    expect(instantLayer.props.transitions).toMatchObject({ getPath: 0 });
+    expect(instantLayer.props.transitions).toBeUndefined(); // 0ms → omitted
   });
 
   // Task E brief: "훅 결과가 바뀔 때만 useMemo 로 1회 생성(참조 고정)" — the

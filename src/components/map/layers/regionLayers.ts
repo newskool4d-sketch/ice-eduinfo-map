@@ -156,10 +156,16 @@ export function makeRegionsLayer(fc: RegionsFeatureCollection, opts: RegionsLaye
       getElevation: [opts.triggerKey],
       getFillColor: [opts.triggerKey, selectedCode],
     },
-    transitions: {
-      getElevation: { type: "interpolation", duration: transitionDuration, easing: easeCubicOut },
-      getFillColor: { type: "interpolation", duration: transitionDuration },
-    },
+    // Omitted (undefined) when the duration is 0 — a truthy `transitions` on
+    // ANY layer makes CollisionFilterEffect re-render its FBO every frame
+    // (collision-filter-effect.js `needsRender`); see labelLayer.ts.
+    transitions:
+      transitionDuration > 0
+        ? {
+            getElevation: { type: "interpolation", duration: transitionDuration, easing: easeCubicOut },
+            getFillColor: { type: "interpolation", duration: transitionDuration },
+          }
+        : undefined,
     onClick: opts.onClick
       ? (info: PickingInfo<Feature<Polygon | MultiPolygon, RegionFeature["properties"]>>) => {
           const code = info.object?.properties?.code;
@@ -206,9 +212,8 @@ export function makeIslandsLayer(fc: RegionsFeatureCollection, opts: IslandsLaye
     updateTriggers: {
       getFillColor: [opts.triggerKey, selectedCode],
     },
-    transitions: {
-      getFillColor: { type: "interpolation", duration: transitionDuration },
-    },
+    // Omitted when 0 — see makeRegionsLayer above.
+    transitions: transitionDuration > 0 ? { getFillColor: { type: "interpolation", duration: transitionDuration } } : undefined,
     onClick: opts.onClick
       ? (info: PickingInfo<Feature<Polygon | MultiPolygon, RegionFeature["properties"]>>) => {
           const code = info.object?.properties?.code;
@@ -282,8 +287,7 @@ export function makeRegionTopRingsLayer(rings: RegionTopRingDatum[], opts: Regio
       getWidth: [selectedCode],
       getColor: [selectedCode],
     },
-    transitions: {
-      getPath: transitionDuration,
-    },
+    // Omitted when 0 — see makeRegionsLayer above.
+    transitions: transitionDuration > 0 ? { getPath: transitionDuration } : undefined,
   });
 }

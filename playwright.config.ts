@@ -52,6 +52,13 @@ export default defineConfig({
   expect: { timeout: process.env.CI ? 15_000 : 5_000 },
   use: {
     baseURL: BASE_URL,
+    // CI (software-GL runner): emulate prefers-reduced-motion so the app's own
+    // reduced-motion path (useCamera/useReducedMotion → transitionDuration 0,
+    // layers' `transitions` omitted) makes camera fly-to and layer morphs
+    // instant. Animated frames on swiftshader saturated the main thread and
+    // delayed React commits past the expect timeout (runs 35570411276,
+    // 35578948946: select-region "Esc → 목록" assertion). Locally unchanged.
+    reducedMotion: process.env.CI ? "reduce" : undefined,
     // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — no added
     // dependency (both reporters are built into @playwright/test); gives the
     // uploaded playwright-report/ artifact an actual trace + screenshot for

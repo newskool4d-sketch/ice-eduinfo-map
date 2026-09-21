@@ -193,7 +193,7 @@ describe("makeRegionLabelLayer", () => {
         characterSet: ["a"],
         transitionDuration: 0,
       });
-      expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
+      expect(layer.props.transitions).toBeUndefined(); // 0ms → omitted (no per-frame collision FBO re-render)
     });
   });
 });
