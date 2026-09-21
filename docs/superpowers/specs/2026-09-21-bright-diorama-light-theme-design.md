@@ -41,7 +41,7 @@
 - 다크 유틸리티 클래스는 토큰 클래스로 치환한다: `bg-[#0b0f19]`→`bg-paper`, `text-[#e6e9f0]`→`text-ink`, `text-[#e6e9f0]/NN`→`text-ink-muted`(50~70) 또는 `text-ink/NN`, `bg-white/5|10`→`bg-ink/5`, `bg-white/15|20`→`bg-ink/10`, `border-white/10`→`border-line`, `bg-black/30`→`bg-surface/80`, `ring-white/70`→`ring-accent`. `#121826` 등 단발 리터럴도 같은 규칙.
 - 대상 파일: `Dashboard.tsx`, `DashboardSkeleton.tsx`, `TopBar.tsx`, `KpiTiles.tsx`, `IndicatorMenu.tsx`, `IndicatorPicker.tsx`, `RegionList.tsx`, `RegionPanel.tsx`, `Legend.tsx`, `Footer.tsx`, `Sparkline.tsx`, `MapShell.tsx`, `MapFallback.tsx`, `MapOverlay.tsx`, `DeckMap.tsx`(컨테이너·`WIDGET_THEME_STYLE`), `globals.css`, `colors.ts`(`dim` 등 UI 색 유틸), `schoolVisuals.ts`(범례 스와치 색).
 - deck.gl 위젯 테마는 `DarkGlassTheme`→`LightGlassTheme`. 스파크라인 선은 `--color-accent`, 축·격자는 `--color-line`.
-- KPI 타일의 증감 표시(▼)는 코랄(감소)·틸 `#2f8f7a`(증가) 로, 상단 지표 메뉴의 선택 항목은 `accent-soft` 배경.
+- KPI 타일의 증감 표시는 **극성 기준**으로 칠한다: 지표에 좋은 변화(higherBetter 의 증가, higherWorse 의 감소)는 틸 `#2f8f7a`(`positive`), 나쁜 변화는 코랄(`accent`), 변화 없음·중립 지표는 `ink-muted`. 기존 `data-tone`(warn/ok) 과 같은 규칙을 색에도 적용한다(부호 기준이 아님 — Task 1 리뷰 룰링). 상단 지표 메뉴의 선택 항목은 `accent-soft` 배경.
 - 대비: `tests/unit/theme.test.ts` 가 WCAG 상대 휘도 공식으로 (ink, paper), (ink, surface), (ink-muted, paper), (ink-muted, surface), (accent, surface) 쌍의 대비를 계산해 본문 쌍 ≥ 4.5, 강조 쌍 ≥ 3.0 을 단언한다(토큰 값은 CSS 에서 읽지 않고 `src/lib/theme.ts` 의 상수 객체를 단일 원천으로 두고 CSS 는 그 값을 복제 — 테스트가 `globals.css` 를 파싱해 두 곳이 일치하는지도 확인한다).
 - 폴백 화면(좁은 뷰포트·WebGL 불가)과 스켈레톤도 같은 토큰을 쓴다. `data-testid`·aria·문구는 바꾸지 않는다.
 
