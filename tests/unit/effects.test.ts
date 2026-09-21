@@ -37,21 +37,19 @@ describe("createPostProcessEffects", () => {
     expect(ids(createPostProcessEffects({ presentation: true, fxOff: false })).at(-1)).toBe("fxaa-pass");
   });
 
-  // Fix round 1, finding 5 — controller visual-tuning pass: Task A's
-  // original values (vignette radius 0.72/amount 0.55, contrast 0.12,
-  // tiltShift blurRadius 6/gradientRadius 260) read too dark/murky in
-  // screenshots, and the presentation-mode blur was too strong. Re-tuned
-  // values below; see task-A-report.md's "Fix round 1" section for the
-  // before/after screenshots this was checked against.
-  it("uses fix round 1's re-tuned values for each pass", () => {
+  // 밝은 디오라마 (2026-09-21 spec §3) — lighter touch than the dark-theme
+  // values (vibrance 0.35, contrast 0.06, vignette 0.85/0.35): a pastel scene
+  // needs less saturation push and a much fainter vignette, or the paper
+  // corners go gray. tiltShift is unchanged.
+  it("uses the light-theme post-processing values for each pass", () => {
     const effects = createPostProcessEffects({ presentation: true, fxOff: false }) as {
       id: string;
       props: Record<string, unknown>;
     }[];
     const byId = Object.fromEntries(effects.map((e) => [e.id, e.props]));
-    expect(byId["vibrance-pass"]).toEqual({ amount: 0.35 });
-    expect(byId["brightnessContrast-pass"]).toEqual({ brightness: 0.02, contrast: 0.06 });
-    expect(byId["vignette-pass"]).toEqual({ radius: 0.85, amount: 0.35 });
+    expect(byId["vibrance-pass"]).toEqual({ amount: 0.15 });
+    expect(byId["brightnessContrast-pass"]).toEqual({ brightness: 0.02, contrast: 0.05 });
+    expect(byId["vignette-pass"]).toEqual({ radius: 0.9, amount: 0.15 });
     expect(byId["tiltShift-pass"]).toEqual({ blurRadius: 4, gradientRadius: 320 });
   });
 });

@@ -72,7 +72,9 @@ const DEFAULT_TRANSITION_DURATION = 600;
 // highlightColor is a single constant, not per-feature).
 const COLUMN_RADIUS_PX = 4;
 const COLUMN_DISK_RESOLUTION = 10;
-const HIGHLIGHT_COLOR: [number, number, number, number] = [255, 255, 255, 120];
+// 밝은 디오라마 (spec §5) — hover/selection darkens the column (black @ 70/255)
+// instead of the dark theme's white wash, which a light scene would swallow.
+const HIGHLIGHT_COLOR: [number, number, number, number] = [0, 0, 0, 70];
 
 /** A school with a real location match (see fix-round-1: a 특수학교 row has `lat`/`lng: null` and can never be plotted). */
 export type PositionedSchool = School & { lat: number; lng: number };
@@ -252,14 +254,16 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
     fontWeight: 500,
     characterSet: opts.characterSet,
     fontSettings: { sdf: true, fontSize: 48 },
+    // 밝은 디오라마 (spec §5) — same white-chip/ink-text/white-outline colors
+    // as region-labels (labelLayer.ts).
     outlineWidth: 0.15,
-    outlineColor: [10, 14, 25, 255],
-    getColor: [230, 233, 240, 255],
-    // Task B — 칩 배경은 더 작게: same dark/translucent palette as
-    // region-labels (labelLayer.ts), tighter padding/radius for the smaller
-    // (11px) school-name text.
+    outlineColor: [255, 255, 255, 255],
+    getColor: [28, 35, 49, 255],
+    // Task B — 칩 배경은 더 작게: same chip palette as region-labels
+    // (labelLayer.ts), tighter padding/radius for the smaller (11px)
+    // school-name text.
     background: true,
-    getBackgroundColor: [12, 14, 20, 170],
+    getBackgroundColor: [255, 255, 255, 225],
     backgroundPadding: [4, 2],
     backgroundBorderRadius: 4,
     // Task D, fix round 1 — CollisionFilterExtension: `collisionGroup:

@@ -90,20 +90,25 @@ class CollisionAwareLightingEffect extends LightingEffect {
   }
 }
 
-// Task A — 키라이트 그림자: steeper than the original [1,-1.5,-3]. Shadow
-// RECEIVING can't be turned off per layer (only casting — see
-// `shadowEnabled:false` on region-labels/school-labels/region-top-rings in
-// labelLayer.ts/schoolLayers.ts/regionLayers.ts), so a steeper key light
-// keeps a shorter shadow footprint, reducing how much a tall region's shadow
-// spills across a neighboring region's labels/school points (see
-// task-A-brief.md's "검증된 사실").
-const KEY_DIRECTION: [number, number, number] = [0.6, -1, -3];
-// Fix round 1, finding 4 — 0.85 (up from Task A's 0.7): compensates for
-// removing the fill DirectionalLight just below (see its own comment) so
-// unlit/back-facing surfaces don't read darker than Task A's screenshots
-// showed. Still down from the pre-Task-A original of 0.8 — the post-process
-// brightness/contrast pass (effects.ts) adds punch of its own on top.
-const AMBIENT_INTENSITY = 0.85;
+// 밝은 디오라마 (2026-09-21 spec §3) — daylight from the upper-left at a high
+// angle: [-0.5, -1, -2.5]. Shadow RECEIVING can't be turned off per layer
+// (only casting — see `shadowEnabled:false` on region-labels/school-labels/
+// region-top-rings in labelLayer.ts/schoolLayers.ts/regionLayers.ts), so a
+// steep key light keeps a short shadow footprint, reducing how much a tall
+// region's shadow spills across a neighboring region's labels/school
+// columns (see task-A-brief.md's "검증된 사실").
+const KEY_DIRECTION: [number, number, number] = [-0.5, -1, -2.5];
+// Ambient 0.95 (tuning range 0.9~1.05 per spec §3): high enough that a
+// block's side walls read as "slightly darker than its top", never black —
+// the single key light below is the only other light (fix round 1, finding
+// 4 removed the fill light; see the comment on `lightingEffect`).
+const AMBIENT_INTENSITY = 0.95;
+// Warm daylight tint on both lights (spec §3): slightly warm white ambient,
+// warmer/brighter key (1.15, tuning range 1.0~1.3) so top faces pop against
+// the paper backdrop without blowing out the lightest pastel step.
+const AMBIENT_COLOR: [number, number, number] = [255, 250, 240];
+const KEY_COLOR: [number, number, number] = [255, 245, 225];
+const KEY_INTENSITY = 1.15;
 
 // Created once at module scope (not per-render): deck.gl effects/materials are
 // plain config objects, and re-creating them on every DeckMap render would
@@ -125,26 +130,26 @@ const AMBIENT_INTENSITY = 0.85;
 // `shadow.lightCount > 1.0` (shadow.js). One light now means one
 // ShadowPass, `lightCount === 1`, and `shadow_uShadowMap1` is never
 // consulted. The lost fill-light contribution is compensated by raising
-// AMBIENT_INTENSITY (above, 0.7 -> 0.85) and REGION_MATERIAL.ambient
-// (below, 0.35 -> 0.45) instead — tuned against the before/after
-// screenshots in task-A-report.md's "Fix round 1" section.
+// AMBIENT_INTENSITY and REGION_MATERIAL.ambient instead (both since re-tuned
+// again for the light theme — see each constant's own comment).
 export const lightingEffect = new CollisionAwareLightingEffect({
-  ambient: new AmbientLight({ color: [255, 255, 255], intensity: AMBIENT_INTENSITY }),
-  key: new DirectionalLight({ color: [255, 255, 255], intensity: 1.0, direction: KEY_DIRECTION, _shadow: true }),
+  ambient: new AmbientLight({ color: AMBIENT_COLOR, intensity: AMBIENT_INTENSITY }),
+  key: new DirectionalLight({ color: KEY_COLOR, intensity: KEY_INTENSITY, direction: KEY_DIRECTION, _shadow: true }),
 });
 
-// Task A — dark navy shadow tint, alpha 0.3. `LightingEffect#shadowColor` is
-// consumed directly as a WebGL `vec4` uniform mixed against already-0..1
-// fragment colors (confirmed against the installed source:
-// `@deck.gl/core`'s shadow shader module does
+// 밝은 디오라마 (spec §3) — soft daylight shadow: a warm gray-brown tint at
+// alpha 0.18 (tuning range 0.15~0.25), replacing the dark-theme navy at 0.3.
+// `LightingEffect#shadowColor` is consumed directly as a WebGL `vec4`
+// uniform mixed against already-0..1 fragment colors (confirmed against the
+// installed source: `@deck.gl/core`'s shadow shader module does
 // `mix(color.rgb, shadow.color.rgb, shadowAlpha / blendedAlpha)`, and
 // lighting-effect.js's own `DEFAULT_SHADOW_COLOR` is `[0, 0, 0, 200 / 255]` —
 // note the `/ 255` on alpha) — i.e. this property is 0..1 FLOAT per channel,
 // NOT the 0..255 scale every layer's `getFillColor`/`getColor` accessor uses
-// elsewhere in this app. [4, 6, 14] (a 0..255-style dark navy) is divided by
-// 255 here to match that format; assigning it unconverted would push R/G/B
-// past 1.0 and clamp to a blown-out near-white shadow instead of a dark tint.
-lightingEffect.shadowColor = [4 / 255, 6 / 255, 14 / 255, 0.3];
+// elsewhere in this app. [60, 50, 40] (a 0..255-style warm gray-brown) is
+// divided by 255 here to match that format; assigning it unconverted would
+// push R/G/B past 1.0 and clamp to a blown-out near-white shadow.
+lightingEffect.shadowColor = [60 / 255, 50 / 255, 40 / 255, 0.18];
 
 // Task A — 비상 스위치 (`mapFx.ts`'s `isMapFxOff`): the SAME lights, but the key
 // light's `_shadow` is off, so DeckMap can swap to a shadow-free effect
@@ -167,8 +172,8 @@ lightingEffect.shadowColor = [4 / 255, 6 / 255, 14 / 255, 0.3];
 // "shadow" default shader module ever gets attached at all when no light
 // has `_shadow:true` — see the very next comment).
 export const lightingEffectNoShadow = new CollisionAwareLightingEffect({
-  ambient: new AmbientLight({ color: [255, 255, 255], intensity: AMBIENT_INTENSITY }),
-  key: new DirectionalLight({ color: [255, 255, 255], intensity: 1.0, direction: KEY_DIRECTION, _shadow: false }),
+  ambient: new AmbientLight({ color: AMBIENT_COLOR, intensity: AMBIENT_INTENSITY }),
+  key: new DirectionalLight({ color: KEY_COLOR, intensity: KEY_INTENSITY, direction: KEY_DIRECTION, _shadow: false }),
 });
 
 // Fix round 1, finding 1 — REWRITTEN root-cause comment. Task A's original
@@ -311,11 +316,13 @@ export const lightingEffectNoShadow = new CollisionAwareLightingEffect({
 // explanations for why it fired at all in their session but not in either
 // of mine.
 
-// Fix round 1, finding 4 — ambient 0.35 -> 0.45, same compensation as
-// AMBIENT_INTENSITY above, for the removed fill light.
+// 밝은 디오라마 (spec §3) — matte, paper-like blocks: higher ambient (side
+// walls stay light under the daylight ambient above), a touch less diffuse,
+// and low shininess/specular so pastel top faces don't get a plastic
+// highlight. Shared by the region bodies and the school columns.
 export const REGION_MATERIAL: Material = {
-  ambient: 0.45,
-  diffuse: 0.7,
-  shininess: 14,
-  specularColor: [0.1, 0.1, 0.12],
+  ambient: 0.55,
+  diffuse: 0.65,
+  shininess: 8,
+  specularColor: [0.08, 0.08, 0.08],
 };

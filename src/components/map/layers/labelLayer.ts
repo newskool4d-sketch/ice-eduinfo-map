@@ -106,17 +106,20 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
     // glyph enough padding in the atlas for the wider 0.25 outline (up from
     // 0.15) plus the background chip below to not clip a glyph's edge.
     fontSettings: { sdf: true, fontSize: 48, buffer: 8 },
+    // 밝은 디오라마 (spec §5) — 흰 칩 + 진한 글자: ink text with a white outline
+    // on a near-opaque white chip (the dark theme's colors inverted; padding,
+    // radius, SDF and collision settings unchanged).
     outlineWidth: 0.25,
-    outlineColor: [10, 14, 25, 255],
-    getColor: [236, 239, 245, 255],
-    // Task B — 라벨 칩: a dark, translucent background chip behind each
-    // label so it stays readable over the VWorld basemap tiles (Task C) and
-    // busy top-face colors alike, not just its outline. Renders via
-    // TextLayer's own `background` sub-layer (TextBackgroundLayer) —
+    outlineColor: [255, 255, 255, 255],
+    getColor: [28, 35, 49, 255],
+    // Task B — 라벨 칩: a near-opaque background chip behind each label so it
+    // stays readable over the VWorld basemap tiles (Task C) and busy
+    // top-face colors alike, not just its outline. Renders via TextLayer's
+    // own `background` sub-layer (TextBackgroundLayer) —
     // `_subLayerProps.background` below still excludes it from shadow
     // casting.
     background: true,
-    getBackgroundColor: [12, 14, 20, 170],
+    getBackgroundColor: [255, 255, 255, 225],
     backgroundPadding: [6, 3],
     backgroundBorderRadius: 6,
     // Task B — CollisionFilterExtension: hides an overlapping label instead

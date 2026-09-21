@@ -2,7 +2,6 @@
  * Pure value -> fill-color scale for the extruded 3D map. No React import.
  */
 import { scaleQuantile, scaleQuantize } from "d3-scale";
-import { interpolateBlues, interpolateOrRd, interpolateViridis } from "d3-scale-chromatic";
 
 import { domainOf } from "./scales";
 import { regionValues } from "./stats";
@@ -11,30 +10,16 @@ import type { IndicatorDef, Polarity } from "./indicators/types";
 export type RGB = [number, number, number];
 export type RGBA = [number, number, number, number];
 
-/** Fixed gray for a missing (null) value — never sampled from a data palette. */
-export const NULL_COLOR: RGB = [90, 96, 110];
-
-// [0.25, 0.95] (not [0, 1]): the lightest step of any of these interpolators
-// is close to white, which fades into this app's light-on-dark map chrome;
-// starting at 0.25 keeps even the lowest bucket visibly distinct. Capping at
-// 0.95 (not 1.0) avoids the darkest, near-black extreme for the same reason
-// in reverse (interpolateViridis's high end is bright yellow, not dark, but
-// OrRd/Blues both go very dark at t=1).
-const PALETTE_SAMPLE_T = [0.25, 0.425, 0.6, 0.775, 0.95] as const;
+/** Fixed warm gray for a missing (null) value — never taken from a data palette, and darker than every ramp's lightest step so it never reads as "low", only as "no data". */
+export const NULL_COLOR: RGB = [205, 200, 192];
 
 const RGB_FUNC_PATTERN = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/;
 const HEX_PATTERN = /^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/;
 
 /**
- * Parses a d3-scale-chromatic interpolator's output into [r,g,b].
- *
- * These interpolators are NOT consistent in their output format:
- * interpolateOrRd/interpolateBlues return `rgb(r, g, b)` strings, but
- * interpolateViridis returns `#rrggbb` hex strings instead (it's backed by a
- * precomputed color table via interpolateRgbBasis, not a two/three-color rgb
- * interpolation — confirmed empirically against the installed
- * d3-scale-chromatic@3.1.0; see task-2-report.md). Handling both formats
- * here is what keeps paletteFor('neutral') correct.
+ * Parses a CSS color literal — `#rrggbb` (what PALETTE_STOPS below is written
+ * in) or `rgb(r, g, b)` / `rgba(r, g, b, …)` — into [r,g,b]. Both forms are
+ * kept so a ramp stop can be pasted in either notation.
  */
 export function parseColor(css: string): RGB {
   const rgbMatch = RGB_FUNC_PATTERN.exec(css);
@@ -48,27 +33,33 @@ export function parseColor(css: string): RGB {
   throw new Error(`parseColor: unrecognized color format "${css}"`);
 }
 
-function interpolatorFor(polarity: Polarity): (t: number) => string {
-  switch (polarity) {
-    case "higherWorse":
-      return interpolateOrRd;
-    case "higherBetter":
-      return interpolateBlues;
-    case "neutral":
-      return interpolateViridis;
-  }
+/**
+ * 라이트 테마 파스텔 램프(스펙 4절). 정지점 5개가 곧 5단계라 보간·샘플링이
+ * 필요 없다. 밝기(luminance)는 단조 감소 — tests/unit/colors.test.ts 가 검사.
+ */
+const PALETTE_STOPS: Record<Polarity, readonly string[]> = {
+  higherWorse: ["#fdf3e1", "#f9d9b0", "#f3b27f", "#e8865a", "#d9572b"],
+  higherBetter: ["#e9f6ef", "#bfe6d2", "#8fd1b6", "#5cb59a", "#2f8f7a"],
+  neutral: ["#f2eef7", "#d8cfe9", "#b8a9d6", "#9282bf", "#6d5ba3"],
+};
+
+/** 5-step palette for a polarity: the ramp's stops, lightest first. */
+export function paletteFor(polarity: Polarity): RGB[] {
+  return PALETTE_STOPS[polarity].map(parseColor);
 }
 
-/**
- * 5-step palette for a polarity, sampled at PALETTE_SAMPLE_T. Palettes are
- * monotonic-lightness (colorblind-safe) by construction: higherWorse ->
- * OrRd, higherBetter -> Blues, neutral -> Viridis. RdYlGn-style diverging
- * palettes are deliberately not used (not monotonic, and "middle = neutral"
- * reads poorly against a dark 3D scene).
- */
-export function paletteFor(polarity: Polarity): RGB[] {
-  const interpolate = interpolatorFor(polarity);
-  return PALETTE_SAMPLE_T.map((t) => parseColor(interpolate(t)));
+/** Rec. 709 luma in 0..1 — enough to assert palette monotonicity; not WCAG (see src/lib/theme.ts for that). */
+export function luminance([r, g, b]: RGB): number {
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+
+/** Linear blend toward `target` by `t` in [0,1] (t=0 → rgb, t=1 → target). */
+export function mix(rgb: RGB, target: RGB, t: number): RGB {
+  return [
+    clampByte(rgb[0] + (target[0] - rgb[0]) * t),
+    clampByte(rgb[1] + (target[1] - rgb[1]) * t),
+    clampByte(rgb[2] + (target[2] - rgb[2]) * t),
+  ];
 }
 
 /** How `makeColorScale` splits the palette's 5 steps across the domain — see `ColorScale.colorBuckets`. */
@@ -212,7 +203,7 @@ function clampByte(v: number): number {
   return Math.min(255, Math.max(0, Math.round(v)));
 }
 
-/** Darkens/lightens an RGB triple by `factor` (e.g. 0.5 = half brightness), clamped to [0,255]. Used by regionLayers.ts's `selectionAwareFillColor` for the selected/non-selected region dimming; alpha is handled separately by the caller (always 255 on this map). */
+/** Darkens/lightens an RGB triple by `factor` (e.g. 0.5 = half brightness), clamped to [0,255]. UI color utility; the map's non-selected-region fade uses `mix` toward the paper color instead (regionLayers.ts), since darkening a pastel muddies it. */
 export function dim(rgb: RGB, factor: number): RGB {
   return [clampByte(rgb[0] * factor), clampByte(rgb[1] * factor), clampByte(rgb[2] * factor)];
 }

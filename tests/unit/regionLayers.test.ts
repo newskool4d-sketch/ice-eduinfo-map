@@ -10,11 +10,9 @@ import {
   makeNeighborsLayer,
   makeRegionsLayer,
   makeRegionTopRingsLayer,
-  SELECTED_BRIGHTEN,
-  UNSELECTED_DIM,
 } from "@/components/map/layers/regionLayers";
 import { ELEVATION_FLOOR, ELEVATION_MAX, makeElevationScale } from "@/lib/scales";
-import { dim, makeColorScale } from "@/lib/colors";
+import { makeColorScale, mix } from "@/lib/colors";
 import { valueMap } from "@/lib/stats";
 import type { IndicatorDef, IndicatorFile } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
@@ -84,7 +82,9 @@ describe("makeRegionsLayer", () => {
     expect(layer.props.extruded).toBe(true);
     expect(layer.props.pickable).toBe(true);
     expect(layer.props.autoHighlight).toBe(true);
-    expect(layer.props.highlightColor).toEqual([255, 255, 255, 60]);
+    // 밝은 디오라마 — hover darkens a pastel top face by ~10% (black @ 25/255)
+    // instead of the dark theme's white wash.
+    expect(layer.props.highlightColor).toEqual([0, 0, 0, 25]);
   });
 
   it("getElevation/getFillColor delegate to the injected accessors, keyed by properties.code", () => {
@@ -123,12 +123,12 @@ describe("makeRegionsLayer", () => {
       fillColorOf: () => [0, 0, 0, 255],
       triggerKey: "v1",
     });
-    // Fix round 1, finding 4 (lighting.ts) — REGION_MATERIAL.ambient 0.35 -> 0.45.
+    // 밝은 디오라마 (lighting.ts) — matte daylight material.
     expect(layer.props.material).toEqual({
-      ambient: 0.45,
-      diffuse: 0.7,
-      shininess: 14,
-      specularColor: [0.1, 0.1, 0.12],
+      ambient: 0.55,
+      diffuse: 0.65,
+      shininess: 8,
+      specularColor: [0.08, 0.08, 0.08],
     });
     const transitions = layer.props.transitions as {
       getElevation: { duration: number; type: string };
@@ -197,7 +197,7 @@ describe("makeRegionsLayer", () => {
       expect(getFillColor(featureA, ctx)).toEqual([10, 20, 30, 255]);
     });
 
-    it("brightens the selected region's color (alpha stays 255)", () => {
+    it("keeps the selected region's raw palette color — 원색 그대로 (alpha stays 255)", () => {
       const layer = makeRegionsLayer(regionsFixture(), {
         elevationOf: () => 1,
         fillColorOf,
@@ -207,15 +207,14 @@ describe("makeRegionsLayer", () => {
       const ctx = { index: 0, data: regionsFixture().features, target: [] };
       type Ctx = typeof ctx;
       const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
-      const [r, g, b, a] = getFillColor(featureA, ctx) as [number, number, number, number];
-      const [er, eg, eb] = dim([10, 20, 30], SELECTED_BRIGHTEN);
-      expect([r, g, b, a]).toEqual([er, eg, eb, 255]);
-      // Genuinely brighter, not just "different" — and never dimmed.
-      expect(r).toBeGreaterThanOrEqual(10);
-      expect(a).toBe(255);
+      const color = getFillColor(featureA, ctx);
+      expect(color).toEqual([10, 20, 30, 255]);
     });
 
-    it("dims a non-selected region's color by exactly dim(rgb, 0.55), alpha stays 255", () => {
+    // 밝은 디오라마 — a non-selected region fades TOWARD the paper color
+    // ([255,252,246]) rather than darkening: dim() on a pastel just muddies
+    // it, whereas a paper fade keeps the hue and reads as "in the background".
+    it("fades a non-selected region 45% toward paper, alpha stays 255", () => {
       const fixture = regionsFixture();
       const layer = makeRegionsLayer(fixture, {
         elevationOf: () => 1,
@@ -227,9 +226,11 @@ describe("makeRegionsLayer", () => {
       type Ctx = typeof ctx;
       const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
       const [r, g, b, a] = getFillColor(fixture.features[1], ctx) as [number, number, number, number];
-      const [er, eg, eb] = dim([40, 50, 60], UNSELECTED_DIM);
+      const [er, eg, eb] = mix([40, 50, 60], [255, 252, 246], 0.45);
       expect([r, g, b, a]).toEqual([er, eg, eb, 255]);
       expect(a).toBe(255);
+      // Genuinely lighter than the raw color (a fade toward paper), never darker.
+      expect(r).toBeGreaterThan(40);
     });
 
     it("updateTriggers.getFillColor includes selectedCode (alongside triggerKey); getElevation is unaffected by selection", () => {
@@ -382,14 +383,16 @@ describe("makeRegionTopRingsLayer", () => {
     expect(getWidth(rings[1], ctx)).toBe(1); // 52130 — not selected
   });
 
-  it("getColor is bright opaque white for the selected region, dim translucent white-gray for every other", () => {
+  // 밝은 디오라마 — ink-colored rings on pastel top faces: the selected
+  // region's is near-opaque ink, every other a translucent gray.
+  it("getColor is near-opaque ink for the selected region, translucent gray for every other", () => {
     const layer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: "52110", triggerKey: "v1" });
     type Datum = (typeof rings)[number];
     type Ctx = { index: number; data: Datum[]; target: number[] };
     const getColor = layer.props.getColor as unknown as (d: Datum, ctx: Ctx) => [number, number, number, number];
     const ctx: Ctx = { index: 0, data: rings, target: [] };
-    expect(getColor(rings[0], ctx)).toEqual([255, 255, 255, 230]);
-    expect(getColor(rings[1], ctx)).toEqual([236, 239, 245, 90]);
+    expect(getColor(rings[0], ctx)).toEqual([28, 35, 49, 230]);
+    expect(getColor(rings[1], ctx)).toEqual([60, 60, 70, 120]);
   });
 
   it("getWidth/getColor read as unselected (1px, dim) when selectedCode is null", () => {
@@ -400,7 +403,7 @@ describe("makeRegionTopRingsLayer", () => {
     const getColor = layer.props.getColor as unknown as (d: Datum, ctx: Ctx) => [number, number, number, number];
     const ctx: Ctx = { index: 0, data: rings, target: [] };
     expect(getWidth(rings[0], ctx)).toBe(1);
-    expect(getColor(rings[0], ctx)).toEqual([236, 239, 245, 90]);
+    expect(getColor(rings[0], ctx)).toEqual([60, 60, 70, 120]);
   });
 
   it("updateTriggers.getPath includes triggerKey; getWidth/getColor include selectedCode", () => {
@@ -439,24 +442,27 @@ describe("makeNeighborsLayer", () => {
   });
 
   // Task C — masked defaults to false (options omitted entirely, matching
-  // every pre-Task-C call site) and renders the original opaque backdrop.
+  // every pre-Task-C call site) and renders the opaque backdrop. 밝은
+  // 디오라마 (spec §2/§4): the backdrop is a warm light gray with a slightly
+  // darker outline; the masked variant is a translucent white silhouette
+  // (a touch brighter than the basemap wash) with a warm gray outline.
   describe("masked option (Task C — VWorld basemap)", () => {
     it("defaults to the opaque backdrop colors when masked is omitted", () => {
       const layer = makeNeighborsLayer({ type: "FeatureCollection", features: [] });
-      expect(layer.props.getFillColor).toEqual([22, 27, 40]);
-      expect(layer.props.getLineColor).toEqual([40, 48, 66]);
+      expect(layer.props.getFillColor).toEqual([232, 228, 220]);
+      expect(layer.props.getLineColor).toEqual([190, 182, 170]);
     });
 
     it("renders the same opaque backdrop colors when masked: false", () => {
       const layer = makeNeighborsLayer({ type: "FeatureCollection", features: [] }, { masked: false });
-      expect(layer.props.getFillColor).toEqual([22, 27, 40]);
-      expect(layer.props.getLineColor).toEqual([40, 48, 66]);
+      expect(layer.props.getFillColor).toEqual([232, 228, 220]);
+      expect(layer.props.getLineColor).toEqual([190, 182, 170]);
     });
 
-    it("renders a translucent mask when masked: true, so the basemap shows through", () => {
+    it("renders a translucent white mask when masked: true, so the basemap shows through", () => {
       const layer = makeNeighborsLayer({ type: "FeatureCollection", features: [] }, { masked: true });
-      expect(layer.props.getFillColor).toEqual([11, 15, 25, 140]);
-      expect(layer.props.getLineColor).toEqual([40, 48, 66, 160]);
+      expect(layer.props.getFillColor).toEqual([255, 255, 255, 90]);
+      expect(layer.props.getLineColor).toEqual([120, 110, 100, 120]);
     });
 
     it("updateTriggers.getFillColor/getLineColor include masked", () => {
@@ -472,15 +478,18 @@ describe("makeNeighborsLayer", () => {
 });
 
 describe("makeFootprintLayer", () => {
-  it("is a non-extruded, unfilled outline layer", () => {
+  // 밝은 디오라마 (spec §4) — the ground-level 바닥판 is now a filled paper plate
+  // ([255,252,246]) with a warm gray outline, not just an outline.
+  it("is a non-extruded, paper-filled, outlined base plate", () => {
     const layer = makeFootprintLayer(regionsFixture());
     expect(layer.props.id).toBe("footprint");
     expect(layer.props.extruded).toBe(false);
-    expect(layer.props.filled).toBe(false);
+    expect(layer.props.filled).toBe(true);
+    expect(layer.props.getFillColor).toEqual([255, 252, 246]);
     expect(layer.props.stroked).toBe(true);
     expect(layer.props.lineWidthUnits).toBe("pixels");
     expect(layer.props.getLineWidth).toBe(1);
-    expect(layer.props.getLineColor).toEqual([90, 100, 125, 160]);
+    expect(layer.props.getLineColor).toEqual([200, 192, 180, 200]);
     expect(layer.props.pickable).toBe(false);
   });
 });
@@ -502,6 +511,7 @@ describe("makeIslandsLayer", () => {
     expect(layer.props.extruded).toBe(false);
     expect(layer.props.filled).toBe(true);
     expect(layer.props.pickable).toBe(true);
+    expect(layer.props.highlightColor).toEqual([0, 0, 0, 25]); // same hover darken as `regions`
   });
 
   it("getFillColor delegates to fillColorOf, keyed by properties.code", () => {
@@ -517,15 +527,16 @@ describe("makeIslandsLayer", () => {
     expect(fillColorOf).toHaveBeenCalledWith("52110");
   });
 
-  it("applies the same selection dim/brighten as makeRegionsLayer", () => {
+  it("applies the same selection rule as makeRegionsLayer (selected: raw color; others: 45% toward paper)", () => {
     const fillColorOf = (): [number, number, number, number] => [10, 20, 30, 255];
-    const layer = makeIslandsLayer(regionsFixture(), { fillColorOf, triggerKey: "v1", selectedCode: "52110" });
-    const ctx = { index: 0, data: regionsFixture().features, target: [] };
+    const fixture = regionsFixture();
+    const layer = makeIslandsLayer(fixture, { fillColorOf, triggerKey: "v1", selectedCode: "52110" });
+    const ctx = { index: 0, data: fixture.features, target: [] };
     type Ctx = typeof ctx;
     const getFillColor = layer.props.getFillColor as (f: typeof featureA, ctx: Ctx) => Color;
-    const [r, g, b, a] = getFillColor(featureA, ctx) as [number, number, number, number];
-    const [er, eg, eb] = dim([10, 20, 30], SELECTED_BRIGHTEN);
-    expect([r, g, b, a]).toEqual([er, eg, eb, 255]);
+    expect(getFillColor(featureA, ctx)).toEqual([10, 20, 30, 255]); // 52110 — selected
+    const [er, eg, eb] = mix([10, 20, 30], [255, 252, 246], 0.45);
+    expect(getFillColor(fixture.features[1], ctx)).toEqual([er, eg, eb, 255]); // 52130 — not selected
   });
 
   it("forwards clicks with the clicked feature's code, same as makeRegionsLayer", () => {

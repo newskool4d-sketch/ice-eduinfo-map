@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NULL_COLOR, dim, makeColorScale, paletteFor, parseColor } from "@/lib/colors";
+import { NULL_COLOR, dim, luminance, makeColorScale, mix, paletteFor, parseColor } from "@/lib/colors";
 import type { IndicatorDef } from "@/lib/indicators/types";
 import { formatInt } from "@/lib/format";
 
@@ -21,14 +21,13 @@ function def(overrides: Partial<IndicatorDef> = {}): IndicatorDef {
 }
 
 describe("parseColor", () => {
-  it("parses an rgb(...) css string (interpolateOrRd/interpolateBlues format)", () => {
+  it("parses an rgb(...) css string", () => {
     expect(parseColor("rgb(253, 211, 161)")).toEqual([253, 211, 161]);
   });
 
-  it("parses a #rrggbb hex string (interpolateViridis's actual output format)", () => {
-    // Confirmed empirically against the installed d3-scale-chromatic@3.1.0:
-    // interpolateViridis returns hex, not rgb(...), unlike interpolateOrRd/
-    // interpolateBlues — see task-2-report.md.
+  it("parses a #rrggbb hex string (hex stops)", () => {
+    // The light-theme palettes (colors.ts PALETTE_STOPS) are hex literals
+    // parsed through this same function.
     expect(parseColor("#3b528b")).toEqual([0x3b, 0x52, 0x8b]);
   });
 
@@ -52,7 +51,7 @@ describe("paletteFor", () => {
     }
   });
 
-  it("does not throw for neutral (interpolateViridis's hex output must parse)", () => {
+  it("does not throw for neutral (hex stops must parse)", () => {
     expect(() => paletteFor("neutral")).not.toThrow();
   });
 
@@ -67,8 +66,40 @@ describe("paletteFor", () => {
 });
 
 describe("NULL_COLOR", () => {
-  it("is a fixed gray, distinct from any palette step", () => {
-    expect(NULL_COLOR).toEqual([90, 96, 110]);
+  it("is a fixed warm gray, distinct from any palette step", () => {
+    expect(NULL_COLOR).toEqual([205, 200, 192]);
+  });
+});
+
+describe("paletteFor — pastel ramps (light theme)", () => {
+  it("higherWorse is cream → coral, exactly the spec stops", () => {
+    expect(paletteFor("higherWorse")).toEqual([
+      [253, 243, 225],
+      [249, 217, 176],
+      [243, 178, 127],
+      [232, 134, 90],
+      [217, 87, 43],
+    ]);
+  });
+
+  it("higherBetter is mint → teal, neutral is lilac (first/last stop)", () => {
+    expect(paletteFor("higherBetter")[0]).toEqual([233, 246, 239]);
+    expect(paletteFor("higherBetter")[4]).toEqual([47, 143, 122]);
+    expect(paletteFor("neutral")[0]).toEqual([242, 238, 247]);
+    expect(paletteFor("neutral")[4]).toEqual([109, 91, 163]);
+  });
+
+  it.each(["higherWorse", "higherBetter", "neutral"] as const)("%s luminance strictly decreases (colorblind-safe)", (polarity) => {
+    const lums = paletteFor(polarity).map(luminance);
+    for (let i = 1; i < lums.length; i++) expect(lums[i]).toBeLessThan(lums[i - 1]);
+  });
+});
+
+describe("mix", () => {
+  it("t=0 returns the color, t=1 returns the target, t=0.5 the midpoint", () => {
+    expect(mix([0, 0, 0], [255, 255, 255], 0)).toEqual([0, 0, 0]);
+    expect(mix([0, 0, 0], [255, 255, 255], 1)).toEqual([255, 255, 255]);
+    expect(mix([0, 0, 0], [255, 255, 255], 0.5)).toEqual([128, 128, 128]);
   });
 });
 

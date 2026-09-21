@@ -13,17 +13,17 @@ import type { School } from "./schools/types";
 export type RGBA = [number, number, number, number];
 
 /**
- * 학교급별 4색 — colorblind-safe (verified distinct under deuteranopia/
- * protanopia simulation: distinct hue AND lightness steps, not just hue),
- * and legible against this app's dark (#0b0f19) map background (all 4 are
- * light/saturated enough to read clearly on a dark scene, unlike e.g. a
- * dark navy that would disappear into it).
+ * 학교급별 4색 — distinct hue AND lightness steps, not just hue (colorblind-
+ * safe), and deep/saturated enough to read as a column against this app's
+ * light pastel top faces and paper backdrop (밝은 디오라마, 2026-09-21 spec
+ * §5). The dark theme's lighter set (#4cc9f0/#f9c74f/#f3722c/#b5e48c) sank
+ * into a cream/mint top face; these are the same four hues, deepened.
  */
 export const SCHOOL_LEVEL_COLORS: Record<SchoolLevel, RGBA> = {
-  elem: [76, 201, 240, 255], // #4cc9f0 — cyan
-  mid: [249, 199, 79, 255], // #f9c74f — amber
-  high: [243, 114, 44, 255], // #f3722c — orange-red
-  special: [181, 228, 140, 255], // #b5e48c — green
+  elem: [29, 155, 209, 255], // #1d9bd1 — blue
+  mid: [224, 169, 43, 255], // #e0a92b — amber
+  high: [224, 89, 42, 255], // #e0592a — orange-red
+  special: [90, 166, 74, 255], // #5aa64a — green
 };
 
 export const SCHOOL_LEVEL_ORDER: SchoolLevel[] = ["elem", "mid", "high", "special"];
