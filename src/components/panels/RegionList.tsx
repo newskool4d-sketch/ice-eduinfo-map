@@ -37,8 +37,8 @@ export default function RegionList({ bundle }: RegionListProps) {
 
   return (
     <div>
-      <p className="mb-3 text-sm text-[#e6e9f0]/50">시군을 클릭하거나 목록에서 선택하세요</p>
-      <p className="mb-2 text-xs text-[#e6e9f0]/50">{label} 기준</p>
+      <p className="mb-3 text-sm text-ink-muted">시군을 클릭하거나 목록에서 선택하세요</p>
+      <p className="mb-2 text-xs text-ink-muted">{label} 기준</p>
       <ul className="flex flex-col gap-1">
         {orderedCodes.map((code) => {
           const value = map.get(code);
@@ -49,18 +49,18 @@ export default function RegionList({ bundle }: RegionListProps) {
               <button
                 type="button"
                 onClick={() => setRegion(code)}
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-white/5"
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-ink/5"
               >
                 <span
                   aria-hidden
                   className="h-3 w-3 shrink-0 rounded-sm"
                   style={{ backgroundColor: rgbCss([cr, cg, cb]) }}
                 />
-                <span className="flex-1 truncate text-sm text-[#e6e9f0]">{regionName(code)}</span>
-                <span className="shrink-0 tabular-nums text-xs text-[#e6e9f0]/70">
+                <span className="flex-1 truncate text-sm text-ink">{regionName(code)}</span>
+                <span className="shrink-0 tabular-nums text-xs text-ink-muted">
                   {value === null || value === undefined ? "자료 없음" : def.format(value)}
                 </span>
-                <span className="w-8 shrink-0 text-right tabular-nums text-[10px] text-[#e6e9f0]/50">
+                <span className="w-8 shrink-0 text-right tabular-nums text-[10px] text-ink-muted">
                   {r !== undefined ? `${r}위` : "–"}
                 </span>
               </button>

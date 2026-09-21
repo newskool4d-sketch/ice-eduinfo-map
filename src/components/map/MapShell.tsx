@@ -21,7 +21,7 @@ import { useBundle } from "@/lib/data/DataProvider";
 const DeckMap = dynamic<DeckMapProps>(() => import("./DeckMap"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-[#0b0f19] text-sm text-[#e6e9f0]/50">
+    <div className="flex h-full w-full items-center justify-center bg-paper text-sm text-ink-muted">
       지도 준비 중
     </div>
   ),

@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* 라이트 테마 토큰 — src/lib/theme.ts 의 THEME 와 값이 같아야 한다
+   (tests/unit/theme.test.ts 가 검사). Tailwind v4 는 이 변수들로
+   bg-paper / text-ink / text-ink-muted / border-line / bg-surface /
+   bg-accent-soft / text-accent / text-positive 유틸리티를 만든다. */
+@theme {
+  --color-paper: #f5f2eb;
+  --color-surface: #ffffff;
+  --color-ink: #1c2331;
+  --color-ink-muted: #5b6472;
+  --color-line: #e1dbd0;
+  --color-accent: #d9572b;
+  --color-accent-soft: #fbe9df;
+  --color-positive: #2f8f7a;
+}
+
 html,
 body {
   height: 100%;
@@ -7,8 +22,8 @@ body {
   /* 트랙패드 두 손가락 가로 스와이프가 브라우저 뒤로/앞으로 가기로 새지 않게
      (지도 위 제스처 보호, 2026-09-21). 모바일 pull-to-refresh 도 함께 꺼진다. */
   overscroll-behavior: none;
-  background: #0b0f19;
-  color: #e6e9f0;
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
 body {

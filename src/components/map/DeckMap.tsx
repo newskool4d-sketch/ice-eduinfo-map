@@ -5,7 +5,7 @@ import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
 import type { Effect, LayersList, PickingInfo } from "@deck.gl/core";
-import { DarkGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
+import { LightGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
 import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/geo/regions";
@@ -112,15 +112,17 @@ function nameOf(code: string): string {
 const VIEW = new MapView();
 
 // 추가 요구 #4: 16px margin (deck.gl/widgets' own default is 12px);
-// DarkGlassTheme (Task A — swapped from DarkTheme) keeps the
-// 전체보기/줌 buttons legible against the varied 3D scene behind them
-// (the default LightTheme assumes a light page background) while its
-// translucent, blurred buttons match this task's glass-widget aesthetic. A
-// MODULE constant, not an inline object literal inside the component — Task
-// 6, Section C.3 ("widgetThemeStyle 등 매 렌더 새 객체를 모듈 상수로"): an inline
-// literal would be a NEW object reference every render, pointlessly changing
-// the wrapper div's `style` prop identity every time.
-const WIDGET_THEME_STYLE: CSSProperties = { ...DarkGlassTheme, "--widget-margin": "16px" } as CSSProperties;
+// LightGlassTheme (Task 1 — swapped from DarkGlassTheme for the light UI
+// theme) keeps the 전체보기/줌 buttons' chrome consistent with the app's own
+// (now light) panels; its translucent, blurred buttons still match the
+// glass-widget aesthetic. NOTE: until Task 2 recolors the 3D scene itself,
+// the map canvas behind these widgets is still dark — see task-1-report.md
+// for the screenshot check of this transitional look. A MODULE constant,
+// not an inline object literal inside the component — Task 6, Section C.3
+// ("widgetThemeStyle 등 매 렌더 새 객체를 모듈 상수로"): an inline literal would be
+// a NEW object reference every render, pointlessly changing the wrapper
+// div's `style` prop identity every time.
+const WIDGET_THEME_STYLE: CSSProperties = { ...LightGlassTheme, "--widget-margin": "16px" } as CSSProperties;
 
 export interface DeckMapProps {
   indicatorId: string;
@@ -606,7 +608,7 @@ export default function DeckMap({
   // left `basemapLayer` `null` but still passed `masked: basemapEnabled`
   // (true by default) to `makeNeighborsLayer` — the masked fill color
   // ([11,15,25,140]) sits almost exactly on top of the container's own
-  // `#0b0f19` background, silently hiding every neighboring 시도 silhouette
+  // dark background, silently hiding every neighboring 시도 silhouette
   // even though no basemap tile was ever drawn to mask them against.
   const basemapOn = !!VWORLD_KEY && basemapEnabled;
 
@@ -824,7 +826,7 @@ export default function DeckMap({
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full bg-[#0b0f19] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/70"
+      className="relative h-full w-full bg-paper outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
       style={WIDGET_THEME_STYLE}
       tabIndex={0}
       aria-label="전북 시군 3D 지도"
@@ -870,13 +872,13 @@ export default function DeckMap({
       {contextLost && (
         <div
           role="alert"
-          className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[#0b0f19]/90 text-center text-sm text-[#e6e9f0]"
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-paper/90 text-center text-sm text-ink"
         >
           <p>그래픽 컨텍스트가 끊겼습니다</p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="rounded bg-white/10 px-3 py-1.5 hover:bg-white/20"
+            className="rounded bg-ink/5 px-3 py-1.5 hover:bg-ink/15"
           >
             새로고침
           </button>

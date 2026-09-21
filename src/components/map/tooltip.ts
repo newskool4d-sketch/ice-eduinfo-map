@@ -1,5 +1,6 @@
 import type { PickingInfo } from "@deck.gl/core";
 
+import { THEME } from "@/lib/theme";
 import type { School } from "@/lib/schools/types";
 
 export interface TooltipResult {
@@ -8,9 +9,9 @@ export interface TooltipResult {
 }
 
 const TOOLTIP_STYLE: Partial<CSSStyleDeclaration> = {
-  background: "#141a2a",
-  color: "#e6e9f0",
-  border: "1px solid #2a3450",
+  background: THEME.surface,
+  color: THEME.ink,
+  border: `1px solid ${THEME.line}`,
   borderRadius: "8px",
   padding: "8px 10px",
   fontSize: "13px",

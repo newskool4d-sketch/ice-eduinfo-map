@@ -18,7 +18,7 @@ export interface TopBarProps {
 }
 
 function SkeletonBar({ className }: { className: string }) {
-  return <div aria-hidden className={`animate-pulse rounded bg-white/10 ${className}`} />;
+  return <div aria-hidden className={`animate-pulse rounded bg-ink/5 ${className}`} />;
 }
 
 /**
@@ -47,8 +47,8 @@ export default function TopBar({ bundle }: TopBarProps) {
   const kpiFile = bundle?.indicators[KPI_INDICATOR_IDS[0]];
 
   return (
-    <header className="relative z-40 flex h-14 shrink-0 items-center gap-4 border-b border-white/10 bg-[#0b0f19] px-4">
-      <span className="shrink-0 text-base font-semibold text-[#e6e9f0]">전북교육지도</span>
+    <header className="relative z-40 flex h-14 shrink-0 items-center gap-4 border-b border-line bg-paper px-4">
+      <span className="shrink-0 text-base font-semibold text-ink">전북교육지도</span>
 
       {bundle ? (
         <IndicatorMenu series={bundle.series} />
@@ -67,7 +67,7 @@ export default function TopBar({ bundle }: TopBarProps) {
           </div>
         )}
 
-        <span data-testid="topbar-reference-date" className="shrink-0 text-xs tabular-nums text-[#e6e9f0]/70">
+        <span data-testid="topbar-reference-date" className="shrink-0 text-xs tabular-nums text-ink-muted">
           {bundle && kpiFile ? `기준 ${kpiFile.referenceDate}` : <SkeletonBar className="h-4 w-20" />}
         </span>
       </div>
