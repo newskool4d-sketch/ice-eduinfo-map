@@ -438,10 +438,40 @@ describe("makeNeighborsLayer", () => {
     expect(layer.props.id).toBe("neighbors");
     expect(layer.props.filled).toBe(true);
     expect(layer.props.stroked).toBe(true);
-    expect(layer.props.getFillColor).toEqual([22, 27, 40]);
-    expect(layer.props.getLineColor).toEqual([40, 48, 66]);
     expect(layer.props.lineWidthMinPixels).toBe(1);
     expect(layer.props.pickable).toBe(false);
+  });
+
+  // Task C — masked defaults to false (options omitted entirely, matching
+  // every pre-Task-C call site) and renders the original opaque backdrop.
+  describe("masked option (Task C — VWorld basemap)", () => {
+    it("defaults to the opaque backdrop colors when masked is omitted", () => {
+      const layer = makeNeighborsLayer({ type: "FeatureCollection", features: [] });
+      expect(layer.props.getFillColor).toEqual([22, 27, 40]);
+      expect(layer.props.getLineColor).toEqual([40, 48, 66]);
+    });
+
+    it("renders the same opaque backdrop colors when masked: false", () => {
+      const layer = makeNeighborsLayer({ type: "FeatureCollection", features: [] }, { masked: false });
+      expect(layer.props.getFillColor).toEqual([22, 27, 40]);
+      expect(layer.props.getLineColor).toEqual([40, 48, 66]);
+    });
+
+    it("renders a translucent mask when masked: true, so the basemap shows through", () => {
+      const layer = makeNeighborsLayer({ type: "FeatureCollection", features: [] }, { masked: true });
+      expect(layer.props.getFillColor).toEqual([11, 15, 25, 140]);
+      expect(layer.props.getLineColor).toEqual([40, 48, 66, 160]);
+    });
+
+    it("updateTriggers.getFillColor/getLineColor include masked", () => {
+      const maskedLayer = makeNeighborsLayer({ type: "FeatureCollection", features: [] }, { masked: true });
+      expect(maskedLayer.props.updateTriggers.getFillColor).toEqual([true]);
+      expect(maskedLayer.props.updateTriggers.getLineColor).toEqual([true]);
+
+      const unmaskedLayer = makeNeighborsLayer({ type: "FeatureCollection", features: [] }, { masked: false });
+      expect(unmaskedLayer.props.updateTriggers.getFillColor).toEqual([false]);
+      expect(unmaskedLayer.props.updateTriggers.getLineColor).toEqual([false]);
+    });
   });
 });
 

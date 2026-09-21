@@ -73,4 +73,40 @@ describe("MapOverlay", () => {
     await user.click(button);
     expect(button).toHaveAttribute("aria-pressed", "false");
   });
+
+  // Task C — optional `attribution` caption (basemap tile source), additive:
+  // MapOverlay stays a purely controlled, generic component — it renders
+  // whatever string it's given (or nothing) and doesn't know it's for the
+  // VWorld basemap specifically.
+  describe("attribution (Task C)", () => {
+    it("renders nothing when both items and attribution are omitted/empty", () => {
+      const { container } = render(<MapOverlay items={[]} />);
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it("renders the attribution text with testid basemap-attribution when provided", () => {
+      render(<MapOverlay items={[]} attribution="배경지도 © 국토교통부 브이월드(VWorld)" />);
+      expect(screen.getByTestId("basemap-attribution")).toHaveTextContent(
+        "배경지도 © 국토교통부 브이월드(VWorld)",
+      );
+    });
+
+    it("does not render the attribution element when attribution is omitted", () => {
+      const items: MapOverlayItem[] = [
+        { id: "presentation", label: "발표 모드", pressed: false, onToggle: vi.fn() },
+      ];
+      render(<MapOverlay items={items} />);
+      expect(screen.queryByTestId("basemap-attribution")).not.toBeInTheDocument();
+    });
+
+    it("renders both the button row and the attribution together", () => {
+      const items: MapOverlayItem[] = [
+        { id: "presentation", label: "발표 모드", pressed: false, onToggle: vi.fn() },
+        { id: "basemap", label: "배경 지도", pressed: true, onToggle: vi.fn() },
+      ];
+      render(<MapOverlay items={items} attribution="배경지도 © 국토교통부 브이월드(VWorld)" />);
+      expect(screen.getAllByRole("button")).toHaveLength(2);
+      expect(screen.getByTestId("basemap-attribution")).toBeInTheDocument();
+    });
+  });
 });
