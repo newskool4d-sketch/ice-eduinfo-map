@@ -621,17 +621,30 @@ export default function DeckMap({
       }),
     ];
     if (fontReady) {
+      // Task D, fix round 1 — school-labels is pushed BEFORE region-labels
+      // (was the other way around): two reasons, both from the review that
+      // caught the 전주시 chip getting painted over by school-name chips.
+      // (1) Paint order: both label layers still draw with normal
+      // depth-testing at THIS z (they're billboarded text, not the
+      // depthCompare:'always' hack the old flat schools point layer used),
+      // but for two labels that happen to occupy the same screen pixels at
+      // similar depth, deck.gl's painter's-algorithm draw order still
+      // matters as a tiebreaker — region-labels must be the one drawn LAST
+      // so it's the one a viewer actually sees on top. (2) A narrower,
+      // shared-collision-FBO edge case: now that both layers share
+      // `collisionGroup: 'labels'` (schoolLayers.ts), a region label at
+      // array index i and a school label ALSO at index i encode the SAME
+      // `encodePickingColor(i)` RGB (picking colors are per-LAYER-relative,
+      // not globally unique) — the installed collision shader
+      // (shader-module.js) compares sampled RGB only, with no layer
+      // identity baked in, so this is a real (if narrow) ambiguity source.
+      // Region-labels drawing last means even in that edge case, the
+      // region chip — which must ALWAYS win visually (see
+      // schoolCollisionPriority's doc comment: a school's priority range
+      // [-1000,-100] is already strictly below every region priority
+      // [-15,1000], so this is defense-in-depth, not the primary fix) —
+      // ends up on top of the final composited frame regardless.
       layerList.push(
-        makeRegionLabelLayer(labels, {
-          elevationOf,
-          textOf: labelTextOf,
-          triggerKey: indicatorId,
-          fontFamily,
-          characterSet,
-          selectedCode,
-          priorityOf,
-          transitionDuration,
-        }),
         makeSchoolLabelsLayer(positionedRegionSchools, {
           elevationOf,
           heightOf,
@@ -640,6 +653,16 @@ export default function DeckMap({
           fontFamily,
           characterSet,
           triggerKey: indicatorId,
+          transitionDuration,
+        }),
+        makeRegionLabelLayer(labels, {
+          elevationOf,
+          textOf: labelTextOf,
+          triggerKey: indicatorId,
+          fontFamily,
+          characterSet,
+          selectedCode,
+          priorityOf,
           transitionDuration,
         }),
       );
