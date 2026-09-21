@@ -16,9 +16,9 @@ export const THEME = {
   // deltas, 소규모 badge, RegionPanel's vs-province line). `accent`/`positive`
   // only clear 3:1 on surface (fine for fills, rings, borders, the sparkline
   // stroke and large text) but fall short of AA 4.5:1 for body-size text;
-  // these reach ≥ 4.5 on paper/surface and ≥ 4.2 on the KPI tile fill
-  // (ink 5% over paper) and on accent-soft (tests/unit/theme.test.ts).
-  accentText: "#b8431a",
+  // these reach ≥ 4.5 on paper, surface, the KPI tile fill (ink 5% over
+  // paper) and accent-soft alike (tests/unit/theme.test.ts).
+  accentText: "#a63d17",
   positiveText: "#236d5f",
 } as const;
 
