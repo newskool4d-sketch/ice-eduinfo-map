@@ -6,7 +6,6 @@ import IndicatorPicker from "@/components/panels/IndicatorPicker";
 import { GROUP_LABELS } from "@/lib/indicators/groups";
 import { DEFAULT_INDICATOR_ID, indicatorById } from "@/lib/indicators/registry";
 import { displayLabel } from "@/lib/stats";
-import { contrastRatio, THEME } from "@/lib/theme";
 import type { SeriesFile } from "@/lib/indicators/types";
 
 describe("IndicatorPicker", () => {
@@ -102,18 +101,17 @@ describe("IndicatorPicker", () => {
     });
   });
 
-  it("renders the group legend text with at least WCAG AA (4.5:1) contrast against the popover surface (Task 1 — THEME tokens)", () => {
+  it("renders the group legend text in the muted ink token (Task 1 — THEME tokens)", () => {
     render(<IndicatorPicker value={DEFAULT_INDICATOR_ID} onChange={() => {}} />);
     const legend = screen.getByText(GROUP_LABELS.scale);
 
     // Task 1 replaced the old `text-[#e6e9f0]/<alpha>` alpha-blended literal
     // with the flat `text-ink-muted` theme token (THEME.inkMuted, full
-    // opacity — no more alpha blending to reconstruct here). IndicatorMenu's
-    // popover background is `bg-surface` (THEME.surface) post-refactor.
-    // Reuse theme.ts's own contrastRatio (the single source of truth
-    // tests/unit/theme.test.ts already pins) instead of duplicating the
-    // WCAG luminance formula here.
-    expect(legend.className).toContain("text-ink-muted");
-    expect(contrastRatio(THEME.inkMuted, THEME.surface)).toBeGreaterThanOrEqual(4.5);
+    // opacity — no more alpha blending to reconstruct here). Whole-token
+    // match (not toContain) so e.g. a hypothetical `text-ink-muted-soft`
+    // couldn't satisfy it. The token's own ≥ 4.5:1 contrast against the
+    // popover's `bg-surface` is pinned once, in tests/unit/theme.test.ts —
+    // not re-asserted here.
+    expect(legend.className).toMatch(/(^|\s)text-ink-muted(\s|$)/);
   });
 });

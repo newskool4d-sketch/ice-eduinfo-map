@@ -115,9 +115,7 @@ const VIEW = new MapView();
 // LightGlassTheme (Task 1 — swapped from DarkGlassTheme for the light UI
 // theme) keeps the 전체보기/줌 buttons' chrome consistent with the app's own
 // (now light) panels; its translucent, blurred buttons still match the
-// glass-widget aesthetic. NOTE: until Task 2 recolors the 3D scene itself,
-// the map canvas behind these widgets is still dark — see task-1-report.md
-// for the screenshot check of this transitional look. A MODULE constant,
+// glass-widget aesthetic (light theme — spec §1). A MODULE constant,
 // not an inline object literal inside the component — Task 6, Section C.3
 // ("widgetThemeStyle 등 매 렌더 새 객체를 모듈 상수로"): an inline literal would be
 // a NEW object reference every render, pointlessly changing the wrapper
@@ -607,9 +605,10 @@ export default function DeckMap({
   // caption in the JSX below). Without this, a no-key deployment correctly
   // left `basemapLayer` `null` but still passed `masked: basemapEnabled`
   // (true by default) to `makeNeighborsLayer` — the masked fill color
-  // ([11,15,25,140]) sits almost exactly on top of the container's own
-  // dark background, silently hiding every neighboring 시도 silhouette
-  // even though no basemap tile was ever drawn to mask them against.
+  // ([11,15,25,140]) sat almost exactly on top of the then-dark (#0b0f19)
+  // container background, silently hiding every neighboring 시도
+  // silhouette even though no basemap tile was ever drawn to mask them
+  // against.
   const basemapOn = !!VWORLD_KEY && basemapEnabled;
 
   // Task C — the VWorld basemap TileLayer, or `null` when there's no key or

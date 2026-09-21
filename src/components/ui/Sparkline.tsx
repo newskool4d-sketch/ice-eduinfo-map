@@ -37,7 +37,7 @@ const PAD_BOTTOM = 16; // room for the year-axis labels below the line
 
 // A single accent hue (dataviz skill: sequential/single-series = one hue) —
 // distinct from the app's neutral text tokens, legible on the light panel
-// background (paper (#f5f2eb)). Text (year labels) stays in the app's own
+// background, paper (#f5f2eb). Text (year labels) stays in the app's own
 // muted text token, never this line color, per the skill's "text wears text
 // tokens" rule.
 const LINE_COLOR = THEME.accent;
