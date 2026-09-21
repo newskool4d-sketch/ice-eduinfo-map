@@ -1,6 +1,10 @@
 import { expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
+// Flake mitigation: local 5-worker runs can hit CDP "session closed" on page.reload() here.
+// A retry uses a fresh browser context — no localStorage carries over from the failed attempt.
+test.describe.configure({ retries: 1 });
+
 async function waitForMapReady(page: Page) {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
@@ -41,6 +45,9 @@ test.describe("읍면동 경계", () => {
   test("전주(52110) 선택 → emd-boundaries 레이어 표시(순서: region-top-rings 뒤·schools 앞) → 토글 OFF 시 사라짐 → 새로고침 후 OFF 유지 → 다시 ON, 콘솔 error 0", async ({
     page,
   }) => {
+    // CI fix (run 35570411276) — this test's reload/toggle cycle exceeded
+    // the default 30s test timeout on CI's slow software-GL runner; 3x it.
+    test.slow();
     const consoleErrors: string[] = [];
     page.on("console", (message) => {
       if (message.type() === "error") consoleErrors.push(message.text());
@@ -66,14 +73,10 @@ test.describe("읍면동 경계", () => {
     expect(order.emdBoundaries).toBeGreaterThan(order.regionTopRings);
     expect(order.schools).toBeGreaterThan(order.emdBoundaries);
 
-    await page.screenshot({ path: "test-results/emd-on.png" });
-
     // OFF: the layer slot goes back to `null` (not merely invisible).
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect.poll(() => readEmdLayerDataLength(page)).toBeNull();
-
-    await page.screenshot({ path: "test-results/emd-off.png" });
 
     // Persisted: a fresh page load still reads OFF back from localStorage.
     await page.reload();

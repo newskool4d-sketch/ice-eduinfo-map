@@ -52,7 +52,7 @@ function expectAllContained(
 }
 
 describe("fitViewToPoints", () => {
-  it("keeps every corner of a synthetic bbox inside the padded frame at pitch 50 / bearing -15", () => {
+  it("keeps every corner of a synthetic bbox inside the padded frame at an arbitrary pitch (50) / bearing -15", () => {
     const corners = bboxCorners(JB_BBOX);
     const result = fitViewToPoints(corners, SIZE, {
       pitch: 50,

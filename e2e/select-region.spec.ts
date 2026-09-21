@@ -83,11 +83,13 @@ test.describe("시군 선택", () => {
 
     // Let the fly-to transition (FlyToInterpolator, transitionDuration:
     // 'auto') settle before asserting the camera / taking the "after" shot.
-    await page.waitForTimeout(2000);
+    // CI fix (run 35570411276) — a fixed 2s wait + one-shot pitch read raced
+    // the transition on CI's slow software-GL runner (observed 57.19/57.06,
+    // not yet 58): poll instead, frame-rate-independent, up to 15s.
+    // Task B — FIT_REGION_PITCH 55 → 58 (camera.ts).
+    await expect.poll(async () => (await readCamera(page)).pitch, { timeout: 15000 }).toBe(58);
 
     const selectedCamera = await readCamera(page);
-    // Task B — FIT_REGION_PITCH 55 → 58 (camera.ts).
-    expect(selectedCamera.pitch).toBe(58);
     expect(selectedCamera.zoom).toBeGreaterThan(overviewCamera.zoom);
 
     await page.screenshot({ path: "test-results/select-region-after.png" });

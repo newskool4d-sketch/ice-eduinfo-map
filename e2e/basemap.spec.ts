@@ -1,6 +1,10 @@
 import { expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
+// Flake mitigation: local 5-worker runs can hit CDP "session closed" on page.reload() here.
+// A retry uses a fresh browser context — no localStorage carries over from the failed attempt.
+test.describe.configure({ retries: 1 });
+
 async function waitForMapReady(page: Page) {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });

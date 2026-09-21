@@ -47,6 +47,9 @@ export default defineConfig({
   // enough that the trade is worth it for determinism.
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  // CI fix (run 35570411276) — default expect() timeout, longer on CI's slow
+  // software-GL runner; only the WAIT grows, not what's asserted.
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
   use: {
     baseURL: BASE_URL,
     // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — no added

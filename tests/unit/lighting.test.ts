@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Vector3 } from "@math.gl/core";
+import { LightingEffect } from "@deck.gl/core";
 import type { AmbientLight, DirectionalLight, Effect, PointLight } from "@deck.gl/core";
 
 import { lightingEffect, lightingEffectNoShadow, REGION_MATERIAL } from "@/components/map/lighting";
@@ -128,10 +129,39 @@ describe("useInPicking (Task A — picking-pass regression fix)", () => {
 // so the loop body — the only part that would need a real GPU device —
 // never executes.
 describe("preRender return value (Task B — CollisionFilterExtension compatibility fix)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("returns a truthy value on both variants, unlike the installed (unpatched) LightingEffect.preRender()", () => {
     const opts = { layers: [], viewports: [] } as unknown as Parameters<(typeof lightingEffect)["preRender"]>[0];
     expect(lightingEffect.preRender(opts)).toBeTruthy();
     expect(lightingEffectNoShadow.preRender(opts)).toBeTruthy();
+  });
+
+  // I-2 — the truthy assertion above would keep passing even if
+  // `CollisionAwareLightingEffect.preRender`'s own `super.preRender(opts)`
+  // call were deleted outright (only the `return true` kept) — it never
+  // verifies the override still DELEGATES to the real base-class
+  // implementation. Spy directly on `LightingEffect.prototype.preRender`
+  // (what `super.preRender` resolves to) to close that gap: it must still be
+  // called exactly once per `preRender` call, with the IDENTICAL `opts`
+  // reference the override itself received (not a copy) — the base method
+  // reads directly off `opts`/`this`, so a real delegation (not a stand-in)
+  // depends on that being the same object, not merely an equal-looking one.
+  it("delegates to LightingEffect.prototype.preRender exactly once, with the identical opts reference", () => {
+    const opts = { layers: [], viewports: [] } as unknown as Parameters<(typeof lightingEffect)["preRender"]>[0];
+    const preRenderSpy = vi.spyOn(LightingEffect.prototype, "preRender");
+
+    lightingEffect.preRender(opts);
+    expect(preRenderSpy).toHaveBeenCalledTimes(1);
+    expect(preRenderSpy.mock.calls[0][0]).toBe(opts);
+
+    preRenderSpy.mockClear();
+
+    lightingEffectNoShadow.preRender(opts);
+    expect(preRenderSpy).toHaveBeenCalledTimes(1);
+    expect(preRenderSpy.mock.calls[0][0]).toBe(opts);
   });
 });
 
