@@ -6,7 +6,19 @@ import { DeckRenderer } from "@deck.gl/core";
  * deck-renderer.d.ts, so this is typed structurally (not via the class).
  */
 type CanvasContextLike = { getDrawingBufferSize(): [number, number] };
-type FramebufferLike = { resize(size: [number, number]): void };
+/** luma `Texture` — only what the release path needs. */
+type TextureLike = { destroy?: () => void };
+/**
+ * luma `Framebuffer` (framebuffer.d.ts): `depthStencilAttachment` is a
+ * `TextureView` whose `.texture` is the backing `Texture`; `_attachedResources`
+ * is `Resource`'s private auto-destroy `Set`. Both are optional here so a
+ * future luma shape change degrades to "no release" instead of a throw.
+ */
+type FramebufferLike = {
+  resize(size: [number, number]): void;
+  depthStencilAttachment?: { texture?: TextureLike } | null;
+  _attachedResources?: Set<unknown>;
+};
 type RendererLike = {
   device: {
     canvasContext: CanvasContextLike;
@@ -65,8 +77,46 @@ export function applyDeckDepthPatch(): boolean {
         );
       }
     }
-    for (const buffer of this.renderBuffers) buffer.resize(size);
+    for (const buffer of this.renderBuffers) {
+      const prev = buffer.depthStencilAttachment?.texture;
+      buffer.resize(size);
+      releaseReplacedDepthTexture(buffer, prev);
+    }
   };
   applied = true;
   return true;
+}
+
+/**
+ * Fix round 2 — luma.gl 9.4.2 leaks the depth texture on every size change.
+ * `Framebuffer.resizeAttachments` (@luma.gl/core framebuffer.js:122-130)
+ * does, for the depth attachment:
+ *
+ *     const resizedTexture = this.depthStencilAttachment.texture.clone(size);
+ *     this.destroyAttachedResource(this.depthStencilAttachment); // the old TextureVIEW
+ *     this.depthStencilAttachment = resizedTexture.view;
+ *     this.attachResource(resizedTexture);                       // the new TEXTURE
+ *
+ * `destroyAttachedResource` is `if (this._attachedResources.delete(r)) r.destroy()`
+ * (resource.js:155-158) — it is handed the view, but what was registered on
+ * the previous resize is the texture, so the delete never matches, nothing is
+ * destroyed, and each distinct drawing-buffer size leaves one more full-size
+ * depth16unorm texture (≈2.9 MB at 1600×900) strongly held in the set until
+ * `DeckRenderer.finalize()`. (Our very first texture is never registered at
+ * all — `autoCreateAttachmentTextures` only attaches string-created ones —
+ * so it only leaks its GL handle, not a JS reference.) The color branch
+ * (:112-120) attaches the VIEW both times and is symmetric, so it is left
+ * alone. Passing the string 'depth16unorm' instead of a texture accumulates
+ * identically (verified by the reviewer), hence this explicit release: once
+ * `resize` has swapped the attachment, drop the replaced texture from the
+ * ownership set (so `finalize()` doesn't double-destroy) and destroy it.
+ * Same-size `resize` calls are a no-op in luma, so the attachment object is
+ * unchanged and nothing is released.
+ */
+function releaseReplacedDepthTexture(buffer: FramebufferLike, prev: TextureLike | undefined): void {
+  if (!prev) return;
+  if (buffer.depthStencilAttachment?.texture === prev) return; // size unchanged — still attached
+  const owned = buffer._attachedResources;
+  if (owned instanceof Set && owned.has(prev)) owned.delete(prev);
+  if (typeof prev.destroy === "function") prev.destroy();
 }

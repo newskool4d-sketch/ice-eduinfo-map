@@ -175,16 +175,21 @@ export const lightingEffect = new CollisionAwareLightingEffect({
 // `if (this.shadow && !this.dummyShadowMap)` guard (lighting-effect.js:41)
 // never runs `_createShadowPasses` at all — zero ShadowPass instances exist
 // either way, whether this had 1 light or 2. Removed purely so both
-// variants share the exact same light SET (only `_shadow` differs), so the
-// `NEXT_PUBLIC_MAP_FX=off` render stays visually consistent with the
-// shadowed one minus shadows only — not lit by an extra light the other
-// variant wouldn't also have.
+// variants share the exact same light SET — at the time the only
+// difference was the key light's `_shadow` flag; since Task 2 fix round 1
+// there is no difference at all (see above) — so the `NEXT_PUBLIC_MAP_FX=off`
+// render stays visually consistent with the default one: not lit by an
+// extra light the other variant wouldn't also have.
 // Task B — also `CollisionAwareLightingEffect` here, for structural symmetry
-// with `lightingEffect` above (both variants should behave identically
-// apart from `_shadow`) — though this variant's `this.shadow` is always
-// false, so the bug the subclass fixes never actually triggers for it (no
+// with `lightingEffect` above (both variants are now configured
+// identically, so they must behave identically too) — this variant's
+// `this.shadow` is false (as is `lightingEffect`'s, since fix round 1), so
+// the bug the subclass fixes never actually triggers for either (no
 // "shadow" default shader module ever gets attached at all when no light
-// has `_shadow:true` — see the very next comment).
+// has `_shadow:true` — see the very next comment). Both exports remain so
+// DeckMap's fx-off swap (`MAP_FX_OFF ? lightingEffectNoShadow :
+// lightingEffect`) keeps its shape and shadows could be re-enabled on one
+// variant only.
 export const lightingEffectNoShadow = new CollisionAwareLightingEffect({
   ambient: new AmbientLight({ color: AMBIENT_COLOR, intensity: AMBIENT_INTENSITY }),
   key: new DirectionalLight({ color: KEY_COLOR, intensity: KEY_INTENSITY, direction: KEY_DIRECTION, _shadow: false }),

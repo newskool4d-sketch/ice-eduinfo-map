@@ -107,4 +107,79 @@ describe("applyDeckDepthPatch", () => {
     expect(applyDeckDepthPatch()).toBe(true);
     expect(proto._resizeRenderBuffers).toBe(patched);
   });
+
+  // Fix round 2 — luma.gl 9.4.2 `Framebuffer.resizeAttachments`
+  // (framebuffer.js:122-130) clones the depth texture, then calls
+  // `destroyAttachedResource(this.depthStencilAttachment)` with the old
+  // TextureVIEW but `attachResource(resizedTexture)` with the new TEXTURE,
+  // so the `Set.delete(view)` never matches: every distinct drawing-buffer
+  // size left one more full-size depth16unorm texture strongly held in the
+  // framebuffer's `_attachedResources` (≈2.9 MB each at 1600×900) until
+  // `DeckRenderer.finalize()`. The patch releases the replaced texture
+  // itself. This fake mirrors luma's shape: `depthStencilAttachment` is a
+  // view-like `{ texture }`, and a size change swaps it for a new one and
+  // adds the new TEXTURE to `_attachedResources` (exactly what luma does).
+  describe("replaced depth textures are released on resize (fix round 2)", () => {
+    type FakeTexture = { destroy: ReturnType<typeof vi.fn> };
+    function lumaLikeFramebuffer(width: number, height: number) {
+      const first: FakeTexture = { destroy: vi.fn() };
+      const fb = {
+        width,
+        height,
+        depthStencilAttachment: { texture: first } as { texture: FakeTexture },
+        _attachedResources: new Set<unknown>(),
+        resize(size: [number, number]) {
+          if (size[0] === fb.width && size[1] === fb.height) return; // luma: no-op when the size is unchanged
+          fb.width = size[0];
+          fb.height = size[1];
+          const next: FakeTexture = { destroy: vi.fn() };
+          fb.depthStencilAttachment = { texture: next };
+          fb._attachedResources.add(next);
+        },
+      };
+      return fb;
+    }
+    function rendererWith(fb: ReturnType<typeof lumaLikeFramebuffer>, size: [number, number]) {
+      return {
+        device: { createTexture: vi.fn(), createFramebuffer: vi.fn(), canvasContext: { getDrawingBufferSize: () => size } },
+        renderBuffers: [fb],
+      };
+    }
+
+    it("destroys the previous depth texture exactly once per size change and drops it from _attachedResources", () => {
+      const fb = lumaLikeFramebuffer(800, 600);
+      const t0 = fb.depthStencilAttachment.texture;
+
+      patched!.call(rendererWith(fb, [1024, 768]));
+      const t1 = fb.depthStencilAttachment.texture;
+      expect(t1).not.toBe(t0);
+      expect(t0.destroy).toHaveBeenCalledTimes(1);
+      expect(t1.destroy).not.toHaveBeenCalled();
+      expect(fb._attachedResources.has(t0)).toBe(false);
+      expect(fb._attachedResources.has(t1)).toBe(true); // the live one stays owned by the framebuffer
+
+      patched!.call(rendererWith(fb, [1280, 720]));
+      const t2 = fb.depthStencilAttachment.texture;
+      expect(t0.destroy).toHaveBeenCalledTimes(1); // never re-destroyed
+      expect(t1.destroy).toHaveBeenCalledTimes(1);
+      expect(t2.destroy).not.toHaveBeenCalled();
+      expect(fb._attachedResources.has(t1)).toBe(false);
+      expect(Array.from(fb._attachedResources)).toEqual([t2]); // no accumulation across sizes
+    });
+
+    it("destroys nothing when the size is unchanged (same attachment object after resize)", () => {
+      const fb = lumaLikeFramebuffer(800, 600);
+      const t0 = fb.depthStencilAttachment.texture;
+      patched!.call(rendererWith(fb, [800, 600]));
+      patched!.call(rendererWith(fb, [800, 600]));
+      expect(fb.depthStencilAttachment.texture).toBe(t0);
+      expect(t0.destroy).not.toHaveBeenCalled();
+    });
+
+    it("tolerates a framebuffer without a depth attachment or resource set (no throw)", () => {
+      const fb = { width: 1, height: 1, resize: vi.fn() } as unknown as ReturnType<typeof lumaLikeFramebuffer>;
+      expect(() => patched!.call(rendererWith(fb, [640, 480]))).not.toThrow();
+      expect(fb.resize).toHaveBeenCalledWith([640, 480]);
+    });
+  });
 });
