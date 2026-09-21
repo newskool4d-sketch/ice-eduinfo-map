@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("home page renders the 3D map with 14 regions and no console errors", async ({ page }) => {
   const consoleErrors: string[] = [];

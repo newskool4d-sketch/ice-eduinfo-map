@@ -63,6 +63,12 @@ export default defineConfig({
     // server-lifecycle mechanism instead of two.
     command: process.env.CI ? "npm run build && npm run start" : "npm run dev",
     url: "http://localhost:3000",
+    // Task C — if a dev server started WITHOUT NEXT_PUBLIC_VWORLD_KEY set
+    // (e.g. a stale `npm run dev` left running from before this env var
+    // existed, or one started by hand) is reused here instead of a fresh
+    // one, the basemap toggle/layer never appear (see DeckMap.tsx's
+    // `VWORLD_KEY` gate) and e2e/basemap.spec.ts fails outright — restart
+    // your local dev server if this happens.
     reuseExistingServer: !process.env.CI,
     // 120s (up from Playwright's 60s default): `next dev`'s first Turbopack
     // compile of this page (deck.gl + widgets + the whole indicator
@@ -74,7 +80,13 @@ export default defineConfig({
     // see DeckMap.tsx's window.__jbmap bridge (e2e/select-region.spec.ts's
     // canvas-click coverage). package.json must not be modified (task
     // brief), so this is set here rather than via an npm script.
-    env: { NEXT_PUBLIC_E2E: "1" },
+    //
+    // NEXT_PUBLIC_VWORLD_KEY (Task C) — an arbitrary non-empty placeholder,
+    // NOT the real `.env.local` key: e2e never calls the real VWorld API at
+    // all (e2e/fixtures.ts routes every `api.vworld.kr` request to a stubbed
+    // 1x1 PNG), it only needs a truthy value so DeckMap's `VWORLD_KEY` gate
+    // renders the "배경 지도" toggle and constructs the TileLayer.
+    env: { NEXT_PUBLIC_E2E: "1", NEXT_PUBLIC_VWORLD_KEY: "e2e-test" },
   },
   projects: [
     {

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Task 6, Section A.1 — MapShell shows MapFallback's table instead of the 3D
 // map when `document.createElement('canvas').getContext('webgl2')` fails.

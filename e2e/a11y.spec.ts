@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
+import type { Locator, Page } from "@playwright/test";
 
 // Task 6, Section B. `npx @axe-core/cli` can't be installed (no new
 // dependencies — task brief), so this spec exercises the two checks it asks
