@@ -59,22 +59,21 @@
 
 ### 3. 낮 조명·후처리
 
-`lighting.ts` / `effects.ts` 상수를 다음으로 바꾼다(스크린샷 튜닝 범위를 괄호에 표기).
+`lighting.ts` / `effects.ts` 상수를 다음으로 바꾼다(스크린샷 튜닝 범위를 괄호에 표기). **Task 2 리뷰 룰링(2026-09-21)** 으로 그림자는 끄고 노출을 phong 모델에 맞춰 재설정했다: deck.gl 9.4 의 그림자 모듈은 높은 돌출 블록의 상단면 전체를 셀프섀도우로 판정해 전역 틴트처럼 작용했고(픽셀 모델링으로 확인), 실제 드리운 그림자는 overview 줌에서 보이지 않았다. 깊이감은 벽면 음영·비네팅으로 준다.
 
 - AmbientLight color `[255, 250, 240]`, intensity `0.95` (0.9~1.05).
-- 키 DirectionalLight color `[255, 245, 225]`, intensity `1.15` (1.0~1.3), direction `[-0.5, -1, -2.5]`(좌상단 높은 각도, 그림자 짧게), `_shadow: true`. fx-off 변형도 같은 값.
-- `shadowColor` `[60/255, 50/255, 40/255, 0.18]` (0.15~0.25).
-- `REGION_MATERIAL` `{ ambient: 0.55, diffuse: 0.65, shininess: 8, specularColor: [0.08, 0.08, 0.08] }`.
+- 키 DirectionalLight color `[255, 245, 225]`, intensity `1.0` (0.9~1.1), direction `[-0.5, -1, -2.5]` — deck.gl 의 `direction` 은 빛이 진행하는 방향이므로 빛은 **우상단(북동, 높은 각도)** 에서 온다. `_shadow: false`(양 변형 동일). `shadowColor` 는 설정하지 않는다.
+- `REGION_MATERIAL` `{ ambient: 0.75, diffuse: 0.3, shininess: 8, specularColor: [20, 20, 20] }` — luma.gl 9.4 의 `specularColor` 는 0~255 바이트 스케일(≈0.08). 상단면 밝기 ≈ 0.75×0.95 + 0.3×1.0×cosθ ≈ 0.985(클리핑 없음), 빛을 등진 벽면 ≈ 0.72× 상단면.
 - 후처리: `vibrance 0.15`, `brightnessContrast { brightness: 0.02, contrast: 0.05 }`, `vignette { radius: 0.9, amount: 0.15 }`, 발표 모드 `tiltShift` 유지, `fxaa` 마지막. 구조·메모화·비상 스위치(`NEXT_PUBLIC_MAP_FX=off`)는 그대로.
-- `useInPicking`·`CollisionAwareLightingEffect` 등 우회책은 변경하지 않는다.
+- **깊이 버퍼 패치(Task A 결함 수정)**: deck.gl 9.4.0 은 후처리 효과가 있으면 레이어 패스를 `DeckRenderer.renderBuffers` 오프스크린 프레임버퍼에 그리는데 이 버퍼에 depth 첨부가 없어(`deck-renderer.js:112-115`, luma.gl 9 는 depth 를 자동 생성하지 않음) 깊이 테스트가 무력화되고 나중에 그려진 시군이 앞의 시군 상단면을 덮어썼다(전주시가 완주군에 가려짐). `src/components/map/deckDepthPatch.ts` 가 `DeckRenderer.prototype._resizeRenderBuffers` 를 감싸 두 버퍼에 `depth16unorm` 텍스처(섀도 패스와 같은 포맷)를 첨부한다. 단위 테스트가 가짜 device 로 첨부를 검증한다. `useInPicking`·`CollisionAwareLightingEffect` 는 그대로 둔다(무해).
 
 ### 4. 팔레트·블록·바닥·주변
 
-- `colors.ts`: d3 `interpolateOrRd/Blues/Viridis` 를 자체 램프(`interpolateRgbBasis`, d3-interpolate 는 이미 의존성)로 교체한다.
-  - `higherWorse`(높을수록 진함, 따뜻한 파스텔): `["#fdf3e1", "#f9d9b0", "#f3b27f", "#e8865a", "#d9572b"]`
-  - `higherBetter`(민트→틸): `["#e9f6ef", "#bfe6d2", "#8fd1b6", "#5cb59a", "#2f8f7a"]`
-  - `neutral`(연보라): `["#f2eef7", "#d8cfe9", "#b8a9d6", "#9282bf", "#6d5ba3"]`
-  - `PALETTE_SAMPLE_T` 는 `[0, 0.25, 0.5, 0.75, 1]` 로(램프 자체가 5개 정지점이라 극단값 회피가 필요 없다). `NULL_COLOR` `[205, 200, 192]`.
+- `colors.ts`: d3 `interpolateOrRd/Blues/Viridis` 를 정지점 5개짜리 자체 램프로 교체한다(정지점이 곧 5단계라 보간·샘플링 없이 그대로 반환; `d3-scale-chromatic` import 제거).
+  - `higherWorse`(높을수록 진함, 따뜻한 파스텔): `["#f9e5c8", "#f9d9b0", "#f3b27f", "#e8865a", "#d9572b"]`
+  - `higherBetter`(민트→틸): `["#d9efe3", "#bfe6d2", "#8fd1b6", "#5cb59a", "#2f8f7a"]`
+  - `neutral`(연보라): `["#e6dff0", "#d8cfe9", "#b8a9d6", "#9282bf", "#6d5ba3"]`
+  - 1단계는 종이 바닥(`#f5f2eb`)·바닥판보다 눈에 띄게 진하다(Task 2 리뷰 룰링: 원래의 `#fdf3e1/#e9f6ef/#f2eef7` 은 낮 조명 아래 흰색으로 클리핑돼 바닥과 구분되지 않았다). `NULL_COLOR` `[205, 200, 192]`.
   - 밝기 단조성(colorblind-safe) 유지: 테스트가 각 램프의 5단계 상대 휘도가 단조 감소임을 단언.
 - 시군 블록(`regions`/`region-islands`): 채움은 팔레트 그대로, `highlightColor [0, 0, 0, 25]`. 바닥판 `footprint` 채움 `[255, 252, 246]`, 윤곽 `[200, 192, 180, 200]`. 상단 링 비선택 `[60, 60, 70, 120]` 1px, 선택 `[28, 35, 49, 230]` 2px. 읍면동 경계선 `[60, 60, 70, 110]`.
 - 색 구간·높이 스케일·전환(600ms)·updateTriggers·`data` 참조 규칙은 변경 없음.
