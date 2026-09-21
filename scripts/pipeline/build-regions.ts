@@ -108,7 +108,7 @@ export type LabelOffsets = Record<string, [number, number]>;
 // exact same point (labelLayer.ts no longer sets `getPixelOffset` at all).
 //
 // `LABEL_OFFSET_METERS_PER_PX`: 1 screen pixel ≈ 250m on the ground at the
-// overview camera (zoom ≈8.6 — see camera.ts's `fitOverview`/
+// overview camera (zoom ≈8.77 — see camera.ts's `fitOverview`/
 // `OVERVIEW_PITCH` and useCamera.ts's mount effect), the ONLY camera pose
 // these manual nudge values were ever hand-tuned against (Task 6, Section
 // C.2's screenshot comparison). Not exact at any other zoom/pitch — but

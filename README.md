@@ -43,12 +43,13 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 1. Vercel 대시보드에서 "Add New Project" → 이 저장소(GitHub)를 import 합니다.
 2. 빌드 설정은 기본값을 그대로 씁니다 — Framework Preset이 자동으로 "Next.js"로 인식되고, Build Command(`next build` = `npm run build`)·Output Directory·Install Command(`npm ci`) 모두 손댈 필요가 없습니다. Node.js 버전은 Vercel이 `package.json`의 `engines.node`(프로젝트 설정에서도 지정 가능)를 기준으로 선택합니다 — `.nvmrc`는 로컬 `nvm use` 전용이며 Vercel은 이를 읽지 않습니다.
-3. 환경변수는 `NEXT_PUBLIC_VWORLD_KEY`(선택) 하나뿐입니다 — 지표·경계·학교 데이터는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고 런타임에 외부 API 키나 서버 비밀값을 쓰지 않지만, 배경 지도(브이월드 타일)를 켜려면 이 키가 필요합니다. 없어도 앱은 정상 동작합니다 — "배경 지도" 토글이 아예 표시되지 않고 나머지 기능은 그대로입니다.
+3. 환경변수는 `NEXT_PUBLIC_VWORLD_KEY`(선택)와 `NEXT_PUBLIC_MAP_FX`(선택, 아래 참고) 2개입니다 — 지표·경계·학교 데이터는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고 런타임에 외부 API 키나 서버 비밀값을 쓰지 않지만, 배경 지도(브이월드 타일)를 켜려면 이 키가 필요합니다. 없어도 앱은 정상 동작합니다 — "배경 지도" 토글이 아예 표시되지 않고 나머지 기능은 그대로입니다.
    - 발급: [브이월드 오픈API](https://www.vworld.kr/dev/v4dv_openapireferrer_s001.do)에서 무료로 키를 발급받고, 사용할 배포 도메인(예: `xxx.vercel.app`, 커스텀 도메인)을 인증키 관리에 등록합니다.
    - Vercel 프로젝트 설정 → Environment Variables 에 `NEXT_PUBLIC_VWORLD_KEY`를 추가합니다(Production/Preview 모두 필요하면 각각 등록). `vercel env add NEXT_PUBLIC_VWORLD_KEY production` 로도 등록할 수 있습니다.
    - 로컬 개발은 `.env.local`(`.gitignore`됨 — 커밋되지 않음)에 같은 키를 넣으면 됩니다.
    - 잘못되었거나 도메인이 등록되지 않은 키는 지도에서 조용히 실패합니다(타일이 안 보일 뿐, 에러가 뜨지 않음) — 브이월드는 잘못된 키에도 200 응답(XML 에러 본문)을 주기 때문입니다. 화면을 직접 확인해 키가 유효한지 판단하세요.
    - (`NEXT_PUBLIC_E2E` 는 Playwright e2e 전용으로 `playwright.config.ts` 가 테스트 실행 시에만 주입하며, 배포본에는 전혀 관여하지 않습니다.)
+   - `NEXT_PUBLIC_MAP_FX=off`: 그림자·후처리를 끄는 비상 스위치(기본 미설정). GPU 문제/CI 플레이크 시에만 사용.
 4. Deploy를 누르면 끝입니다. 이후 `main`(또는 배포 대상 브랜치)에 푸시할 때마다 Vercel이 자동으로 재배포합니다.
 5. 데이터를 갱신했다면(아래 "데이터 갱신 절차" 참고) 재빌드된 `public/data/**` 를 포함한 커밋을 푸시하는 것만으로 배포본에도 반영됩니다 — 별도의 배포 시점 데이터 빌드 단계는 없습니다(파이프라인은 로컬/CI에서 미리 실행해 결과 JSON을 커밋하는 방식).
 
