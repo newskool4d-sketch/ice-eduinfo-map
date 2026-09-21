@@ -9,7 +9,7 @@ import {
   makeIslandsLayer,
   makeNeighborsLayer,
   makeRegionsLayer,
-  makeSelectedRingLayer,
+  makeRegionTopRingsLayer,
   SELECTED_BRIGHTEN,
   UNSELECTED_DIM,
 } from "@/components/map/layers/regionLayers";
@@ -124,10 +124,10 @@ describe("makeRegionsLayer", () => {
       triggerKey: "v1",
     });
     expect(layer.props.material).toEqual({
-      ambient: 0.45,
-      diffuse: 0.6,
-      shininess: 24,
-      specularColor: [0.15, 0.15, 0.15],
+      ambient: 0.35,
+      diffuse: 0.7,
+      shininess: 14,
+      specularColor: [0.1, 0.1, 0.12],
     });
     const transitions = layer.props.transitions as {
       getElevation: { duration: number; type: string };
@@ -335,19 +335,100 @@ describe("makeRegionsLayer", () => {
   });
 });
 
-describe("makeSelectedRingLayer", () => {
-  it("has empty data and is invisible when feature is null", () => {
-    const layer = makeSelectedRingLayer(null, 1000);
-    expect(layer.props.data).toEqual([]);
-    expect(layer.props.visible).toBe(false);
+// Task A — replaces the old per-selection `makeSelectedRingLayer`: ALL 14
+// 시군 now get a top-face outline ring (id "region-top-rings", a single
+// PathLayer instead of one conditionally-visible layer), with the selected
+// region's ring simply drawn wider/brighter than the rest.
+describe("makeRegionTopRingsLayer", () => {
+  const rings = [
+    { code: "52110", ring: [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]] as [number, number][] },
+    { code: "52130", ring: [[2, 0], [3, 0], [3, 1], [2, 1], [2, 0]] as [number, number][] },
+  ];
+
+  it("is a non-pickable, rounded-joint PathLayer with id 'region-top-rings'", () => {
+    const layer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: null, triggerKey: "v1" });
+    expect(layer.props.id).toBe("region-top-rings");
+    expect(layer.props.widthUnits).toBe("pixels");
+    expect(layer.props.jointRounded).toBe(true);
+    expect(layer.props.pickable).toBe(false);
+    expect(layer.props.data).toBe(rings); // reference stability — see DeckMap's own `rings` useMemo
   });
 
-  it("projects each ring's points to [lng, lat, elevation+10] when given a feature", () => {
-    const layer = makeSelectedRingLayer(featureA, 1000);
-    expect(layer.props.visible).toBe(true);
-    const data = layer.props.data as [number, number, number][][];
-    expect(data).toHaveLength(1); // one ring, no holes
-    expect(data[0][0]).toEqual([0, 0, 1010]);
+  it("does not cast a shadow (shadowEnabled: false)", () => {
+    const layer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: null, triggerKey: "v1" });
+    expect(layer.props.shadowEnabled).toBe(false);
+  });
+
+  it("getPath appends elevationOf(code)+5 as the z coordinate for every point of the region's ring", () => {
+    const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
+    const layer = makeRegionTopRingsLayer(rings, { elevationOf, selectedCode: null, triggerKey: "v1" });
+    type Datum = (typeof rings)[number];
+    type Ctx = { index: number; data: Datum[]; target: number[] };
+    const getPath = layer.props.getPath as unknown as (d: Datum, ctx: Ctx) => [number, number, number][];
+    const ctx: Ctx = { index: 0, data: rings, target: [] };
+    expect(getPath(rings[0], ctx)).toEqual([
+      [0, 0, 1005],
+      [1, 0, 1005],
+      [1, 1, 1005],
+      [0, 1, 1005],
+      [0, 0, 1005],
+    ]);
+    expect(elevationOf).toHaveBeenCalledWith("52110");
+  });
+
+  it("getWidth is 2px for the selected region's ring, 1px for every other", () => {
+    const layer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: "52110", triggerKey: "v1" });
+    type Datum = (typeof rings)[number];
+    type Ctx = { index: number; data: Datum[]; target: number[] };
+    const getWidth = layer.props.getWidth as (d: Datum, ctx: Ctx) => number;
+    const ctx: Ctx = { index: 0, data: rings, target: [] };
+    expect(getWidth(rings[0], ctx)).toBe(2); // 52110 — selected
+    expect(getWidth(rings[1], ctx)).toBe(1); // 52130 — not selected
+  });
+
+  it("getColor is bright opaque white for the selected region, dim translucent white-gray for every other", () => {
+    const layer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: "52110", triggerKey: "v1" });
+    type Datum = (typeof rings)[number];
+    type Ctx = { index: number; data: Datum[]; target: number[] };
+    const getColor = layer.props.getColor as unknown as (d: Datum, ctx: Ctx) => [number, number, number, number];
+    const ctx: Ctx = { index: 0, data: rings, target: [] };
+    expect(getColor(rings[0], ctx)).toEqual([255, 255, 255, 230]);
+    expect(getColor(rings[1], ctx)).toEqual([236, 239, 245, 90]);
+  });
+
+  it("getWidth/getColor read as unselected (1px, dim) when selectedCode is null", () => {
+    const layer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: null, triggerKey: "v1" });
+    type Datum = (typeof rings)[number];
+    type Ctx = { index: number; data: Datum[]; target: number[] };
+    const getWidth = layer.props.getWidth as (d: Datum, ctx: Ctx) => number;
+    const getColor = layer.props.getColor as unknown as (d: Datum, ctx: Ctx) => [number, number, number, number];
+    const ctx: Ctx = { index: 0, data: rings, target: [] };
+    expect(getWidth(rings[0], ctx)).toBe(1);
+    expect(getColor(rings[0], ctx)).toEqual([236, 239, 245, 90]);
+  });
+
+  it("updateTriggers.getPath includes triggerKey; getWidth/getColor include selectedCode", () => {
+    const layer = makeRegionTopRingsLayer(rings, {
+      elevationOf: () => 0,
+      selectedCode: "52110",
+      triggerKey: "indicator-7",
+    });
+    expect(layer.props.updateTriggers.getPath).toContain("indicator-7");
+    expect(layer.props.updateTriggers.getWidth).toContain("52110");
+    expect(layer.props.updateTriggers.getColor).toContain("52110");
+  });
+
+  it("defaults to a 600ms getPath transition; a custom transitionDuration overrides it", () => {
+    const defaultLayer = makeRegionTopRingsLayer(rings, { elevationOf: () => 0, selectedCode: null, triggerKey: "v1" });
+    expect(defaultLayer.props.transitions).toMatchObject({ getPath: 600 });
+
+    const instantLayer = makeRegionTopRingsLayer(rings, {
+      elevationOf: () => 0,
+      selectedCode: null,
+      triggerKey: "v1",
+      transitionDuration: 0,
+    });
+    expect(instantLayer.props.transitions).toMatchObject({ getPath: 0 });
   });
 });
 

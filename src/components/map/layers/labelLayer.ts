@@ -59,6 +59,17 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
     // CompositeLayer.getSubLayerProps forwards `parameters` verbatim to
     // every sub-layer TextLayer renders, so setting it here once is enough.
     parameters: { depthCompare: "always", depthWriteEnabled: false },
+    // Task A — 그림자 캐스팅 제외: `shadowEnabled` on the OUTER TextLayer never
+    // reaches its leaf sub-layers (MultiIconLayer for `characters`,
+    // TextBackgroundLayer for `background`) — deck.gl's shadow pass reads
+    // `layer.props.shadowEnabled` off whichever leaf actually draws, and a
+    // CompositeLayer only forwards a fixed prop allowlist (parameters,
+    // opacity, ...) to `getSubLayerProps`, not arbitrary props. `_subLayerProps`
+    // is the documented per-sublayer override hook for exactly this.
+    _subLayerProps: {
+      characters: { shadowEnabled: false },
+      background: { shadowEnabled: false },
+    },
     updateTriggers: {
       getPosition: [opts.triggerKey],
       getText: [opts.triggerKey],

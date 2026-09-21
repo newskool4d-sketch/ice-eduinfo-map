@@ -113,6 +113,28 @@ describe("makeRegionLabelLayer", () => {
     expect(getPixelOffset(labels[1], ctx)).toEqual([0, 0]);
   });
 
+  // Task A — 그림자 캐스팅 제외: TextLayer is a CompositeLayer whose leaf
+  // sub-layers (MultiIconLayer for `characters`, TextBackgroundLayer for
+  // `background`) never see a `shadowEnabled` prop passed directly on the
+  // outer TextLayer — deck.gl's shadow pass reads `layer.props.shadowEnabled`
+  // off whichever leaf layer actually draws, so it must be set via
+  // `_subLayerProps` (confirmed against the installed
+  // @deck.gl/core's composite-layer.js: `getSubLayerProps` merges
+  // `_subLayerProps[id]` directly into each sub-layer's own final props).
+  it("excludes both sub-layers (characters, background) from shadow casting via _subLayerProps", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+    });
+    expect(layer.props._subLayerProps).toEqual({
+      characters: { shadowEnabled: false },
+      background: { shadowEnabled: false },
+    });
+  });
+
   describe("transitionDuration option (Task 6, Section A.4 — reduced motion)", () => {
     it("defaults to a 600ms getPosition transition when omitted", () => {
       const layer = makeRegionLabelLayer(labels, {

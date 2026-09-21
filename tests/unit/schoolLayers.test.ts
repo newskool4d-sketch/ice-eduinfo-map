@@ -252,6 +252,25 @@ describe("makeSchoolLabelsLayer", () => {
     expect(layer.props.parameters).toMatchObject({ depthCompare: "always", depthWriteEnabled: false });
   });
 
+  // Task A — same reasoning/mechanism as labelLayer.test.ts's own
+  // _subLayerProps assertion: school-labels is also a TextLayer, so its
+  // shadow-casting exclusion must go through _subLayerProps (an outer
+  // `shadowEnabled` prop never reaches the characters/background leaf
+  // sub-layers deck.gl's shadow pass actually checks).
+  it("excludes both sub-layers (characters, background) from shadow casting via _subLayerProps", () => {
+    const layer = makeSchoolLabelsLayer([], {
+      elevationOf,
+      visible: true,
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      triggerKey: "v1",
+    });
+    expect(layer.props._subLayerProps).toEqual({
+      characters: { shadowEnabled: false },
+      background: { shadowEnabled: false },
+    });
+  });
+
   it("zeroes the getPosition transition when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
     const layer = makeSchoolLabelsLayer([], {
       elevationOf,

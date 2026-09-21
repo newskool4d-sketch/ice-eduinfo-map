@@ -139,6 +139,14 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
     outlineColor: [10, 14, 25, 255],
     getColor: [230, 233, 240, 255],
     parameters: { depthCompare: "always", depthWriteEnabled: false },
+    // Task A — 그림자 캐스팅 제외: same reasoning as labelLayer.ts's
+    // region-labels — an outer `shadowEnabled` prop never reaches TextLayer's
+    // leaf sub-layers (MultiIconLayer `characters`, TextBackgroundLayer
+    // `background`), which is what deck.gl's shadow pass actually checks.
+    _subLayerProps: {
+      characters: { shadowEnabled: false },
+      background: { shadowEnabled: false },
+    },
     updateTriggers: {
       getPosition: [opts.triggerKey],
       getText: [opts.triggerKey],

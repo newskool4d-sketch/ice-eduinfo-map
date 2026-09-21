@@ -2,7 +2,7 @@ import { GeoJsonLayer, PathLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson";
 
-import { ringsOf, type RegionFeature } from "@/lib/geo/geo";
+import type { RegionFeature, Ring } from "@/lib/geo/geo";
 import { REGION_MATERIAL } from "@/components/map/lighting";
 import { dim } from "@/lib/colors";
 
@@ -17,8 +17,8 @@ export const UNSELECTED_DIM = 0.55;
  * near-yellow high end) pushed it bright enough to wash out same-hue school
  * points on top of it (중학교's amber dot). The selection cue still reads
  * clearly without it — this region is no longer DIMMED like every other
- * non-selected one (UNSELECTED_DIM=0.55), plus the separate `selected-ring`
- * layer outlines it explicitly.
+ * non-selected one (UNSELECTED_DIM=0.55), plus the `region-top-rings` layer
+ * (Task A) draws its outline wider and brighter than every other region's.
  */
 export const SELECTED_BRIGHTEN = 1.0;
 /** Default deck.gl `transitions` duration (ms) for this layer's animated props — see the `transitionDuration` option below. */
@@ -86,9 +86,9 @@ function selectionAwareFillColor(
 }
 
 export interface RegionsLayerOptions {
-  /** Injection point: bar height (m) for a region code. Swapped for a real indicator by a later task. */
+  /** Injection point: bar height (m) for a region code — DeckMap hands in `makeElevationScale(def, map)` for the currently-selected indicator. */
   elevationOf: (code: string) => number;
-  /** Injection point: fill color for a region code. Swapped for a real indicator by a later task. */
+  /** Injection point: fill color for a region code — DeckMap hands in `makeColorScale(def, map).colorOf` for the currently-selected indicator. */
   fillColorOf: (code: string) => RGBA;
   /** Included in `updateTriggers` so changing e.g. the selected indicator re-evaluates the accessors above. */
   triggerKey: string | number;
@@ -100,8 +100,8 @@ export interface RegionsLayerOptions {
    * included in `updateTriggers.getFillColor` (alongside `triggerKey`) so a
    * selection change re-evaluates fill color even when the indicator
    * itself didn't change. Does NOT affect `getElevation` — selection has no
-   * effect on bar height, only color (the separate `selected-ring` layer
-   * marks the selection's height instead).
+   * effect on bar height, only color (the `region-top-rings` layer marks
+   * the selection with a wider, brighter outline instead).
    */
   selectedCode?: string | null;
   onClick?: (code: string) => void;
@@ -204,23 +204,68 @@ export function makeIslandsLayer(fc: RegionsFeatureCollection, opts: IslandsLaye
 type Point3 = [number, number, number];
 
 /**
- * Highlights the currently-selected region with a bright outline traced
- * `elevation + 10`m above its top face (since `extruded: true` regions have
- * no stroke sub-layer of their own). `feature: null` (nothing selected)
- * yields an empty, invisible layer.
+ * One region's ring datum for `makeRegionTopRingsLayer` — `ring` is a single
+ * closed `[lng, lat]` boundary (see `ringsOf` in geo.ts, which DeckMap calls
+ * to build this list once per `bundle.regionsMain` change). A MultiPolygon
+ * region (or one with interior holes) contributes one item per part, each
+ * carrying that region's `code`.
  */
-export function makeSelectedRingLayer(feature: RegionFeature | null, elevation: number) {
-  const data: Point3[][] = feature
-    ? ringsOf(feature).map((ring) => ring.map(([lng, lat]): Point3 => [lng, lat, elevation + 10]))
-    : [];
-  return new PathLayer<Point3[]>({
-    id: "selected-ring",
-    data,
-    getPath: (d) => d,
+export interface RegionTopRingDatum {
+  code: string;
+  ring: Ring;
+}
+
+export interface RegionTopRingsLayerOptions {
+  /** Same injection point as `RegionsLayerOptions.elevationOf` — each ring floats 5m above its own region's top face. */
+  elevationOf: (code: string) => number;
+  /** The currently-selected 시군 code, or null when nothing is selected — the matching ring draws wider/brighter than the rest. */
+  selectedCode: string | null;
+  /** Included in `updateTriggers.getPath` — `elevationOf`'s output depends on the selected indicator, same as every other elevation-driven layer here. */
+  triggerKey: string | number;
+  /** deck.gl `transitions` duration (ms) for getPath. Defaults to 600. Task 6, Section A.4 — pass 0 when `prefers-reduced-motion: reduce`. */
+  transitionDuration?: number;
+}
+
+/**
+ * Task A — a top-face outline ring for EVERY 시군 at once (replaces the old,
+ * per-selection `makeSelectedRingLayer`): `extruded: true` GeoJsonLayers have
+ * no stroke sub-layer of their own (`stroked` is only honored when NOT
+ * extruded — see `makeFootprintLayer`'s ground-level equivalent), so without
+ * this, a region's block has no visible top edge at all. The selected
+ * region's ring is simply drawn wider (2px vs 1px) and brighter/more opaque
+ * than every other region's — no separate layer needed for that emphasis.
+ *
+ * `shadowEnabled: false` (this ring never casts a shadow onto neighboring
+ * geometry) isn't part of PathLayer's public TS prop type — deck.gl's shadow
+ * pass reads `layer.props.shadowEnabled` directly off the runtime props
+ * object (`shouldDrawLayer` in the installed `@deck.gl/core`'s
+ * shadow-pass.js), entirely bypassing whatever the TS type declares.
+ * `PathLayer<DataT, ExtraPropsT>`'s own second generic parameter exists for
+ * exactly this kind of experimental/runtime-only prop: explicitly
+ * instantiating it here widens the constructor's expected prop shape
+ * WITHOUT an `as unknown as ...` escape hatch.
+ */
+export function makeRegionTopRingsLayer(rings: RegionTopRingDatum[], opts: RegionTopRingsLayerOptions) {
+  const { selectedCode } = opts;
+  const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
+
+  return new PathLayer<RegionTopRingDatum, { shadowEnabled: boolean }>({
+    id: "region-top-rings",
+    data: rings,
+    getPath: (d): Point3[] => d.ring.map(([x, y]) => [x, y, opts.elevationOf(d.code) + 5]),
     widthUnits: "pixels",
-    getWidth: 2,
+    getWidth: (d) => (d.code === selectedCode ? 2 : 1),
+    getColor: (d): RGBA => (d.code === selectedCode ? [255, 255, 255, 230] : [236, 239, 245, 90]),
     jointRounded: true,
-    getColor: [255, 255, 255, 230],
-    visible: !!feature,
+    shadowEnabled: false,
+    pickable: false,
+    updateTriggers: {
+      getPath: [opts.triggerKey],
+      getWidth: [selectedCode],
+      getColor: [selectedCode],
+    },
+    transitions: {
+      getPath: transitionDuration,
+    },
   });
 }

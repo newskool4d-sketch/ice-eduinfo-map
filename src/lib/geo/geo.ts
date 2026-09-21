@@ -36,8 +36,9 @@ function toLngLat(position: Position): [number, number] {
  * Returns every ring (exterior boundaries and, if present, holes) of a
  * Polygon or MultiPolygon feature, each as a flat `[lng, lat][]` array.
  *
- * Used by `makeSelectedRingLayer` to trace the full outline of a selected
- * region with a `PathLayer`.
+ * Used by DeckMap to build `region-top-rings`' per-region data (see
+ * `makeRegionTopRingsLayer` in regionLayers.ts) — one ring per part/hole,
+ * for every 시군 at once, not just a selected one.
  */
 export function ringsOf(
   feature: Feature<Polygon | MultiPolygon, unknown>,
