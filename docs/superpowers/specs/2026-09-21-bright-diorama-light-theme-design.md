@@ -51,9 +51,9 @@
 ### 2. 배경 지도 3단(끄기 · 위성 · 일반)
 
 - 상태: `basemapPref.ts` 의 값을 `boolean` 에서 `BasemapMode = "off" | "satellite" | "base"` 로 확장한다. 저장 키 `jbmap.basemap` 유지, 기존 저장값 `"1"`→`satellite`, `"0"`→`off` 로 읽어 호환. 기본값 `satellite`(키가 있을 때). 키가 없으면 항상 `off` 이고 컨트롤을 표시하지 않는다.
-- UI: `MapOverlay` 의 "배경 지도" 토글 버튼을 **세그먼트 컨트롤**(`role="radiogroup"`, 항목 `role="radio"` + `aria-checked`, 라벨 "배경 지도: 끄기 / 위성 / 일반")로 바꾼다. `MapOverlayItem` 에 `kind: "toggle" | "segmented"` 를 추가해 발표 모드·읍면동 경계는 토글 그대로 둔다. 출처 표기는 `off` 가 아닐 때 표시.
+- UI: `MapOverlay` 의 "배경 지도" 토글 버튼을 **세그먼트 컨트롤**(`role="radiogroup"`, 항목 `role="radio"` + `aria-checked`, roving tabindex + 화살표/Home/End 키 이동, inset 포커스 링, 라벨 "배경 지도: 끄기 / 위성 / 일반")로 바꾼다. `MapOverlayItem` 에 `kind: "toggle" | "segmented"` 를 추가해 발표 모드·읍면동 경계는 토글 그대로 둔다. 출처 표기는 `off` 가 아닐 때 표시.
 - 레이어: `makeBasemapLayer(key, mode)` — `satellite` 는 `Satellite/{z}/{y}/{x}.jpeg`, `base` 는 `Base/{z}/{y}/{x}.png` (`vworldTileUrl(key, layer, ext)`). `base` 의 BitmapLayer 는 `desaturate: 0.5`. 그 외 옵션(extent·zoom 범위·`onTileError` no-op·`depthWriteEnabled:false`)은 동일.
-- 워시: 타일 바로 위에 `SolidPolygonLayer` id `basemap-wash`(extent 사각형 1개, `getFillColor` 위성 `[255,255,255,110]`, 일반 `[255,255,255,60]`, `pickable:false`, `shadowEnabled:false`, `parameters:{depthWriteEnabled:false}`). `off` 면 `null`. 스크린샷 튜닝으로 알파 ±30 조정 허용.
+- 워시: 타일 바로 위에 `SolidPolygonLayer` id `basemap-wash`(고정 대형 사각형 `[120,30]–[135,41]` 1개 — 타일은 extent 로 선택만 되고 잘리지 않아 경계에 걸친 타일이 extent 밖까지 그려지므로, 뷰포트가 도달할 수 있는 어떤 영역보다 큰 사각형으로 가장자리를 없앤다(Task 3 리뷰 룰링); `getFillColor` 위성 `[255,255,255,110]`, 일반 `[255,255,255,60]`, `pickable:false`, `shadowEnabled:false`, `parameters:{depthWriteEnabled:false}`). `off` 면 `null`. 스크린샷 튜닝으로 알파 ±30 조정 허용.
 - 주변 시도(`neighbors`): 배경이 켜지면 `[255,255,255,90]`(워시 위 살짝 더 밝은 실루엣, 윤곽 `[120,110,100,120]`), 꺼지면 불투명 `[232,228,220]`(윤곽 `[190,182,170]`).
 - e2e `basemap.spec.ts`: 라디오 3개 존재, 기본 `위성` checked + 레이어 id `basemap` + 출처 표기 → `끄기` 선택 시 레이어 null·출처 사라짐 → `일반` 선택 시 레이어 존재(URL 에 `/Base/`) → 새로고침 후 유지. 기존 fixture 의 `api.vworld.kr` 스텁은 jpeg 요청도 같은 1×1 PNG 로 응답해도 무방(BitmapLayer 는 content-type 이 아니라 디코드 결과만 본다 — 실패 시 `onTileError` no-op).
 
