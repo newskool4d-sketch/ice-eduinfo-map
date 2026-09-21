@@ -179,6 +179,11 @@ describe("Legend", () => {
       />,
     );
     for (const swatch of screen.getAllByTestId("legend-school-swatch")) {
+      // fix round 1/5 (review, Minor) — positively assert the actual square
+      // class, not just the absence of the old circle class (an assertion
+      // that could still pass if the shape class were removed entirely,
+      // not merely replaced).
+      expect(swatch.className).toContain("rounded-sm");
       expect(swatch.className).not.toContain("rounded-full");
     }
   });

@@ -319,30 +319,55 @@ describe("makeSchoolLabelsLayer", () => {
     expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
   });
 
-  // Task B — CollisionFilterExtension, own collisionGroup
-  // ('school-labels', separate from region-labels' 'labels' — see
-  // labelLayer.test.ts) so a region's school names never fight a 시군 name
-  // for the same collision budget. Untouched by Task D.
-  it("attaches exactly one CollisionFilterExtension instance, collisionGroup 'school-labels', sizeScale 1.6", () => {
+  // Task D, fix round 1 — CollisionFilterExtension: collisionGroup is now
+  // 'labels', the SAME group region-labels uses (was a separate
+  // 'school-labels' group — see labelLayer.test.ts). Review finding: two
+  // separate groups meant region-labels and school-labels never arbitrated
+  // against each other at all (one collision FBO per group), so a region
+  // chip could be painted over by an ordinary school chip regardless of
+  // priority. `collisionTestProps` stays a PER-LAYER override even inside a
+  // shared group (installed collision-filter-extension.ts's
+  // `initializeState`: `this.props = this.clone(this.props.collisionTestProps).props`).
+  it("attaches exactly one CollisionFilterExtension instance, collisionGroup 'labels' (shared with region-labels), sizeScale 1.6", () => {
     const layer = makeSchoolLabelsLayer([], baseOpts);
     expect(layer.props.extensions).toHaveLength(1);
     expect(layer.props.extensions[0]).toBeInstanceOf(CollisionFilterExtension);
     expect(layer.props.collisionEnabled).toBe(true);
-    expect(layer.props.collisionGroup).toBe("school-labels");
+    expect(layer.props.collisionGroup).toBe("labels");
     expect(layer.props.collisionTestProps).toEqual({ sizeScale: 1.6 });
   });
 
-  // getCollisionPriority = 학생수 (brief: `d => d.students ?? 0`), clamped to
-  // the extension's own documented range. Untouched by Task D.
-  it("getCollisionPriority is the school's student count, clamped to the extension's documented [-1000, 1000] range", () => {
+  // Task D, fix round 1 — now that school-labels shares region-labels' own
+  // collisionGroup, a school's priority must also be compared against
+  // REGION-label priorities (labelLayer.ts: unselected -15..-1, selected
+  // 1000 — see DeckMap.tsx's priorityOf, REGION_CODES.length === 14).
+  // Mapping raw student count to [-1000, -100] (strictly below every
+  // region-label priority) means a school chip can never outrank — and so
+  // never hide — a 시군 chip, while still preferring a bigger school over a
+  // smaller one WITHIN the school-only comparisons.
+  it("getCollisionPriority maps student count to [-1000, -100] — strictly below every region-label priority ([-15, 1000])", () => {
     const layer = makeSchoolLabelsLayer([], baseOpts);
     const getCollisionPriority = layer.props.getCollisionPriority as (d: School, ctx: Ctx) => number;
-    const small = school({ id: "a", regionCode: "52110", students: 120 });
-    const noData = school({ id: "b", regionCode: "52110", students: null });
-    const huge = school({ id: "c", regionCode: "52110", students: 1607 }); // 군산금빛초등학교's real count
-    expect(getCollisionPriority(small, ctxFor([small]))).toBe(120);
-    expect(getCollisionPriority(noData, ctxFor([noData]))).toBe(0);
-    expect(getCollisionPriority(huge, ctxFor([huge]))).toBe(1000);
+    const cases: [number | null, number][] = [
+      [null, -1000],
+      [0, -1000],
+      [500, -500],
+      [900, -100],
+      [1607, -100], // 군산금빛초등학교's real count — still clamped at the 900 cap
+    ];
+    for (const [students, expected] of cases) {
+      const s = school({ id: `s-${students}`, regionCode: "52110", students });
+      expect(getCollisionPriority(s, ctxFor([s]))).toBe(expected);
+    }
+  });
+
+  it("getCollisionPriority is always strictly less than -15 (the lowest possible region-label priority — REGION_CODES.length === 14)", () => {
+    const layer = makeSchoolLabelsLayer([], baseOpts);
+    const getCollisionPriority = layer.props.getCollisionPriority as (d: School, ctx: Ctx) => number;
+    for (const students of [null, 0, 1, 500, 899, 900, 1607, 1_000_000]) {
+      const s = school({ id: `s-${students}`, regionCode: "52110", students });
+      expect(getCollisionPriority(s, ctxFor([s]))).toBeLessThan(-15);
+    }
   });
 
   // Task B — 칩 배경은 더 작게 (smaller than region-labels' [6,3]/6 — see

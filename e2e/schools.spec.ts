@@ -18,6 +18,30 @@ function readSchoolsLayerDataLength(page: Page) {
   });
 }
 
+/**
+ * Task D, fix round 1 — reads the live `deck.props.layers` array's INDEX of
+ * both label layer ids, reusing the exact same `window.__jbmap` bridge as
+ * `readSchoolsLayerDataLength` above (no new harness). Locks in the review
+ * fix: `school-labels` must be pushed BEFORE `region-labels` in DeckMap.tsx
+ * so a region's own name chip (e.g. "전주시 70,444") always paints on top of
+ * ordinary school-name chips, not the other way around — see
+ * DeckMap.tsx's `layerList.push(makeSchoolLabelsLayer(...), makeRegionLabelLayer(...))`
+ * comment for the full reasoning (paint order + a shared-collision-FBO
+ * same-picking-color-index edge case, now that both layers share
+ * `collisionGroup: 'labels'` — schoolLayers.ts).
+ */
+function readLabelLayerIndices(page: Page) {
+  return page.evaluate(() => {
+    const deck = window.__jbmap?.deck;
+    if (!deck) throw new Error("window.__jbmap not exposed — is NEXT_PUBLIC_E2E=1 set for the dev server?");
+    const layers = deck.props.layers as unknown as ({ id: string } | null)[];
+    return {
+      schoolLabels: layers.findIndex((l) => l?.id === "school-labels"),
+      regionLabels: layers.findIndex((l) => l?.id === "region-labels"),
+    };
+  });
+}
+
 test.describe("학교 점", () => {
   test("무주군(?region=52730) 진입 → 패널 학교 목록과 schools 레이어 data 길이 일치 → 첫 행 클릭 시 강조", async ({
     page,
@@ -57,5 +81,22 @@ test.describe("학교 점", () => {
     await page.screenshot({ path: "test-results/schools-after-highlight.png" });
 
     expect(consoleErrors).toEqual([]);
+  });
+
+  // Task D, fix round 1 — regression test for the review finding: a region's
+  // own chip (e.g. "전주시 70,444") was being painted over by ordinary
+  // school-name chips. `region-labels` must be pushed strictly after
+  // `school-labels` in DeckMap.tsx's layers array.
+  test("school-labels is pushed before region-labels (전주시 chip must paint on top of school chips)", async ({
+    page,
+  }) => {
+    await page.goto("/?region=52110");
+    await waitForMapReady(page);
+    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+
+    const { schoolLabels, regionLabels } = await readLabelLayerIndices(page);
+    expect(schoolLabels).toBeGreaterThanOrEqual(0);
+    expect(regionLabels).toBeGreaterThanOrEqual(0);
+    expect(regionLabels).toBeGreaterThan(schoolLabels);
   });
 });

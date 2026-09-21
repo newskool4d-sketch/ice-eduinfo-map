@@ -18,22 +18,48 @@ import type { School } from "@/lib/schools/types";
 const COLLISION_FILTER_EXTENSION = new CollisionFilterExtension();
 
 /**
- * Task B — clamps a school's raw student count into
- * CollisionFilterExtension's documented safe range for `getCollisionPriority`
- * ("Must return a number in the range -1000 -> 1000" — installed
- * @deck.gl/extensions' collision-filter-extension.d.ts). The installed
- * collision shader (shader-module.js) enforces this literally:
+ * Task D, fix round 1 — school-labels now share region-labels' own
+ * `collisionGroup: 'labels'` (previously a separate `'school-labels'` group
+ * — see makeSchoolLabelsLayer below). Review finding: with two SEPARATE
+ * collision groups, CollisionFilterExtension buckets each group into its
+ * own collision FBO (installed @deck.gl/extensions' collision-filter-
+ * effect.js) — region-labels and school-labels never arbitrated against
+ * each other AT ALL, so whichever layer happened to be pushed later into
+ * `layers` (school-labels — DeckMap.tsx) simply painted over the other
+ * regardless of priority (both also had `depthCompare: 'always'`, so
+ * nothing else stopped it either): the "전주시 70,444" region chip was being
+ * painted over by ordinary school-name chips even though it should always
+ * win. Sharing one group means school priorities must now also be compared
+ * against REGION-label priorities (labelLayer.ts's `priorityOf`/selected-
+ * region-1000), not just against each other — a school chip must NEVER
+ * outrank (and so must never hide) a 시군 chip, selected or not.
+ * DeckMap.tsx's region-label priority range is [-15, 1000] (unselected:
+ * -1..-14 by rank, or -15 with no data at all; selected: flat 1000 — see
+ * labelLayer.ts's `getCollisionPriority`). Mapping a school's raw student
+ * count to [-1000, -100] — strictly below every possible region-label
+ * priority — keeps "more students -> higher priority" WITHIN schools (a
+ * bigger school's name still wins over a smaller one nearby) while a
+ * school can never outrank any region chip.
+ *
+ * Still clamped into CollisionFilterExtension's documented safe range for
+ * `getCollisionPriority` ("Must return a number in the range -1000 -> 1000"
+ * — installed @deck.gl/extensions' collision-filter-extension.d.ts): the
+ * installed collision shader (shader-module.js) enforces this literally —
  * `position.z = -0.001 * collisionPriority * position.w` is a CLIP-SPACE z,
- * so an unclamped priority above 1000 pushes a label's entire quad past the
- * near clip plane during the collision pass — the GPU then discards it
- * outright, making that label invisible FOREVER (not merely de-prioritized).
- * Real data has schools above 1000 학생 (max 1607, 군산금빛초등학교) — clamping
- * keeps "more students -> higher priority" for the realistic range while
- * never crossing into that failure mode. See task-B-report.md.
+ * so a priority outside ±1000 pushes a label's entire quad past a clip
+ * plane during the collision pass, and the GPU discards it outright, making
+ * that label invisible FOREVER (not merely de-prioritized). Real data has
+ * schools above 900 학생 (max 1607, 군산금빛초등학교) — clamping the raw
+ * student count at 900 (not 1000) BEFORE the `-1000` shift below keeps
+ * every mapped priority safely inside [-1000, -100], never touching the
+ * shader's -1000 boundary itself. See task-B-report.md (the original
+ * clamp/range) and task-D-report.md, "Fix round 1" (the shared-group range
+ * shift below -15).
  */
-const MAX_COLLISION_PRIORITY = 1000;
+const MAX_SCHOOL_STUDENTS_FOR_PRIORITY = 900;
+/** Maps a school's raw student count to [-1000, -100] — see this function's own doc comment above for why both the clamp and the -1000 shift exist. */
 function schoolCollisionPriority(students: number | null): number {
-  return Math.min(students ?? 0, MAX_COLLISION_PRIORITY);
+  return Math.min(students ?? 0, MAX_SCHOOL_STUDENTS_FOR_PRIORITY) - 1000;
 }
 
 /** Default deck.gl `transitions` duration (ms) — see each factory's `transitionDuration` option. */
@@ -236,22 +262,31 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
     getBackgroundColor: [12, 14, 20, 170],
     backgroundPadding: [4, 2],
     backgroundBorderRadius: 4,
-    // Task B — CollisionFilterExtension: own collisionGroup
-    // ('school-labels', separate from region-labels' 'labels') so the two
-    // never compete for the same collision budget; `sizeScale: 1.6` (a
-    // bigger collision-test hitbox multiplier than region-labels' 1.3 —
-    // school names sit much closer together on screen once zoomed in).
-    // getCollisionPriority = 학생수 (schoolCollisionPriority, clamped — see
-    // its own doc comment above for why the clamp is necessary, not just
-    // defensive). No `updateTriggers.getCollisionPriority` entry: unlike
-    // region-labels' priority (which closes over `selectedCode`, state
-    // EXTERNAL to any one datum), this reads only `d.students` — deck.gl
-    // already re-evaluates every accessor whenever `data`'s reference
-    // changes (a new selected region), which is the only way a school's own
-    // student count could ever change here.
+    // Task D, fix round 1 — CollisionFilterExtension: `collisionGroup:
+    // 'labels'` — the SAME group region-labels uses (labelLayer.ts), not a
+    // separate 'school-labels' group anymore. See schoolCollisionPriority's
+    // doc comment above for why the separate-group setup was actually the
+    // root cause of a real bug (a region chip getting painted over by
+    // school chips). `collisionTestProps: { sizeScale: 1.6 }` stays a
+    // PER-LAYER override even in a shared group — confirmed against the
+    // installed collision-filter-extension.ts: `initializeState` does
+    // `this.props = this.clone(this.props.collisionTestProps).props`,
+    // applied to each layer's OWN props independently of which group it's
+    // in — so school-labels can still test collisions against a bigger
+    // hitbox multiplier (1.6, vs region-labels' 1.3 — school names sit much
+    // closer together on screen once zoomed in) while sharing one arbitration
+    // budget/FBO with region-labels.
+    // getCollisionPriority = 학생수 (schoolCollisionPriority, now shifted
+    // into [-1000,-100] — see its own doc comment above for why). No
+    // `updateTriggers.getCollisionPriority` entry: unlike region-labels'
+    // priority (which closes over `selectedCode`, state EXTERNAL to any one
+    // datum), this reads only `d.students` — deck.gl already re-evaluates
+    // every accessor whenever `data`'s reference changes (a new selected
+    // region), which is the only way a school's own student count could
+    // ever change here.
     extensions: [COLLISION_FILTER_EXTENSION],
     collisionEnabled: true,
-    collisionGroup: "school-labels",
+    collisionGroup: "labels",
     collisionTestProps: { sizeScale: 1.6 },
     getCollisionPriority: (d: PositionedSchool) => schoolCollisionPriority(d.students),
     parameters: { depthCompare: "always", depthWriteEnabled: false },
