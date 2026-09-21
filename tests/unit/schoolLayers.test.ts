@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Color, Position } from "@deck.gl/core";
+import { ColumnLayer } from "@deck.gl/layers";
 import { CollisionFilterExtension } from "@deck.gl/extensions";
 
 import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
-import { makeSchoolRadiusScale, SCHOOL_LEVEL_COLORS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
+import { REGION_MATERIAL } from "@/components/map/lighting";
+import { makeSchoolHeightScale, SCHOOL_LEVEL_COLORS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
 import type { School } from "@/lib/schools/types";
 
 function school(overrides: Partial<School> & Pick<School, "id" | "regionCode">): School {
@@ -26,30 +28,30 @@ function school(overrides: Partial<School> & Pick<School, "id" | "regionCode">):
 type Ctx = { index: number; data: School[]; target: number[] };
 const ctxFor = (data: School[]): Ctx => ({ index: 0, data, target: [] });
 
-describe("makeSchoolRadiusScale — 반경 매핑 범위", () => {
-  it("maps the smallest student count to the minimum radius and the largest to the maximum", () => {
+describe("makeSchoolHeightScale — 높이 매핑 범위 (Task D)", () => {
+  it("maps the smallest student count to the minimum height and the largest to the maximum", () => {
     const schools = [school({ id: "a", regionCode: "52110", students: 10 }), school({ id: "b", regionCode: "52110", students: 1000 })];
-    const radiusOf = makeSchoolRadiusScale(schools);
-    expect(radiusOf(10)).toBeCloseTo(3, 5);
-    expect(radiusOf(1000)).toBeCloseTo(9, 5);
+    const heightOf = makeSchoolHeightScale(schools);
+    expect(heightOf(10)).toBeCloseTo(150, 5);
+    expect(heightOf(1000)).toBeCloseTo(1400, 5);
   });
 
-  it("maps null (no student count) to the minimum radius", () => {
+  it("maps null (no student count) to the minimum height", () => {
     const schools = [school({ id: "a", regionCode: "52110", students: 10 }), school({ id: "b", regionCode: "52110", students: 1000 })];
-    const radiusOf = makeSchoolRadiusScale(schools);
-    expect(radiusOf(null)).toBe(3);
+    const heightOf = makeSchoolHeightScale(schools);
+    expect(heightOf(null)).toBe(150);
   });
 
-  it("stays within [3, 9] for every value in between, monotonically increasing", () => {
+  it("stays within [150, 1400] for every value in between, monotonically increasing", () => {
     const schools = Array.from({ length: 20 }, (_, i) => school({ id: `s${i}`, regionCode: "52110", students: (i + 1) * 37 }));
-    const radiusOf = makeSchoolRadiusScale(schools);
+    const heightOf = makeSchoolHeightScale(schools);
     let prev = -Infinity;
     for (const s of schools) {
-      const r = radiusOf(s.students);
-      expect(r).toBeGreaterThanOrEqual(3);
-      expect(r).toBeLessThanOrEqual(9);
-      expect(r).toBeGreaterThanOrEqual(prev);
-      prev = r;
+      const h = heightOf(s.students);
+      expect(h).toBeGreaterThanOrEqual(150);
+      expect(h).toBeLessThanOrEqual(1400);
+      expect(h).toBeGreaterThanOrEqual(prev);
+      prev = h;
     }
   });
 
@@ -58,11 +60,17 @@ describe("makeSchoolRadiusScale — 반경 매핑 범위", () => {
       school({ id: "a", regionCode: "52110", students: 10 }),
       school({ id: "b", regionCode: "52130", students: 1000 }),
     ];
-    const radiusOf = makeSchoolRadiusScale(all); // computed from the FULL list
+    const heightOf = makeSchoolHeightScale(all); // computed from the FULL list
     const onlyRegionA = [all[0]]; // as if region 52110 alone were selected
-    // radiusOf itself is unaffected by which subset is later rendered.
-    expect(radiusOf(onlyRegionA[0].students)).toBeCloseTo(3, 5);
-    expect(radiusOf(1000)).toBeCloseTo(9, 5); // still resolvable even though not in the subset
+    // heightOf itself is unaffected by which subset is later rendered.
+    expect(heightOf(onlyRegionA[0].students)).toBeCloseTo(150, 5);
+    expect(heightOf(1000)).toBeCloseTo(1400, 5); // still resolvable even though not in the subset
+  });
+
+  it("maps an empty school list to a constant minimum-height function", () => {
+    const heightOf = makeSchoolHeightScale([]);
+    expect(heightOf(500)).toBe(150);
+    expect(heightOf(null)).toBe(150);
   });
 });
 
@@ -80,129 +88,170 @@ describe("SCHOOL_LEVEL_COLORS — 급별 색 alpha 255", () => {
   });
 });
 
-describe("makeSchoolsLayer", () => {
-  const radiusOf = vi.fn((students: number | null) => (students === 100 ? 5 : 3));
+describe("makeSchoolsLayer (Task D — ColumnLayer)", () => {
+  const heightOf = vi.fn((students: number | null) => (students === 100 ? 500 : 150));
   const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
+  const baseOpts = { elevationOf, heightOf, heightKey: "stats-2026-04-01", visible: true, triggerKey: "v1" };
 
-  it("is a pickable, auto-highlighting, billboarded ScatterplotLayer with id 'schools'", () => {
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
+  it("is a pickable, auto-highlighting ColumnLayer with id 'schools'", () => {
+    const layer = makeSchoolsLayer([], baseOpts);
+    expect(layer).toBeInstanceOf(ColumnLayer);
     expect(layer.props.id).toBe("schools");
     expect(layer.props.pickable).toBe(true);
     expect(layer.props.autoHighlight).toBe(true);
-    expect(layer.props.billboard).toBe(true);
-    expect(layer.props.stroked).toBe(true);
     expect(layer.props.radiusUnits).toBe("pixels");
-    expect(layer.props.radiusMinPixels).toBe(3);
+    expect(layer.props.radius).toBe(4);
+    expect(layer.props.diskResolution).toBe(10);
+    expect(layer.props.extruded).toBe(true);
+    expect(layer.props.flatShading).toBe(true);
+    expect(layer.props.material).toBe(REGION_MATERIAL);
+    expect(layer.props.highlightColor).toEqual([255, 255, 255, 120]);
   });
 
   it("visible 토글: reflects the given `visible` option", () => {
-    const visibleLayer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
-    const hiddenLayer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: false, triggerKey: "v1" });
+    const visibleLayer = makeSchoolsLayer([], { ...baseOpts, visible: true });
+    const hiddenLayer = makeSchoolsLayer([], { ...baseOpts, visible: false });
     expect(visibleLayer.props.visible).toBe(true);
     expect(hiddenLayer.props.visible).toBe(false);
   });
 
-  it("getPosition appends elevationOf(regionCode)+50 as the z coordinate", () => {
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
+  // Task D — the column stands ON the region's top face: z is exactly
+  // elevationOf(regionCode), no manual offset (unlike the old
+  // ScatterplotLayer's `+50`, which compensated for a flat point marker
+  // otherwise sitting exactly at the top face and z-fighting it).
+  // ColumnLayer's own geometry (installed column-geometry.ts, height:2
+  // template) + vertex shader (column-layer-vertex.glsl.ts:
+  // `elevation = instanceElevations * (positions.z + 1.0) / 2.0 * ...`)
+  // already put the column's BASE at getPosition's z and its TOP at
+  // getPosition.z + getElevation(d) — verified directly against the
+  // installed source, not assumed.
+  it("getPosition is exactly [lng, lat, elevationOf(regionCode)] — no offset", () => {
+    const layer = makeSchoolsLayer([], baseOpts);
     const d = school({ id: "a", regionCode: "52110", lat: 35.5, lng: 127.2 });
     const getPosition = layer.props.getPosition as (d: School, ctx: Ctx) => Position;
-    expect(getPosition(d, ctxFor([d]))).toEqual([127.2, 35.5, 1050]);
+    expect(getPosition(d, ctxFor([d]))).toEqual([127.2, 35.5, 1000]);
     expect(elevationOf).toHaveBeenCalledWith("52110");
   });
 
-  it("getRadius delegates to the injected radiusOf(students)", () => {
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
+  it("getElevation delegates to the injected heightOf(students)", () => {
+    const layer = makeSchoolsLayer([], baseOpts);
     const d = school({ id: "a", regionCode: "52110", students: 100 });
-    const getRadius = layer.props.getRadius as (d: School, ctx: Ctx) => number;
-    expect(getRadius(d, ctxFor([d]))).toBe(5);
-    expect(radiusOf).toHaveBeenCalledWith(100);
+    const getElevation = layer.props.getElevation as (d: School, ctx: Ctx) => number;
+    expect(getElevation(d, ctxFor([d]))).toBe(500);
+    expect(heightOf).toHaveBeenCalledWith(100);
   });
 
   it("getFillColor uses the 학교급 color, alpha 255", () => {
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
+    const layer = makeSchoolsLayer([], baseOpts);
     const d = school({ id: "a", regionCode: "52110", level: "high" });
     const getFillColor = layer.props.getFillColor as (d: School, ctx: Ctx) => Color;
     expect(getFillColor(d, ctxFor([d]))).toEqual(SCHOOL_LEVEL_COLORS.high);
   });
 
-  // Task 6, Section C-추가 #4 — 학교 점 가독성: a dark, opaque stroke (not
-  // translucent white) so a point stays legible even on a bright top face
-  // (e.g. Viridis's near-yellow high end almost swallowing an amber 중학교
-  // dot with the OLD translucent-white-at-alpha-120 stroke — verified via a
-  // WCAG contrast check: dark stroke vs bright yellow bg = ~15:1, the old
-  // white-alpha-120 blend vs the same bg was nowhere close). Highlighted
-  // stays opaque WHITE (unchanged) — a different, deliberately
-  // higher-attention cue, distinguished from normal by hue, not alpha, now
-  // that both are fully opaque.
-  it("getLineColor is a dark, opaque stroke normally; opaque white when highlighted", () => {
-    const d = school({ id: "target", regionCode: "52110" });
-    const notHighlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: null });
-    const highlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: "target" });
-    const getLineColorPlain = notHighlighted.props.getLineColor as (d: School, ctx: Ctx) => Color;
-    const getLineColorHighlighted = highlighted.props.getLineColor as (d: School, ctx: Ctx) => Color;
-    expect(getLineColorPlain(d, ctxFor([d]))).toEqual([11, 15, 25, 255]);
-    expect(getLineColorHighlighted(d, ctxFor([d]))).toEqual([255, 255, 255, 255]);
+  // Task D — highlight moved from a custom getLineColor/getLineWidth stroke
+  // toggle (meaningless on an EXTRUDED column — `stroked` only affects
+  // ColumnLayer's flat/non-extruded disk mode, confirmed against the
+  // installed column-layer.ts's shader: the stroke branch is
+  // `else if (column.stroked)`, mutually exclusive with the `extruded`
+  // branch) to deck.gl's own `highlightedObjectIndex` + `highlightColor`
+  // picking-based recolor.
+  describe("highlightedObjectIndex (강조 — Task D)", () => {
+    it("is null (not -1) when no school is highlighted", () => {
+      const layer = makeSchoolsLayer([], { ...baseOpts, highlightedId: null });
+      expect(layer.props.highlightedObjectIndex).toBeNull();
+    });
+
+    it("is null (not -1) when highlightedId is omitted entirely", () => {
+      const layer = makeSchoolsLayer([], baseOpts);
+      expect(layer.props.highlightedObjectIndex).toBeNull();
+    });
+
+    // deck.gl's own `updateAutoHighlight` (installed @deck.gl/core's
+    // layer.ts:1306) only runs the hover-highlight path
+    // `if (autoHighlight && !Number.isInteger(highlightedObjectIndex))`.
+    // `Number.isInteger(-1)` is TRUE, so the literal `-1` sentinel
+    // `Array.prototype.findIndex` returns when nothing matches would — if
+    // used here — permanently defeat `autoHighlight: true` above (hover
+    // would never highlight anything again, for the life of the layer),
+    // even though both `autoHighlight` and a non-default `highlightColor`
+    // are explicitly configured on this layer. `null` is deck.gl's own
+    // documented "nothing explicitly highlighted" default and keeps hover
+    // working; verified directly against the installed source (not merely
+    // assumed) — see makeSchoolsLayer's own implementation comment.
+    it("is null (not -1) when highlightedId doesn't match any school in data", () => {
+      const d = school({ id: "a", regionCode: "52110" });
+      const layer = makeSchoolsLayer([d].filter(hasCoordinates), { ...baseOpts, highlightedId: "does-not-exist" });
+      expect(layer.props.highlightedObjectIndex).not.toBe(-1);
+      expect(layer.props.highlightedObjectIndex).toBeNull();
+    });
+
+    it("is the matching school's index in `data` when highlightedId matches", () => {
+      const a = school({ id: "a", regionCode: "52110" });
+      const b = school({ id: "b", regionCode: "52110" });
+      const c = school({ id: "target", regionCode: "52110" });
+      const layer = makeSchoolsLayer([a, b, c].filter(hasCoordinates), { ...baseOpts, highlightedId: "target" });
+      expect(layer.props.highlightedObjectIndex).toBe(2);
+    });
   });
 
-  it("getLineWidth is 1.5px normally, 2px when highlighted", () => {
-    const d = school({ id: "target", regionCode: "52110" });
-    const notHighlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: null });
-    const highlighted = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", highlightedId: "target" });
-    const getLineWidthPlain = notHighlighted.props.getLineWidth as (d: School, ctx: Ctx) => number;
-    const getLineWidthHighlighted = highlighted.props.getLineWidth as (d: School, ctx: Ctx) => number;
-    expect(getLineWidthPlain(d, ctxFor([d]))).toBe(1.5);
-    expect(getLineWidthHighlighted(d, ctxFor([d]))).toBe(2);
-  });
-
-  it("updateTriggers include triggerKey (via getPosition) and highlightedId (via getLineColor/getLineWidth)", () => {
+  it("updateTriggers include triggerKey (via getPosition) and heightKey (via getElevation)", () => {
     const layer = makeSchoolsLayer([], {
-      elevationOf,
-      radiusOf,
-      visible: true,
+      ...baseOpts,
       triggerKey: "students_total",
-      highlightedId: "abc",
+      heightKey: "stats-2026-04-01",
     });
     expect(layer.props.updateTriggers.getPosition).toContain("students_total");
-    expect(layer.props.updateTriggers.getLineColor).toContain("abc");
-    expect(layer.props.updateTriggers.getLineWidth).toContain("abc");
+    expect(layer.props.updateTriggers.getElevation).toContain("stats-2026-04-01");
   });
 
-  it("disables the depth test (same as the label layer)", () => {
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
-    expect(layer.props.parameters).toMatchObject({ depthCompare: "always", depthWriteEnabled: false });
+  // Task D — the old flat ScatterplotLayer needed `depthCompare: 'always'`
+  // (always draw on top, never depth-tested away) because a flat point
+  // marker has no real "front/back" of its own to test. A real, EXTRUDED 3D
+  // column is the opposite: it must be depth-tested normally against every
+  // other column/region so nearer geometry correctly occludes farther
+  // geometry — so `parameters` is no longer set at all here, leaving
+  // deck.gl's own default (`{}` — @deck.gl/core's layer.ts default depth
+  // test+write both on), same as makeRegionsLayer's extruded body.
+  it("does not override depth-test parameters — a real 3D column needs normal depth testing", () => {
+    const layer = makeSchoolsLayer([], baseOpts);
+    expect(layer.props.parameters).toEqual({});
   });
 
   it("forwards clicks with the clicked school's id", () => {
     const onClick = vi.fn();
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", onClick });
+    const layer = makeSchoolsLayer([], { ...baseOpts, onClick });
     const d = school({ id: "clicked-id", regionCode: "52110" });
     // @ts-expect-error — minimal PickingInfo stub for this unit test.
     layer.props.onClick({ object: d }, {});
     expect(onClick).toHaveBeenCalledWith("clicked-id");
   });
 
-  it("uses a 600ms transition on getPosition", () => {
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1" });
-    expect(layer.props.transitions).toMatchObject({ getPosition: 600 });
+  it("uses a 600ms transition on both getPosition and getElevation", () => {
+    const layer = makeSchoolsLayer([], baseOpts);
+    expect(layer.props.transitions).toMatchObject({ getPosition: 600, getElevation: 600 });
   });
 
-  it("zeroes the getPosition transition when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
-    const layer = makeSchoolsLayer([], { elevationOf, radiusOf, visible: true, triggerKey: "v1", transitionDuration: 0 });
-    expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
+  it("zeroes both transitions when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
+    const layer = makeSchoolsLayer([], { ...baseOpts, transitionDuration: 0 });
+    expect(layer.props.transitions).toMatchObject({ getPosition: 0, getElevation: 0 });
   });
 });
 
 describe("makeSchoolLabelsLayer", () => {
   const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
+  const heightOf = vi.fn((students: number | null) => (students === 100 ? 500 : 150));
+  const baseOpts = {
+    elevationOf,
+    heightOf,
+    heightKey: "stats-2026-04-01",
+    visible: true,
+    fontFamily: "Test Font",
+    characterSet: ["a"],
+    triggerKey: "v1",
+  };
 
   it("is a TextLayer with id 'school-labels', 11px size, billboarded", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer([], baseOpts);
     expect(layer.props.id).toBe("school-labels");
     expect(layer.props.getSize).toBe(11);
     expect(layer.props.billboard).toBe(true);
@@ -211,16 +260,29 @@ describe("makeSchoolLabelsLayer", () => {
   });
 
   it("getText returns the school's name", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer([], baseOpts);
     const d = school({ id: "a", regionCode: "52110", name: "무주초등학교" });
     const getText = layer.props.getText as (d: School, ctx: Ctx) => string;
     expect(getText(d, ctxFor([d]))).toBe("무주초등학교");
+  });
+
+  // Task D — z now tracks each school's OWN column top (elevationOf +
+  // heightOf(students)) + a fixed 30m clearance, replacing the old constant
+  // +80 offset (which assumed a flat point marker sitting at elevationOf+50
+  // — meaningless now that height varies per school).
+  it("getPosition is elevationOf(regionCode) + heightOf(students) + 30", () => {
+    const layer = makeSchoolLabelsLayer([], baseOpts);
+    const d = school({ id: "a", regionCode: "52110", students: 100, lat: 35.5, lng: 127.2 });
+    const getPosition = layer.props.getPosition as (d: School, ctx: Ctx) => Position;
+    // elevationOf("52110") = 1000, heightOf(100) = 500 -> 1000 + 500 + 30
+    expect(getPosition(d, ctxFor([d]))).toEqual([127.2, 35.5, 1530]);
+    expect(elevationOf).toHaveBeenCalledWith("52110");
+    expect(heightOf).toHaveBeenCalledWith(100);
+  });
+
+  it("updateTriggers.getPosition includes both triggerKey and heightKey", () => {
+    const layer = makeSchoolLabelsLayer([], { ...baseOpts, triggerKey: "indicator-7", heightKey: "stats-9" });
+    expect(layer.props.updateTriggers.getPosition).toEqual(expect.arrayContaining(["indicator-7", "stats-9"]));
   });
 
   // Task B — SCHOOL_LABEL_MIN_ZOOM 11 -> 10 (DeckMap.tsx); this factory has
@@ -228,32 +290,14 @@ describe("makeSchoolLabelsLayer", () => {
   // caller computes for `visible` — pinned here to keep the description in
   // sync with DeckMap.tsx's actual threshold.
   it("visible 토글: reflects the given `visible` option (zoom>=10 && region selected, computed by the caller)", () => {
-    const visibleLayer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
-    const hiddenLayer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: false,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const visibleLayer = makeSchoolLabelsLayer([], { ...baseOpts, visible: true });
+    const hiddenLayer = makeSchoolLabelsLayer([], { ...baseOpts, visible: false });
     expect(visibleLayer.props.visible).toBe(true);
     expect(hiddenLayer.props.visible).toBe(false);
   });
 
   it("disables the depth test", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer([], baseOpts);
     expect(layer.props.parameters).toMatchObject({ depthCompare: "always", depthWriteEnabled: false });
   });
 
@@ -263,13 +307,7 @@ describe("makeSchoolLabelsLayer", () => {
   // `shadowEnabled` prop never reaches the characters/background leaf
   // sub-layers deck.gl's shadow pass actually checks).
   it("excludes both sub-layers (characters, background) from shadow casting via _subLayerProps", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer([], baseOpts);
     expect(layer.props._subLayerProps).toEqual({
       characters: { shadowEnabled: false },
       background: { shadowEnabled: false },
@@ -277,29 +315,16 @@ describe("makeSchoolLabelsLayer", () => {
   });
 
   it("zeroes the getPosition transition when transitionDuration: 0 (Task 6, Section A.4 — reduced motion)", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-      transitionDuration: 0,
-    });
+    const layer = makeSchoolLabelsLayer([], { ...baseOpts, transitionDuration: 0 });
     expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
   });
 
   // Task B — CollisionFilterExtension, own collisionGroup
   // ('school-labels', separate from region-labels' 'labels' — see
   // labelLayer.test.ts) so a region's school names never fight a 시군 name
-  // for the same collision budget.
+  // for the same collision budget. Untouched by Task D.
   it("attaches exactly one CollisionFilterExtension instance, collisionGroup 'school-labels', sizeScale 1.6", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer([], baseOpts);
     expect(layer.props.extensions).toHaveLength(1);
     expect(layer.props.extensions[0]).toBeInstanceOf(CollisionFilterExtension);
     expect(layer.props.collisionEnabled).toBe(true);
@@ -308,28 +333,9 @@ describe("makeSchoolLabelsLayer", () => {
   });
 
   // getCollisionPriority = 학생수 (brief: `d => d.students ?? 0`), clamped to
-  // the extension's own documented range. CollisionFilterExtensionProps'
-  // getCollisionPriority doc (installed @deck.gl/extensions'
-  // collision-filter-extension.d.ts): "Must return a number in the range
-  // -1000 -> 1000" — the installed collision shader module
-  // (shader-module.js) enforces this literally: `position.z = -0.001 *
-  // collisionPriority * position.w` is a CLIP-SPACE z, so any priority
-  // magnitude over 1000 pushes a label's entire quad past the near clip
-  // plane in the collision pass, which the GPU then discards outright —
-  // i.e. an UNCLAMPED priority above 1000 makes that label invisible
-  // FOREVER (not just de-prioritized in a tie), not merely "less likely to
-  // win." Real data has schools above 1000 학생 (max 1607, 군산금빛초등학교 —
-  // see task-B-report.md) — clamping preserves the brief's intent (bigger
-  // school -> higher priority) for the realistic range while keeping every
-  // priority value inside the extension's documented safe bound.
+  // the extension's own documented range. Untouched by Task D.
   it("getCollisionPriority is the school's student count, clamped to the extension's documented [-1000, 1000] range", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer([], baseOpts);
     const getCollisionPriority = layer.props.getCollisionPriority as (d: School, ctx: Ctx) => number;
     const small = school({ id: "a", regionCode: "52110", students: 120 });
     const noData = school({ id: "b", regionCode: "52110", students: null });
@@ -340,17 +346,10 @@ describe("makeSchoolLabelsLayer", () => {
   });
 
   // Task B — 칩 배경은 더 작게 (smaller than region-labels' [6,3]/6 — see
-  // labelLayer.test.ts's "renders a background chip" test): same dark
-  // translucent palette, a tighter footprint for the smaller (11px)
-  // school-name text.
+  // labelLayer.test.ts's "renders a background chip" test). Untouched by
+  // Task D.
   it("renders a smaller background chip than region-labels", () => {
-    const layer = makeSchoolLabelsLayer([], {
-      elevationOf,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer([], baseOpts);
     expect(layer.props.background).toBe(true);
     expect(layer.props.getBackgroundColor).toEqual([12, 14, 20, 170]);
     expect(layer.props.backgroundPadding).toEqual([4, 2]);
@@ -390,39 +389,46 @@ describe("hasCoordinates (fix-round-2, review finding #1)", () => {
 // highlightedSchoolId/handleSchoolClick), every highlight click handed
 // deck.gl a new `data` identity, which deck.gl treats as "the whole dataset
 // changed" (`invalidateAll()`) — defeating the layers' own scoped
-// `updateTriggers` (getLineColor/getLineWidth only). The fix moves filtering
-// to DeckMap.tsx's own `useMemo(() => regionSchools.filter(hasCoordinates), [regionSchools])`,
+// `updateTriggers`. The fix moves filtering to DeckMap.tsx's own
+// `useMemo(() => regionSchools.filter(hasCoordinates), [regionSchools])`,
 // computed once and handed to both factories; the factories below now just
 // assign `data: schools` — no filtering, no new allocation, no matter how
 // many times or how often they're called with the SAME input array.
+//
+// Task D — this contract matters MORE now, not less: `highlightedObjectIndex`
+// is derived via `data.findIndex(...)` on every call, but that's a cheap
+// O(n) scan over the SAME array reference, not a new allocation — it still
+// must never change `layer.props.data` itself.
 describe("makeSchoolsLayer / makeSchoolLabelsLayer — data reference stability (fix-round-2, review finding #1)", () => {
   const positioned = [school({ id: "a", regionCode: "52110", lat: 35.8, lng: 127.1 })].filter(hasCoordinates);
+  const opts = { elevationOf: () => 1000, heightOf: () => 500, heightKey: "k1", visible: true, triggerKey: "v1" };
+  const labelOpts = {
+    elevationOf: () => 1000,
+    heightOf: () => 500,
+    heightKey: "k1",
+    visible: true,
+    fontFamily: "Test Font",
+    characterSet: ["a"],
+    triggerKey: "v1",
+  };
 
   it("makeSchoolsLayer's data is the exact same array reference it was given, not a re-filtered copy", () => {
-    const layer = makeSchoolsLayer(positioned, { elevationOf: () => 1000, radiusOf: () => 5, visible: true, triggerKey: "v1" });
+    const layer = makeSchoolsLayer(positioned, opts);
     expect(layer.props.data).toBe(positioned);
   });
 
   it("makeSchoolLabelsLayer's data is the exact same array reference it was given, not a re-filtered copy", () => {
-    const layer = makeSchoolLabelsLayer(positioned, {
-      elevationOf: () => 1000,
-      visible: true,
-      fontFamily: "Test Font",
-      characterSet: ["a"],
-      triggerKey: "v1",
-    });
+    const layer = makeSchoolLabelsLayer(positioned, labelOpts);
     expect(layer.props.data).toBe(positioned);
   });
 
   it("calling makeSchoolsLayer twice with the SAME input array yields the SAME data reference both times", () => {
-    const opts = { elevationOf: () => 1000, radiusOf: () => 5, visible: true, triggerKey: "v1" };
     const layer1 = makeSchoolsLayer(positioned, opts);
     const layer2 = makeSchoolsLayer(positioned, opts);
     expect(layer1.props.data).toBe(layer2.props.data);
   });
 
   it("changing only highlightedId does not change data identity (the bug this fix addresses)", () => {
-    const opts = { elevationOf: () => 1000, radiusOf: () => 5, visible: true, triggerKey: "v1" };
     const notHighlighted = makeSchoolsLayer(positioned, { ...opts, highlightedId: null });
     const highlighted = makeSchoolsLayer(positioned, { ...opts, highlightedId: "a" });
     expect(notHighlighted.props.data).toBe(highlighted.props.data);

@@ -6,7 +6,7 @@ async function waitForMapReady(page: Page) {
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
 }
 
-/** Reads the live `schools` ScatterplotLayer's `data.length` off the NEXT_PUBLIC_E2E-only window.__jbmap bridge (see DeckMap.tsx / e2e/select-region.spec.ts's readCamera for the same pattern). */
+/** Reads the live `schools` ColumnLayer's `data.length` off the NEXT_PUBLIC_E2E-only window.__jbmap bridge (see DeckMap.tsx / e2e/select-region.spec.ts's readCamera for the same pattern). */
 function readSchoolsLayerDataLength(page: Page) {
   return page.evaluate(() => {
     const deck = window.__jbmap?.deck;
@@ -49,8 +49,10 @@ test.describe("학교 점", () => {
     await rows.first().click();
     await expect(rows.first()).toHaveAttribute("aria-current", "true");
 
-    // Give the school layer's 600ms getLineColor/point-highlight update a
-    // moment to actually paint before the screenshot.
+    // The school layer's highlight (highlightedObjectIndex/highlightColor)
+    // is an instant picking-based recolor, not an animated transition — this
+    // pause is just a generous margin for the frame to actually paint
+    // before the screenshot, not a wait on any particular duration.
     await page.waitForTimeout(300);
     await page.screenshot({ path: "test-results/schools-after-highlight.png" });
 

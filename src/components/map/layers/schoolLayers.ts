@@ -1,8 +1,9 @@
-import { ScatterplotLayer, TextLayer } from "@deck.gl/layers";
+import { ColumnLayer, TextLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
 import { CollisionFilterExtension, type CollisionFilterExtensionProps } from "@deck.gl/extensions";
 
 import { SCHOOL_LEVEL_COLORS } from "@/lib/schoolVisuals";
+import { REGION_MATERIAL } from "@/components/map/lighting";
 import type { School } from "@/lib/schools/types";
 
 // Task B — module-scope constant, same reasoning as labelLayer.ts's own
@@ -35,22 +36,17 @@ function schoolCollisionPriority(students: number | null): number {
   return Math.min(students ?? 0, MAX_COLLISION_PRIORITY);
 }
 
-// Task 6, Section C-추가 #4 — 학교 점 가독성: a dark, OPAQUE stroke (was
-// translucent white, alpha 120) so a point stays legible against a bright
-// top face (e.g. Viridis's near-yellow high end almost swallowed an amber
-// 중학교 dot at the old alpha). `#0b0f19` matches this app's own map/page
-// background — a stroke that dark reads as a crisp separating edge against
-// ANY fill color behind it (verified: ~15:1 WCAG contrast vs a bright
-// yellow top face, vs ~1.25:1 for the bare amber fill with no stroke at
-// all). Highlighted stays opaque white (unchanged) — a deliberately
-// higher-attention cue, now distinguished from normal by hue rather than
-// alpha, since both are fully opaque.
-const LINE_COLOR_NORMAL: [number, number, number, number] = [11, 15, 25, 255];
-const LINE_COLOR_HIGHLIGHTED: [number, number, number, number] = [255, 255, 255, 255];
-const LINE_WIDTH_NORMAL = 1.5;
-const LINE_WIDTH_HIGHLIGHTED = 2;
 /** Default deck.gl `transitions` duration (ms) — see each factory's `transitionDuration` option. */
 const DEFAULT_TRANSITION_DURATION = 600;
+
+// Task D — 학교 기둥: fixed visual constants for EVERY school column,
+// regardless of student count (only height — makeSchoolHeightScale in
+// schoolVisuals.ts — encodes the count; radius/resolution/highlight color
+// are the same for every column, the same way makeRegionsLayer's
+// highlightColor is a single constant, not per-feature).
+const COLUMN_RADIUS_PX = 4;
+const COLUMN_DISK_RESOLUTION = 10;
+const HIGHLIGHT_COLOR: [number, number, number, number] = [255, 255, 255, 120];
 
 /** A school with a real location match (see fix-round-1: a 특수학교 row has `lat`/`lng: null` and can never be plotted). */
 export type PositionedSchool = School & { lat: number; lng: number };
@@ -80,51 +76,105 @@ export function hasCoordinates(school: School): school is PositionedSchool {
 export interface SchoolsLayerOptions {
   /** Same injection point as makeRegionsLayer's elevationOf — schools sit on their region's top face. */
   elevationOf: (regionCode: string) => number;
-  /** students -> radius(px), pre-scaled over the FULL schools.json list (see makeSchoolRadiusScale) so dot sizes don't rescale when the selected 시군 changes. */
-  radiusOf: (students: number | null) => number;
+  /** students -> column height(m), pre-scaled over the FULL schools.json list (see makeSchoolHeightScale) so column heights don't rescale when the selected 시군 changes. */
+  heightOf: (students: number | null) => number;
+  /** Stable identity for `heightOf`'s domain (e.g. `bundle.schools.referenceDate.stats`) — included in `updateTriggers.getElevation` so a dataset refresh re-evaluates height. In practice `heightOf` only changes when `bundle.schools` itself changes, which also changes `data`'s own reference (deck.gl already regenerates every attribute from scratch on a new `data` reference) — this trigger is a defensive belt-and-suspenders measure, not something that fires in normal use. */
+  heightKey: string | number;
   /** The currently-highlighted school's id (RegionPanel row click / map click), or null/undefined. */
   highlightedId?: string | null;
   visible: boolean;
   onClick?: (id: string) => void;
   /** Included in updateTriggers.getPosition — elevationOf's output depends on the selected indicator, so a school's z coordinate must re-evaluate when it changes (same pattern as makeRegionsLayer's triggerKey). */
   triggerKey: string | number;
-  /** deck.gl `transitions` duration (ms) for getPosition. Defaults to 600. Task 6, Section A.4 — pass 0 when `prefers-reduced-motion: reduce`. */
+  /** deck.gl `transitions` duration (ms) for getPosition/getElevation. Defaults to 600. Task 6, Section A.4 — pass 0 when `prefers-reduced-motion: reduce`. */
   transitionDuration?: number;
 }
 
-/** The 학교 point layer — only ever fed the selected 시군's schools by the caller (DeckMap); `visible` additionally gates the whole layer (e.g. off entirely when nothing is selected). `schools` must already be pre-filtered to real coordinates (see `hasCoordinates`) — this factory does NOT filter or reallocate `data` itself (fix-round-2, review finding #1: that used to happen here, defeating `data` reference stability across re-renders); the `PositionedSchool[]` parameter type enforces this at compile time, not just by convention. See `tests/unit/schoolLayers.test.ts`. */
+/**
+ * Task D — the 학교 layer: an extruded `ColumnLayer`, one 기둥 (column) per
+ * school standing on its region's top face, replacing the old flat
+ * `ScatterplotLayer` dot. Only ever fed the selected 시군's schools by the
+ * caller (DeckMap); `visible` additionally gates the whole layer (e.g. off
+ * entirely when nothing is selected). `schools` must already be
+ * pre-filtered to real coordinates (see `hasCoordinates`) — this factory
+ * does NOT filter or reallocate `data` itself (fix-round-2, review finding
+ * #1: that used to happen here, defeating `data` reference stability across
+ * re-renders); the `PositionedSchool[]` parameter type enforces this at
+ * compile time, not just by convention. See `tests/unit/schoolLayers.test.ts`.
+ *
+ * `getPosition`'s z is exactly `elevationOf(regionCode)` — the column's
+ * BASE, not its center: verified directly against the installed
+ * `@deck.gl/layers`' column-geometry.ts (the static template mesh spans
+ * local z [-1, +1]) and column-layer-vertex.glsl.ts
+ * (`elevation = instanceElevations * (positions.z + 1.0) / 2.0 * ...`,
+ * ADDED to `instancePositions.z`) — local z=-1 (the column's un-capped
+ * bottom edge) contributes 0 elevation, so the rendered base sits exactly
+ * at `getPosition`'s z, and local z=+1 (the capped top) contributes the
+ * full `getElevation(d)` value. No bottom cap is ever tessellated (only a
+ * side wall + a top cap — see column-geometry.ts), so there's no coincident
+ * filled surface at the base to z-fight the region's own top face.
+ *
+ * Highlight is `highlightedObjectIndex` + `highlightColor` (deck.gl's own
+ * picking-based recolor), not a custom stroke: an extruded column's
+ * `stroked` prop only affects ColumnLayer's FLAT/non-extruded disk mode
+ * (confirmed against the installed shader: the stroke branch is
+ * `else if (column.stroked)`, mutually exclusive with the `extruded`
+ * branch), so the old getLineColor/getLineWidth toggle has no extruded
+ * equivalent to move to.
+ */
 export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayerOptions) {
   const highlightedId = opts.highlightedId ?? null;
   const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
+  // `null`, not -1, when nothing is highlighted (or the highlighted id
+  // isn't in `data` at all): deck.gl's own `updateAutoHighlight` (installed
+  // @deck.gl/core's layer.ts:1306) only runs the hover-highlight path
+  // `if (autoHighlight && !Number.isInteger(highlightedObjectIndex))` —
+  // since `Number.isInteger(-1) === true`, passing
+  // `Array.prototype.findIndex`'s raw not-found sentinel (-1) would
+  // permanently defeat `autoHighlight: true` below (hover would never
+  // highlight anything, for the life of the layer) even though both
+  // `autoHighlight` and a non-default `highlightColor` are explicitly
+  // configured. `null` is deck.gl's own documented "nothing explicitly
+  // highlighted" default and keeps hover working; verified directly
+  // against the installed source.
+  const foundIndex = schools.findIndex((s) => s.id === highlightedId);
+  const highlightedObjectIndex = foundIndex >= 0 ? foundIndex : null;
 
-  return new ScatterplotLayer<PositionedSchool>({
+  return new ColumnLayer<PositionedSchool>({
     id: "schools",
     data: schools,
     visible: opts.visible,
     pickable: true,
     autoHighlight: true,
-    stroked: true,
-    filled: true,
-    billboard: true,
+    highlightColor: HIGHLIGHT_COLOR,
+    highlightedObjectIndex,
     radiusUnits: "pixels",
-    radiusMinPixels: 3,
-    lineWidthUnits: "pixels",
-    getPosition: (d): [number, number, number] => [d.lng, d.lat, opts.elevationOf(d.regionCode) + 50],
-    getRadius: (d) => opts.radiusOf(d.students),
+    radius: COLUMN_RADIUS_PX,
+    diskResolution: COLUMN_DISK_RESOLUTION,
+    extruded: true,
+    flatShading: true,
+    material: REGION_MATERIAL,
+    getPosition: (d): [number, number, number] => [d.lng, d.lat, opts.elevationOf(d.regionCode)],
+    getElevation: (d) => opts.heightOf(d.students),
     getFillColor: (d) => SCHOOL_LEVEL_COLORS[d.level],
-    getLineColor: (d) => (d.id === highlightedId ? LINE_COLOR_HIGHLIGHTED : LINE_COLOR_NORMAL),
-    getLineWidth: (d) => (d.id === highlightedId ? LINE_WIDTH_HIGHLIGHTED : LINE_WIDTH_NORMAL),
-    // Same reasoning as region-labels.ts: schools sit close to/inside a
-    // region's extruded body and must never get depth-tested away behind a
-    // taller neighboring face.
-    parameters: { depthCompare: "always", depthWriteEnabled: false },
+    // Task D — NO `parameters` override (the old ScatterplotLayer's
+    // `depthCompare: 'always'` is REMOVED here): a flat point marker needed
+    // to always draw on top regardless of what's behind it, but a real,
+    // extruded 3D column is the opposite — it must be depth-tested normally
+    // against every other column/region so nearer geometry correctly
+    // occludes farther geometry. Leaving `parameters` unset keeps deck.gl's
+    // own default (depth test+write both on), same as makeRegionsLayer's
+    // extruded body. Shadow casting is also left at its default (ON) —
+    // unlike the labels (school-labels/region-labels/region-top-rings),
+    // this layer has no `shadowEnabled: false` — a column casts a shadow
+    // onto its region's top face, same as the region body itself.
     updateTriggers: {
       getPosition: [opts.triggerKey],
-      getLineColor: [highlightedId],
-      getLineWidth: [highlightedId],
+      getElevation: [opts.heightKey],
     },
     transitions: {
       getPosition: transitionDuration,
+      getElevation: transitionDuration,
     },
     onClick: opts.onClick
       ? (info: PickingInfo<PositionedSchool>) => {
@@ -136,6 +186,10 @@ export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayer
 
 export interface SchoolLabelsLayerOptions {
   elevationOf: (regionCode: string) => number;
+  /** students -> column height(m) — the SAME accessor DeckMap hands makeSchoolsLayer (see its own doc comment), so a label always floats exactly 30m above ITS OWN school's actual column top, not a fixed/average offset. */
+  heightOf: (students: number | null) => number;
+  /** Same as makeSchoolsLayer's heightKey — included in updateTriggers.getPosition since z now depends on heightOf too. */
+  heightKey: string | number;
   /** Computed by the caller as `!!selectedCode && zoom >= 10` (see DeckMap.tsx's SCHOOL_LABEL_MIN_ZOOM, Task B: 11 -> 10) — this layer has no zoom/selection awareness of its own. */
   visible: boolean;
   fontFamily: string;
@@ -145,7 +199,7 @@ export interface SchoolLabelsLayerOptions {
   transitionDuration?: number;
 }
 
-/** 학교명 라벨 — billboarded text just above each school's point marker. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. `schools` must already be pre-filtered to real coordinates, same as makeSchoolsLayer — see its doc comment (fix-round-2, review finding #1). */
+/** 학교명 라벨 — billboarded text just above each school's own column top. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. `schools` must already be pre-filtered to real coordinates, same as makeSchoolsLayer — see its doc comment (fix-round-2, review finding #1). */
 export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolLabelsLayerOptions) {
   const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
 
@@ -153,10 +207,16 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
     id: "school-labels",
     data: schools,
     visible: opts.visible,
-    // +50 to sit level with the point marker (same offset makeSchoolsLayer
-    // uses), +30 more so the label floats just above the dot instead of
-    // overlapping it.
-    getPosition: (d): [number, number, number] => [d.lng, d.lat, opts.elevationOf(d.regionCode) + 80],
+    // Task D — z now tracks each school's OWN column top (elevationOf +
+    // heightOf(students)) + a fixed 30m clearance, replacing the old
+    // constant +80 offset (which assumed every school sat at the SAME flat
+    // point-marker height, elevationOf+50 — meaningless now that height
+    // varies per school via makeSchoolHeightScale).
+    getPosition: (d): [number, number, number] => [
+      d.lng,
+      d.lat,
+      opts.elevationOf(d.regionCode) + opts.heightOf(d.students) + 30,
+    ],
     getText: (d) => d.name,
     sizeUnits: "pixels",
     getSize: 11,
@@ -204,7 +264,7 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
       background: { shadowEnabled: false },
     },
     updateTriggers: {
-      getPosition: [opts.triggerKey],
+      getPosition: [opts.triggerKey, opts.heightKey],
       getText: [opts.triggerKey],
     },
     transitions: {

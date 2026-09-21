@@ -34,7 +34,7 @@ import { indicatorById } from "@/lib/indicators/registry";
 import { displayLabel, rank, valueMap } from "@/lib/stats";
 import { makeColorScale } from "@/lib/colors";
 import { makeElevationScale } from "@/lib/scales";
-import { makeSchoolRadiusScale } from "@/lib/schoolVisuals";
+import { makeSchoolHeightScale } from "@/lib/schoolVisuals";
 import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipText";
 import { regionRankList, selectionAnnouncement } from "@/lib/selection";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -332,11 +332,14 @@ export default function DeckMap({
 
   const views = useMemo(() => VIEW, []);
 
-  // Task 4B — 학교 점. radiusOf is scaled over the FULL schools.json list
-  // (bundle.schools, stable across a selection change) so dot sizes never
-  // silently mean something different when the user picks a different 시군
-  // — see makeSchoolRadiusScale's doc comment.
-  const radiusOf = useMemo(() => makeSchoolRadiusScale(bundle.schools.schools), [bundle.schools]);
+  // Task D — 학교 기둥. heightOf is scaled over the FULL schools.json list
+  // (bundle.schools, stable across a selection change) so column heights
+  // never silently mean something different when the user picks a
+  // different 시군 — see makeSchoolHeightScale's doc comment. `heightKey`
+  // is a stable identity for that scale's domain (schoolLayers.ts's own
+  // `heightKey` option doc explains why it's needed at all).
+  const heightOf = useMemo(() => makeSchoolHeightScale(bundle.schools.schools), [bundle.schools]);
+  const heightKey = bundle.schools.referenceDate.stats;
 
   // Only the selected 시군's schools are ever handed to the layers/data —
   // per the task brief, both the point layer and the label layer only ever
@@ -353,9 +356,9 @@ export default function DeckMap({
   // selected (e.g. a highlight click; `highlightedSchoolId` is one of
   // `layers`' own deps). deck.gl treats a new `data` array as "everything
   // changed" and rebuilds every attribute buffer (`invalidateAll()`),
-  // defeating the layers' own scoped `updateTriggers` (getLineColor/
-  // getLineWidth only). Filtering HERE instead, keyed only on
-  // `regionSchools`, keeps this array's identity — and therefore both
+  // defeating the layers' own scoped `updateTriggers`. Filtering HERE
+  // instead, keyed only on `regionSchools`, keeps this array's identity —
+  // and therefore both
   // layers' `data` identity, since they're both handed this SAME array —
   // stable across a highlight-only re-render; it only changes when the
   // selected region's school set itself actually changes. See
@@ -377,7 +380,7 @@ export default function DeckMap({
   const getRegionTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
   const getSchoolTooltip = useMemo(() => makeSchoolTooltip(schoolTooltipLines), []);
   // Dispatches by which layer was actually hovered — schools (a
-  // ScatterplotLayer, `info.object` is a plain School row) vs every other
+  // ColumnLayer, `info.object` is a plain School row) vs every other
   // (GeoJsonLayer-backed — regions, region-islands, footprint, neighbors —
   // `info.object.properties.code`) layer. `region-islands` needs no special
   // case here: every feature it hands the picker still carries
@@ -608,7 +611,8 @@ export default function DeckMap({
       }),
       makeSchoolsLayer(positionedRegionSchools, {
         elevationOf,
-        radiusOf,
+        heightOf,
+        heightKey,
         highlightedId: highlightedSchoolId,
         visible: schoolsVisible,
         onClick: handleSchoolClick,
@@ -630,6 +634,8 @@ export default function DeckMap({
         }),
         makeSchoolLabelsLayer(positionedRegionSchools, {
           elevationOf,
+          heightOf,
+          heightKey,
           visible: schoolLabelsVisible,
           fontFamily,
           characterSet,
@@ -653,7 +659,8 @@ export default function DeckMap({
     handleRegionClick,
     rings,
     positionedRegionSchools,
-    radiusOf,
+    heightOf,
+    heightKey,
     highlightedSchoolId,
     schoolsVisible,
     schoolLabelsVisible,

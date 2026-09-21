@@ -58,8 +58,8 @@ export function makeTooltip(linesOf: (code: string) => string[] | null) {
 }
 
 /**
- * Builds a deck.gl `getTooltip` callback for the `schools` ScatterplotLayer
- * — `info.object` is a plain `School` row (no `.properties` wrapper, unlike
+ * Builds a deck.gl `getTooltip` callback for the `schools` ColumnLayer —
+ * `info.object` is a plain `School` row (no `.properties` wrapper, unlike
  * the GeoJsonLayer-backed region tooltip above), so it needs its own
  * picking-info reader. `linesOf` is `schoolTooltipLines` from
  * src/lib/tooltipText.ts (pure, unit tested there).
