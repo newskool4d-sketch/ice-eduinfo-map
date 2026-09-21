@@ -106,6 +106,35 @@ describe("useInPicking (Task A — picking-pass regression fix)", () => {
   });
 });
 
+// Task B — CollisionFilterExtension compatibility fix: see lighting.ts's own
+// (extensive) comment for the full traced mechanism. Regression guard for
+// the underlying cause, confirmed directly (not just by reading source): the
+// INSTALLED, unpatched `@deck.gl/core` LightingEffect.preRender() returns
+// `undefined` even with a real shadow-casting light configured (verified via
+// `node -e`, see task-B-report.md) — which made `CollisionFilterEffect`
+// (installed @deck.gl/extensions) permanently exclude lighting from the
+// collision-filter pass's shader-module props (`allEffects.filter(e =>
+// e.useInPicking && preRenderStats[e.id])` — `preRenderStats[e.id]` is that
+// same `undefined` return value, always falsy), silently fading every
+// collision-enabled label (region-labels, always; school-labels, once
+// selected+zoomed) to alpha 0 whenever ANY shadow-casting light was
+// configured. `CollisionAwareLightingEffect` (lighting.ts) fixes this by
+// returning a truthy value once its real `preRender` has run — safe to call
+// directly here: `_calculateMatrices()` (the only work `preRender` does
+// before its shadow-passes loop) is pure `Matrix4`/`Vector3` math over
+// `this.directionalLights` (populated by the constructor, not `setup()`),
+// and `this.shadowPasses` is empty until a real `<DeckGL>` mount calls
+// `setup()` (never invoked by this module-level singleton in a unit test),
+// so the loop body — the only part that would need a real GPU device —
+// never executes.
+describe("preRender return value (Task B — CollisionFilterExtension compatibility fix)", () => {
+  it("returns a truthy value on both variants, unlike the installed (unpatched) LightingEffect.preRender()", () => {
+    const opts = { layers: [], viewports: [] } as unknown as Parameters<(typeof lightingEffect)["preRender"]>[0];
+    expect(lightingEffect.preRender(opts)).toBeTruthy();
+    expect(lightingEffectNoShadow.preRender(opts)).toBeTruthy();
+  });
+});
+
 describe("lightingEffectNoShadow (Task A — NEXT_PUBLIC_MAP_FX=off emergency switch)", () => {
   it("has the same 1 directional light (fill removed, fix round 1 finding 4) with shadow casting off", () => {
     const directional = directionalLights(lightingEffectNoShadow);

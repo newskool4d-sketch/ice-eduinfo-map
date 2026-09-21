@@ -1,5 +1,94 @@
 import { AmbientLight, DirectionalLight, LightingEffect } from "@deck.gl/core";
-import type { Effect, Material } from "@deck.gl/core";
+import type { Effect, Material, PreRenderOptions } from "@deck.gl/core";
+
+// Task B — CollisionFilterExtension compatibility fix (region-labels/
+// school-labels, labelLayer.ts/schoolLayers.ts). Root-caused end to end
+// against the installed sources (@deck.gl/core 9.4.0, @deck.gl/extensions
+// 9.4.0) and confirmed empirically; full methodology in task-B-report.md.
+//
+// Symptom: as soon as ANY layer used CollisionFilterExtension (region-labels
+// always does, from Task B on), EVERY region-name label vanished completely
+// — not "loses some collisions," ALL 14, with the console repeating "luma.gl:
+// Binding shadow_uShadowMap0/1 not found in region-labels-{background,
+// characters}-cached" (the exact same failure signature Fix round 1's
+// picking bug above already diagnosed, just for a different render pass).
+//
+// Mechanism:
+// 1. `this.shadow` (any `_shadow:true` light) makes `LightingEffect.setup()`
+//    register "shadow" as a DEFAULT shader module, attached to EVERY layer's
+//    compiled program UNCONDITIONALLY (see Fix round 1, finding 4's comment
+//    above) — including region-labels' two sub-layers, regardless of their
+//    OWN `shadowEnabled:false`. That only stops the shadow value from being
+//    SAMPLED, not the `shadow_uShadowMap0/1` uniform BINDINGS from being
+//    DECLARED as required by the compiled program.
+// 2. `CollisionFilterExtension` auto-registers its own `CollisionFilterEffect`
+//    (collision-filter-extension.js's `initializeState`), which renders a
+//    SEPARATE pass (`CollisionFilterPass extends _LayersPass`) to populate a
+//    per-collisionGroup FBO with each label's picking color, later sampled
+//    by the collision shader to decide what's visible. That pass's own
+//    `getShaderModuleProps()` (collision-filter-pass.js) hardcodes
+//    `{collision:{...}, picking:{...}, lighting:{enabled:false}}` — it says
+//    nothing about `shadow` at all.
+// 3. `LayersPass._getShaderModuleProps` (layers-pass.js:288-318) would
+//    normally still get REAL `shadow_uShadowMap0/1` values from
+//    `LightingEffect.getShaderModuleProps()` — but only for effects present
+//    in its OWN `effects` list. `CollisionFilterEffect.preRender()`
+//    (collision-filter-effect.js) builds that list as
+//    `allEffects.filter(e => e.useInPicking && preRenderStats[e.id])`.
+//    `LightingEffect.preRender()` (lighting-effect.js) has NO `return`
+//    statement on its non-early-exit path — it always implicitly returns
+//    `undefined`, even when it just rendered real shadow passes. Deck's own
+//    render loop (deck-renderer.js: `opts.preRenderStats[effect.id] =
+//    effect.preRender(opts)`) stores that `undefined` verbatim — so
+//    `preRenderStats['lighting-effect']` is ALWAYS falsy, and
+//    `LightingEffect` is UNCONDITIONALLY excluded from the collision pass's
+//    `effects`, regardless of `useInPicking` (already `true` — Fix round 1)
+//    or effect ordering (verified NOT the cause: `EffectManager._setEffects`
+//    concatenates user effects, incl. `lightingEffect`, BEFORE default
+//    effects like `CollisionFilterEffect` — effect-manager.js:86 — so
+//    ordering already favors it).
+// 4. Without `LightingEffect` in that list, step 3's fallback ("ensure all
+//    default shader modules have an entry," layers-pass.js:310-317) inserts
+//    an EMPTY `shadow: {}` for the collision pass's draw calls.
+//    `shadow.js`'s uniform builder resolves that to `shadow_uShadowMap0/1:
+//    undefined` — `WEBGLRenderPipeline._areTexturesRenderable`
+//    (webgl-render-pipeline.js:143-152) then logs exactly the observed
+//    warning and ABORTS every such draw (`WEBGLRenderPass.draw`,
+//    webgl-render-pass.js:166-169) before any rasterization. The collision
+//    FBO for `collisionGroup:'labels'` never gets ANY real content drawn
+//    into it — so `collision_isVisible` (the installed collision shader
+//    module) finds a match for NO label's own picking color anywhere,
+//    fading EVERY one of them to alpha 0. `CollisionFilterEffect` itself
+//    doesn't warn or throw; this fails completely silently on the visual
+//    side.
+//
+// Confirmed via A/B: `NEXT_PUBLIC_MAP_FX=off` (this file's
+// `lightingEffectNoShadow`, `this.shadow` always false so the "shadow"
+// module is never attached to any layer at all — step 1 above never
+// triggers) makes every region-name chip reappear and the warning vanish
+// entirely, with everything else (CollisionFilterExtension, the two-tier
+// priority rule, the background chip) unchanged.
+//
+// Fix: `LightingEffect.preRender()` only needs to return something TRUTHY
+// once it has actually run (step 3's consumer only checks truthiness, never
+// inspects the value's shape — confirmed against collision-filter-effect.js,
+// which only destructures a *different* effect id, `'mask-effect'`, past the
+// truthiness check). `shadow`/`dummyShadowMap`/etc. are `private` on
+// `LightingEffect` (lighting-effect.d.ts), so an instance-level monkey-patch
+// reading them isn't possible from outside the class — this subclass instead
+// simply delegates to the real implementation (unchanged behavior) and
+// returns `true` itself, satisfying the collision pass's own
+// "did this effect run" check without touching deck.gl's package files.
+// `instanceof LightingEffect` still holds (EffectManager's own "only add a
+// default LightingEffect instance if the user didn't supply one" check,
+// effect-manager.js:88, keys on exactly that), so nothing else about how
+// deck.gl treats this effect changes.
+class CollisionAwareLightingEffect extends LightingEffect {
+  override preRender(opts: PreRenderOptions): true {
+    super.preRender(opts);
+    return true;
+  }
+}
 
 // Task A — 키라이트 그림자: steeper than the original [1,-1.5,-3]. Shadow
 // RECEIVING can't be turned off per layer (only casting — see
@@ -39,7 +128,7 @@ const AMBIENT_INTENSITY = 0.85;
 // AMBIENT_INTENSITY (above, 0.7 -> 0.85) and REGION_MATERIAL.ambient
 // (below, 0.35 -> 0.45) instead — tuned against the before/after
 // screenshots in task-A-report.md's "Fix round 1" section.
-export const lightingEffect = new LightingEffect({
+export const lightingEffect = new CollisionAwareLightingEffect({
   ambient: new AmbientLight({ color: [255, 255, 255], intensity: AMBIENT_INTENSITY }),
   key: new DirectionalLight({ color: [255, 255, 255], intensity: 1.0, direction: KEY_DIRECTION, _shadow: true }),
 });
@@ -71,7 +160,13 @@ lightingEffect.shadowColor = [4 / 255, 6 / 255, 14 / 255, 0.3];
 // `NEXT_PUBLIC_MAP_FX=off` render stays visually consistent with the
 // shadowed one minus shadows only — not lit by an extra light the other
 // variant wouldn't also have.
-export const lightingEffectNoShadow = new LightingEffect({
+// Task B — also `CollisionAwareLightingEffect` here, for structural symmetry
+// with `lightingEffect` above (both variants should behave identically
+// apart from `_shadow`) — though this variant's `this.shadow` is always
+// false, so the bug the subclass fixes never actually triggers for it (no
+// "shadow" default shader module ever gets attached at all when no light
+// has `_shadow:true` — see the very next comment).
+export const lightingEffectNoShadow = new CollisionAwareLightingEffect({
   ambient: new AmbientLight({ color: [255, 255, 255], intensity: AMBIENT_INTENSITY }),
   key: new DirectionalLight({ color: [255, 255, 255], intensity: 1.0, direction: KEY_DIRECTION, _shadow: false }),
 });
