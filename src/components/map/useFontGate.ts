@@ -5,7 +5,7 @@
  * must not create it until next/font's family is actually ready to
  * rasterize EVERY character the label layers' `characterSet` declares
  * (추가 요구 #6) — not just the 14 시군 names. `charset` is the full
- * charset.json string (129 chars: digits, units like 명/㎡/%, and domain
+ * charset.json string (316 chars: digits, units like 명/㎡/%, and domain
  * terms), because labels render formatted indicator values, not just
  * names — gating on a smaller subset (as Task 1A did, before any labels
  * carried numbers) would silently miss a missing font-family slice

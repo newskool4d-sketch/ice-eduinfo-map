@@ -212,7 +212,7 @@ function clampByte(v: number): number {
   return Math.min(255, Math.max(0, Math.round(v)));
 }
 
-/** Darkens/lightens an RGB triple by `factor` (e.g. 0.5 = half brightness), clamped to [0,255]. For the non-selected-region dimming a later task wires up; alpha is handled separately by the caller (always 255 on this map). */
+/** Darkens/lightens an RGB triple by `factor` (e.g. 0.5 = half brightness), clamped to [0,255]. Used by regionLayers.ts's `selectionAwareFillColor` for the selected/non-selected region dimming; alpha is handled separately by the caller (always 255 on this map). */
 export function dim(rgb: RGB, factor: number): RGB {
   return [clampByte(rgb[0] * factor), clampByte(rgb[1] * factor), clampByte(rgb[2] * factor)];
 }

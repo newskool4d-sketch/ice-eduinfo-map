@@ -5,9 +5,9 @@
  * state duplicates these values anywhere else in the app (see the task
  * brief's "상태·데이터 흐름" excerpt).
  *
- * `region` is parsed/typed here but not wired to any UI yet — a later task
- * adds 시군 selection. useMapQuery() already exposes regionCode/setRegion so
- * that task won't need to touch this file.
+ * `region` (시군 selection) is parsed/typed here the same way. useMapQuery()
+ * exposes both as regionCode/setRegion, consumed by Dashboard/DeckMap for
+ * the map's click/keyboard/RegionList selection.
  */
 "use client";
 

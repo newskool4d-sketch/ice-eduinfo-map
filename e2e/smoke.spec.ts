@@ -29,7 +29,7 @@ test("home page renders the 3D map with 14 regions and no console errors", async
   // DeckMap resolved (see DeckMap.tsx's gateFont(), which reads `--font-sans`
   // from document.body — see task-1A-report.md's fix-round-1 section for why
   // documentElement is wrong here). Checked against the FULL charset.json
-  // string (129 chars: digits, units like 명/㎡/%, punctuation), not just a
+  // string (316 chars: digits, units like 명/㎡/%, punctuation), not just a
   // 시군 name — 추가 요구 #6: labels now render formatted indicator values
   // (e.g. "70,444명"), not just names, so gating on 24 Hangul characters
   // alone (as Task 1A did) would miss a missing font-family slice covering

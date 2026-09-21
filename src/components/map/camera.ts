@@ -191,9 +191,8 @@ const FIT_REGION_PITCH = 55;
 
 /**
  * Computes the camera view state that flies to a single selected region's
- * bbox (pitch 55, closer padding, capped zoom). Not wired up by DeckMap yet
- * (region selection lands in a later task) — built now per the task brief so
- * the next task doesn't also have to design the camera transition.
+ * bbox (pitch 55, closer padding, capped zoom). Wired up by useCamera.ts's
+ * `flyTo`, called whenever `selectedCode` changes (or is re-selected).
  */
 export function fitRegion(bbox: Bbox, size: Size): RegionViewState {
   const { longitude, latitude, zoom } = fitViewToPoints(bboxCorners(bbox), size, {
