@@ -28,6 +28,7 @@
     "@deck.gl/layers": "9.4.0",
     "@deck.gl/react": "9.4.0",
     "@deck.gl/widgets": "9.4.0",
+    "@luma.gl/effects": "9.4.2",
     "d3-format": "^3.1.2",
     "d3-scale": "^4.0.2",
     "d3-scale-chromatic": "^3.1.0",
