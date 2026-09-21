@@ -82,6 +82,58 @@ async function runMapshaper(
 /** `{ [regionCode]: [dx, dy] }` pixel nudge — see data/manual/label-offsets.json. */
 export type LabelOffsets = Record<string, [number, number]>;
 
+// Task B, fix round 1 — `label-offsets.json`'s `[dx, dy]` used to be applied
+// at RENDER time, as a screen-space `getPixelOffset` on the label TextLayer
+// (labelLayer.ts). That broke CollisionFilterExtension: the extension's
+// collision-visibility sample uses the label's raw `geometry.worldPosition`
+// (i.e. `labelPoint`, unaffected by any pixel offset) — installed
+// @deck.gl/extensions' shader-module.js re-projects that position
+// independently of wherever `getPixelOffset` actually drew the text. A
+// label whose text was pushed far enough from its own anchor (전주시/익산시,
+// see task-B-report.md's root-cause trace) could sample "nothing of its
+// own" at that anchor and fade to invisible, regardless of collision
+// priority — not fixable by raising priority, since the failure is in
+// SAMPLING, not in losing a priority contest.
+//
+// Fix: bake the same visual nudge into `labelPoint` itself, geographically,
+// at BUILD time — so the collision sample and the drawn text are always the
+// exact same point (labelLayer.ts no longer sets `getPixelOffset` at all).
+//
+// `LABEL_OFFSET_METERS_PER_PX`: 1 screen pixel ≈ 250m on the ground at the
+// overview camera (zoom ≈8.6 — see camera.ts's `fitOverview`/
+// `OVERVIEW_PITCH` and useCamera.ts's mount effect), the ONLY camera pose
+// these manual nudge values were ever hand-tuned against (Task 6, Section
+// C.2's screenshot comparison). Not exact at any other zoom/pitch — but
+// neither was the old getPixelOffset (a fixed SCREEN-pixel value doesn't
+// scale with zoom either); this preserves the same approximate visual
+// intent, not a physically exact conversion.
+export const LABEL_OFFSET_METERS_PER_PX = 250;
+// 전북의 대략적 중심 위도. 경도 1도당 거리(≈111,320m × cos(lat))를 구하는 데만
+// 쓰이는 참조값 — 4개 지역 전부에 공통 적용한다(각 지역의 실제 위도 차이는 이만한
+// 작은 넛지 크기에서는 무시 가능한 오차).
+const LABEL_OFFSET_REFERENCE_LATITUDE_DEG = 35.7;
+const METERS_PER_DEGREE_LATITUDE = 111_320;
+
+/**
+ * Converts a `[dx, dy]` SCREEN-pixel nudge (dx: +east, dy: +down/south —
+ * the same convention `label-offsets.json`/the old `getPixelOffset` used)
+ * into a `[dLng, dLat]` GEOGRAPHIC offset in degrees, to add to a
+ * `labelPoint`. Pure — no rounding (the caller rounds the final labelPoint,
+ * matching this module's existing `round5` precision elsewhere).
+ */
+export function labelOffsetToLngLat([dxPx, dyPx]: readonly [number, number]): [number, number] {
+  const eastMeters = dxPx * LABEL_OFFSET_METERS_PER_PX;
+  const northMeters = -dyPx * LABEL_OFFSET_METERS_PER_PX; // dy positive = screen-down = south
+  const metersPerDegreeLongitude =
+    METERS_PER_DEGREE_LATITUDE * Math.cos((LABEL_OFFSET_REFERENCE_LATITUDE_DEG * Math.PI) / 180);
+  // `+ 0` normalizes a `-0` result (e.g. dxPx/dyPx === 0, negated) to `0` —
+  // mathematically identical (JSON.stringify(-0) is already "0", so this
+  // never affects the real regions.geojson output either way) but keeps
+  // `[0, 0]` a true no-op under strict equality (Object.is), which vitest's
+  // toBe/toEqual use.
+  return [eastMeters / metersPerDegreeLongitude + 0, northMeters / METERS_PER_DEGREE_LATITUDE + 0];
+}
+
 /**
  * sido === '52' (전북) 필터 → sgg_cd(=sgg, 5211*는 52110으로 통합) 로 dissolve
  * → simplify → 미세 섬 제거 → bbox/labelPoint 계산. 14개 시군 코드표에 없는
@@ -148,7 +200,13 @@ export async function transformRegions(
       );
     }
     const bbox = round5(f.properties.bbox) as Bbox;
-    const [lng, lat] = round5(f.properties.labelPoint);
+    const [rawLng, rawLat] = f.properties.labelPoint;
+    // Task B, fix round 1 — apply this region's manual nudge (if any)
+    // GEOGRAPHICALLY, to labelPoint itself, instead of emitting a separate
+    // labelOffset for a render-time getPixelOffset — see
+    // `labelOffsetToLngLat`'s own doc comment above for why.
+    const [dLng, dLat] = labelOffsets[code] ? labelOffsetToLngLat(labelOffsets[code]) : [0, 0];
+    const [lng, lat] = round5([rawLng + dLng, rawLat + dLat]);
     return {
       type: "Feature",
       geometry: f.geometry,
@@ -157,7 +215,6 @@ export async function transformRegions(
         name: regionName(code),
         bbox,
         labelPoint: [lng, lat],
-        labelOffset: labelOffsets[code] ?? [0, 0],
       },
     } satisfies RegionFeature;
   });

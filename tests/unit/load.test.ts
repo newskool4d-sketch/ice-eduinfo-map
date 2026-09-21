@@ -13,7 +13,7 @@ function regionsFixture() {
     type: "FeatureCollection",
     features: REGION_CODES.map((code) => ({
       type: "Feature",
-      properties: { code, name: code, bbox: [0, 0, 1, 1], labelPoint: [0.5, 0.5], labelOffset: [0, 0] },
+      properties: { code, name: code, bbox: [0, 0, 1, 1], labelPoint: [0.5, 0.5] },
       geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
     })),
   };

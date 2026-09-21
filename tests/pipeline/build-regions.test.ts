@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Feature, FeatureCollection, Polygon } from "geojson";
 
-import { transformNeighbors, transformRegions } from "../../scripts/pipeline/build-regions";
+import {
+  LABEL_OFFSET_METERS_PER_PX,
+  labelOffsetToLngLat,
+  transformNeighbors,
+  transformRegions,
+} from "../../scripts/pipeline/build-regions";
 
 type SourceProps = {
   adm_nm: string;
@@ -118,34 +123,101 @@ describe("transformRegions", () => {
     }
   });
 
-  // Task 6, Section C.2 — 라벨 겹침 완화: data/manual/label-offsets.json's
-  // per-code pixel nudge is injected as properties.labelOffset. `main()` is
-  // the only thing that reads the manual file from disk (IO stays out of
-  // this pure function, matching the module's existing IO/pure split) — it
-  // passes the parsed map in as an argument.
-  describe("labelOffset injection (Task 6, Section C.2)", () => {
-    it("uses the given labelOffsets map, keyed by code", async () => {
-      const fc = await transformRegions(JSON.stringify(fixture()), {
+  // Task 6, Section C.2 / Task B fix round 1 — data/manual/label-offsets.json's
+  // per-code pixel nudge is baked into `labelPoint` itself (geographically),
+  // instead of being emitted as a separate `properties.labelOffset` for a
+  // render-time `getPixelOffset` (see `labelOffsetToLngLat`'s own doc
+  // comment in build-regions.ts for the full root-cause: that used to break
+  // CollisionFilterExtension's visibility sampling for 전주시/익산시).
+  // `main()` is the only thing that reads the manual file from disk (IO
+  // stays out of this pure function, matching the module's existing IO/pure
+  // split) — it passes the parsed map in as an argument.
+  describe("label anchor nudge from labelOffsets (Task 6, Section C.2 / Task B fix round 1)", () => {
+    it("shifts a region's labelPoint by the given labelOffsets map, keyed by code", async () => {
+      const base = await transformRegions(JSON.stringify(fixture()));
+      const withOffset = await transformRegions(JSON.stringify(fixture()), {
         labelOffsets: { "52110": [0, -12], "52130": [5, 0] },
       });
-      const byCode = new Map(fc.features.map((f) => [f.properties.code, f.properties.labelOffset]));
-      expect(byCode.get("52110")).toEqual([0, -12]);
-      expect(byCode.get("52130")).toEqual([5, 0]);
+
+      const baseByCode = new Map(base.features.map((f) => [f.properties.code, f.properties.labelPoint]));
+      const nudgedByCode = new Map(withOffset.features.map((f) => [f.properties.code, f.properties.labelPoint]));
+
+      // Both nudged regions actually moved from their un-nudged labelPoint.
+      expect(nudgedByCode.get("52110")).not.toEqual(baseByCode.get("52110"));
+      expect(nudgedByCode.get("52130")).not.toEqual(baseByCode.get("52130"));
     });
 
-    it("defaults an unlisted region's labelOffset to [0, 0]", async () => {
-      const fc = await transformRegions(JSON.stringify(fixture()), {
+    // Coordinator's fix-round-1 acceptance example: [16, 0] (16px east) must
+    // shift labelPoint.lng east by ~4000m worth of degrees (16px *
+    // LABEL_OFFSET_METERS_PER_PX). ~0.0443 degrees = 4000m / (111,320 m/deg *
+    // cos(35.7 deg)) — see labelOffsetToLngLat's own direct test below for
+    // the exact figure; this just confirms `transformRegions` actually
+    // applies it to a real labelPoint, not just the pure helper in isolation.
+    it("[16, 0] shifts labelPoint.lng east by ≈4000m worth of degrees (dx * LABEL_OFFSET_METERS_PER_PX)", async () => {
+      const base = await transformRegions(JSON.stringify(fixture()));
+      const withOffset = await transformRegions(JSON.stringify(fixture()), {
+        labelOffsets: { "52110": [16, 0] },
+      });
+      const baseLng = base.features.find((f) => f.properties.code === "52110")!.properties.labelPoint[0];
+      const baseLat = base.features.find((f) => f.properties.code === "52110")!.properties.labelPoint[1];
+      const nudged = withOffset.features.find((f) => f.properties.code === "52110")!.properties.labelPoint;
+
+      const [expectedDLng] = labelOffsetToLngLat([16, 0]);
+      expect(nudged[0] - baseLng).toBeCloseTo(expectedDLng, 4);
+      expect(expectedDLng).toBeGreaterThan(0.04); // ≈4000m worth of degrees at this latitude
+      expect(expectedDLng).toBeLessThan(0.05);
+      expect(nudged[1]).toBeCloseTo(baseLat, 5); // dy=0 -> no north/south shift
+    });
+
+    it("leaves an unlisted region's labelPoint unchanged", async () => {
+      const base = await transformRegions(JSON.stringify(fixture()));
+      const withOffset = await transformRegions(JSON.stringify(fixture()), {
         labelOffsets: { "52110": [0, -12] }, // 52130 deliberately omitted
       });
-      const gunsan = fc.features.find((f) => f.properties.code === "52130")!;
-      expect(gunsan.properties.labelOffset).toEqual([0, 0]);
+      const gunsanBase = base.features.find((f) => f.properties.code === "52130")!;
+      const gunsanNudged = withOffset.features.find((f) => f.properties.code === "52130")!;
+      expect(gunsanNudged.properties.labelPoint).toEqual(gunsanBase.properties.labelPoint);
     });
 
-    it("defaults every region's labelOffset to [0, 0] when no labelOffsets map is given at all", async () => {
-      const fc = await transformRegions(JSON.stringify(fixture()));
+    it("leaves every region's labelPoint unchanged when no labelOffsets map is given at all", async () => {
+      const base = await transformRegions(JSON.stringify(fixture()));
+      const withDefault = await transformRegions(JSON.stringify(fixture()), {});
+      expect(withDefault.features.map((f) => f.properties.labelPoint)).toEqual(
+        base.features.map((f) => f.properties.labelPoint),
+      );
+    });
+
+    it("no longer emits a labelOffset property at all", async () => {
+      const fc = await transformRegions(JSON.stringify(fixture()), {
+        labelOffsets: { "52110": [0, -12] },
+      });
       for (const f of fc.features) {
-        expect(f.properties.labelOffset).toEqual([0, 0]);
+        expect(f.properties).not.toHaveProperty("labelOffset");
       }
+    });
+  });
+
+  describe("labelOffsetToLngLat (pure px->degrees conversion)", () => {
+    it("[16, 0] (16px east) converts to ≈4000m worth of eastward degrees at the reference latitude", () => {
+      const [dLng, dLat] = labelOffsetToLngLat([16, 0]);
+      // 16 * 250m = 4000m east; 1° longitude ≈ 111,320m * cos(35.7°) ≈ 90,246m
+      // at the pipeline's fixed reference latitude -> ≈0.0443°.
+      expect(dLng).toBeCloseTo((16 * LABEL_OFFSET_METERS_PER_PX) / (111_320 * Math.cos((35.7 * Math.PI) / 180)), 8);
+      expect(dLng).toBeGreaterThan(0.044);
+      expect(dLng).toBeLessThan(0.045);
+      expect(dLat).toBe(0);
+    });
+
+    it("negative dy (screen-up) shifts NORTH (positive dLat); positive dy (screen-down) shifts SOUTH (negative dLat)", () => {
+      const [, dLatUp] = labelOffsetToLngLat([0, -16]);
+      const [, dLatDown] = labelOffsetToLngLat([0, 16]);
+      expect(dLatUp).toBeGreaterThan(0);
+      expect(dLatDown).toBeLessThan(0);
+      expect(dLatUp).toBeCloseTo(-dLatDown, 10); // symmetric around 0
+    });
+
+    it("[0, 0] is a no-op", () => {
+      expect(labelOffsetToLngLat([0, 0])).toEqual([0, 0]);
     });
   });
 

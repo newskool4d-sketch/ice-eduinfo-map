@@ -25,7 +25,7 @@ function regionsFixture(): FeatureCollection<Polygon, RegionFeature["properties"
     features: [
       {
         type: "Feature",
-        properties: { code: "52110", name: "전주시", bbox: [0, 0, 1, 1], labelPoint: [0.5, 0.5], labelOffset: [0, 0] },
+        properties: { code: "52110", name: "전주시", bbox: [0, 0, 1, 1], labelPoint: [0.5, 0.5] },
         geometry: {
           type: "Polygon",
           coordinates: [
@@ -41,7 +41,7 @@ function regionsFixture(): FeatureCollection<Polygon, RegionFeature["properties"
       },
       {
         type: "Feature",
-        properties: { code: "52130", name: "군산시", bbox: [2, 0, 3, 1], labelPoint: [2.5, 0.5], labelOffset: [0, 0] },
+        properties: { code: "52130", name: "군산시", bbox: [2, 0, 3, 1], labelPoint: [2.5, 0.5] },
         geometry: {
           type: "Polygon",
           coordinates: [

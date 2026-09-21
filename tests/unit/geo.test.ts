@@ -60,7 +60,6 @@ function rectFeature(
       name: code,
       bbox: [minLng, minLat, maxLng, maxLat],
       labelPoint: [(minLng + maxLng) / 2, (minLat + maxLat) / 2],
-      labelOffset: [0, 0],
     },
     geometry: {
       type: "Polygon",
@@ -99,7 +98,6 @@ describe("ringsOf", () => {
         name: "B",
         bbox: [0, 0, 3, 1],
         labelPoint: [0.5, 0.5],
-        labelOffset: [0, 0],
       },
       geometry: {
         type: "MultiPolygon",
@@ -175,7 +173,6 @@ describe("splitRegionIslands", () => {
         name: code,
         bbox: [0, 0, 10, 10],
         labelPoint: [5, 5],
-        labelOffset: [0, 0],
       },
       geometry: {
         type: "MultiPolygon",
@@ -239,7 +236,7 @@ describe("splitRegionIslands", () => {
     expect(islands.features[0].properties.code).toBe("52130");
   });
 
-  it("preserves the region's properties (code/name/bbox/labelPoint/labelOffset) on both main and island features", () => {
+  it("preserves the region's properties (code/name/bbox/labelPoint) on both main and island features", () => {
     const region = multiPolygonFeature("52130", [square(0, 0, 4), square(6, 6, 1)]);
     const { main, islands } = splitRegionIslands(fc([region]));
     expect(main.features[0].properties).toEqual(region.properties);

@@ -13,9 +13,16 @@ const COLLISION_FILTER_EXTENSION = new CollisionFilterExtension();
 export interface RegionLabel {
   code: string;
   name: string;
+  /**
+   * Task 6, Section C.2 / Task B fix round 1 — for 전주·익산·완주·김제, this is
+   * already nudged away from the polygon's raw geometric center
+   * (`build-regions.ts`'s `labelOffsetToLngLat`, applied to
+   * `regions.geojson`'s `labelPoint` at build time). No render-time pixel
+   * offset is applied on top of it (see `makeRegionLabelLayer`'s own
+   * comment for why: `getPixelOffset` used to do this and broke
+   * CollisionFilterExtension's visibility sampling for those 2 regions).
+   */
   position: [number, number];
-  /** Task 6, Section C.2 — manual per-region pixel nudge (regions.geojson's `properties.labelOffset`, sourced from data/manual/label-offsets.json), applied via `getPixelOffset` below. `[0, 0]` for a region with no configured nudge. */
-  labelOffset: [number, number];
 }
 
 export interface RegionLabelLayerOptions {
@@ -67,12 +74,17 @@ export function makeRegionLabelLayer(labels: RegionLabel[], opts: RegionLabelLay
       opts.elevationOf(d.code) + 200,
     ],
     getText: (d) => opts.textOf(d.code),
-    // Task 6, Section C.2 — 라벨 겹침 완화 (전주·익산·완주·김제): a fixed
-    // per-region pixel nudge, independent of zoom/rotation (deck.gl applies
-    // `getPixelOffset` in screen space, after projection) — exactly what's
-    // needed to pull 4 label anchors that sit close together on screen
-    // apart from each other without moving their actual ground position.
-    getPixelOffset: (d) => d.labelOffset,
+    // Task B, fix round 1 — 라벨 겹침 완화 (전주·익산·완주·김제)의 넛지는 더 이상
+    // 여기서 렌더 타임 `getPixelOffset`으로 적용하지 않는다: `d.position`(=
+    // regions.geojson의 labelPoint) 자체가 이미 build-regions.ts에서 지리적으로
+    // 옮겨져 있다. 이유 — CollisionFilterExtension의 충돌 가시성 샘플(설치된
+    // @deck.gl/extensions의 shader-module.js)은 `geometry.worldPosition`(=
+    // `getPosition`이 반환한 값 그대로, pixelOffset 미반영)을 직접 재투영해서
+    // 샘플 좌표를 만든다 — `getPixelOffset`으로 텍스트만 화면 공간에서 앵커로부터
+    // 멀리 밀어내면, 그 라벨은 자기 자신의 그려진 위치를 그 샘플 지점에서 찾지
+    // 못해 `getCollisionPriority`가 아무리 높아도(선택 시 1000) 계속 안 보이는
+    // 문제가 실제로 있었다(전주시·익산시 — task-B-report.md "Fix round 1" 참고).
+    // 앵커 자체를 옮기면 두 지점이 항상 같아서 이 문제가 구조적으로 사라진다.
     sizeUnits: "pixels",
     getSize: 14,
     billboard: true,

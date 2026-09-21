@@ -12,16 +12,24 @@ export type RegionFeature = Feature<
     code: string;
     name: string;
     bbox: Bbox;
-    labelPoint: [number, number];
     /**
-     * Task 6, Section C.2 — a manual per-region pixel nudge for the map's
-     * TextLayer label (`getPixelOffset`), sourced from
-     * `data/manual/label-offsets.json` and injected by `build-regions.ts`.
-     * `[0, 0]` (no nudge) for every region not listed there — the pipeline
-     * always writes SOME value, so this is never optional/undefined on a
-     * real `regions.geojson`.
+     * Task 6, Section C.2 — for 4 시군 (전주·익산·완주·김제) whose default
+     * anchor made labels sit too close together on screen, this is already
+     * NUDGED from the polygon's raw geometric center per
+     * `data/manual/label-offsets.json`, converted from a pixel offset to a
+     * geographic (lng/lat) one by `build-regions.ts` — see its own
+     * `LABEL_OFFSET_METERS_PER_PX` comment. Task B, fix round 1: this used
+     * to be the UN-nudged center, with the nudge applied separately at
+     * render time via TextLayer's `getPixelOffset` — moved here instead
+     * because `CollisionFilterExtension`'s collision-visibility sample
+     * uses this raw world position directly, independent of any render-time
+     * pixel offset; a label whose drawn text was pushed away from this
+     * point (via getPixelOffset) could sample "nothing of its own" here and
+     * fade to invisible regardless of collision priority. Baking the nudge
+     * into the anchor itself keeps the collision sample and the drawn text
+     * at the same point. See task-B-report.md's "Fix round 1" section.
      */
-    labelOffset: [number, number];
+    labelPoint: [number, number];
   }
 >;
 

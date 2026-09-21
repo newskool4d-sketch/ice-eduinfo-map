@@ -301,15 +301,17 @@ export default function DeckMap({
   // indicatorId change would give the label TextLayer a new `data` reference
   // each time, defeating deck.gl's diffing (the constraint the task brief
   // calls out explicitly: "매 렌더 새 배열을 만들지 않는다"). Sourced from
-  // regionsMain (Task 6, Section C.2): same properties (code/name/labelPoint/
-  // labelOffset) as bundle.regions, one feature per region either way.
+  // regionsMain (Task 6, Section C.2): same properties (code/name/labelPoint)
+  // as bundle.regions, one feature per region either way. `labelPoint` is
+  // already nudged for the 4 시군 that need it (Task B, fix round 1 —
+  // build-regions.ts bakes data/manual/label-offsets.json's pixel nudge
+  // into labelPoint itself now, not a separate render-time offset).
   const labels = useMemo(
     () =>
       bundle.regionsMain.features.map((f) => ({
         code: f.properties.code,
         name: f.properties.name,
         position: f.properties.labelPoint,
-        labelOffset: f.properties.labelOffset,
       })),
     [bundle.regionsMain],
   );

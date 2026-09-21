@@ -5,8 +5,8 @@ import { CollisionFilterExtension } from "@deck.gl/extensions";
 import { makeRegionLabelLayer, type RegionLabel } from "@/components/map/layers/labelLayer";
 
 const labels: RegionLabel[] = [
-  { code: "52110", name: "전주시", position: [127.1, 35.8], labelOffset: [0, -10] },
-  { code: "52130", name: "군산시", position: [126.7, 35.9], labelOffset: [0, 0] },
+  { code: "52110", name: "전주시", position: [127.1, 35.8] },
+  { code: "52130", name: "군산시", position: [126.7, 35.9] },
 ];
 
 describe("makeRegionLabelLayer", () => {
@@ -119,10 +119,16 @@ describe("makeRegionLabelLayer", () => {
     });
   });
 
-  // Task 6, Section C.2 — 라벨 겹침 완화: a per-region pixel nudge from
-  // data/manual/label-offsets.json (regions.geojson's properties.labelOffset),
-  // applied via deck.gl TextLayer's own `getPixelOffset` (no new package).
-  it("getPixelOffset returns the label's own labelOffset", () => {
+  // Task B, fix round 1 — 라벨 겹침 완화 (전주·익산·완주·김제)의 픽셀 넛지는 더 이상
+  // 렌더 타임 getPixelOffset이 아니라 빌드 타임에 labelPoint 자체를 지리적으로
+  // 옮기는 방식으로 옮겨감(scripts/pipeline/build-regions.ts). 이유:
+  // CollisionFilterExtension의 충돌 가시성 샘플이 `geometry.worldPosition`(오프셋
+  // 미반영 원본 앵커)을 직접 사용해서, getPixelOffset으로 텍스트만 앵커에서 멀리
+  // 밀어내면 그 라벨이 "자기 자신"을 그 지점에서 찾지 못해 우선순위와 무관하게
+  // 계속 안 보이는 문제(실측: 전주시·익산시)가 있었음 — task-B-report.md 참고.
+  // getPixelOffset을 아예 쓰지 않으므로 deck.gl의 기본값([0,0], 고정 배열이지
+  // 함수가 아님)으로 남아야 한다.
+  it("does not set getPixelOffset — labels draw exactly at their anchor (deck.gl's own [0,0] default)", () => {
     const layer = makeRegionLabelLayer(labels, {
       elevationOf: () => 0,
       textOf: (code) => code,
@@ -130,11 +136,7 @@ describe("makeRegionLabelLayer", () => {
       fontFamily: "Test Font",
       characterSet: ["a"],
     });
-    type Ctx = { index: number; data: RegionLabel[]; target: number[] };
-    const getPixelOffset = layer.props.getPixelOffset as (d: RegionLabel, ctx: Ctx) => readonly [number, number];
-    const ctx: Ctx = { index: 0, data: labels, target: [] };
-    expect(getPixelOffset(labels[0], ctx)).toEqual([0, -10]);
-    expect(getPixelOffset(labels[1], ctx)).toEqual([0, 0]);
+    expect(layer.props.getPixelOffset).toEqual([0, 0]);
   });
 
   // Task A — 그림자 캐스팅 제외: TextLayer is a CompositeLayer whose leaf
@@ -279,7 +281,7 @@ describe("makeRegionLabelLayer — CollisionFilterExtension (Task B)", () => {
     const smallerValue = getCollisionPriority(labels[1], ctxFor(labels)); // 52130, rank 2
     expect(biggerValue).toBeGreaterThan(smallerValue);
 
-    const noDataLabel: RegionLabel = { code: "99999", name: "?", position: [0, 0], labelOffset: [0, 0] };
+    const noDataLabel: RegionLabel = { code: "99999", name: "?", position: [0, 0] };
     const noData = getCollisionPriority(noDataLabel, ctxFor(labels));
     expect(noData).toBeLessThan(smallerValue);
     expect(noData).toBeLessThan(biggerValue);
