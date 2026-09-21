@@ -40,8 +40,8 @@ import { regionRankList, selectionAnnouncement } from "@/lib/selection";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { ringsOf } from "@/lib/geo/geo";
 
-/** zoom≥11 이 되어야 학교명 라벨을 그린다 (브리프 고정값 — DeckMap.tsx 의 onViewStateChange 스로틀 zoom 으로 판단). */
-const SCHOOL_LABEL_MIN_ZOOM = 11;
+/** zoom≥10 이 되어야 학교명 라벨을 그린다 (브리프 고정값 — DeckMap.tsx 의 onViewStateChange 스로틀 zoom 으로 판단; Task B: 11 → 10, 라벨 칩·CollisionFilterExtension 도입에 맞춰 더 낮은 줌에서도 학교명이 보이도록 낮춤). */
+const SCHOOL_LABEL_MIN_ZOOM = 10;
 /** onViewStateChange 스로틀 간격(ms). */
 const ZOOM_THROTTLE_MS = 100;
 
@@ -246,6 +246,25 @@ export default function DeckMap({
   // Rank order for keyboard ←/→ cycling ("현재 순위 순") and, indirectly (via
   // the same pure function), RegionList's render order.
   const orderedCodes = useMemo(() => regionRankList(map), [map]);
+
+  // Task B — region-label collision priority (makeRegionLabelLayer's
+  // getCollisionPriority/priorityOf — CollisionFilterExtension): reversed
+  // value rank (stats.ts's `rank` — 1 = the single biggest value), so a
+  // bigger indicator value wins a label collision over a smaller one; a
+  // region with no data (absent from `rank`'s map, which omits nulls
+  // entirely) gets the lowest priority of ALL, lower than every real rank.
+  // Bounded well within CollisionFilterExtension's documented [-1000, 1000]
+  // (at most REGION_CODES.length ranks). Independent of `selectedCode` — the
+  // selected region's unconditional top priority (1000) is applied inside
+  // makeRegionLabelLayer itself, not here.
+  const priorityOf = useMemo(() => {
+    const ranks = rank(map);
+    const lowestPriority = -(REGION_CODES.length + 1);
+    return (code: string): number => {
+      const r = ranks.get(code);
+      return r === undefined ? lowestPriority : -r;
+    };
+  }, [map]);
 
   const announcement = useMemo(() => {
     if (!selectedCode) return "선택 해제됨, 전체 보기";
@@ -603,6 +622,8 @@ export default function DeckMap({
           triggerKey: indicatorId,
           fontFamily,
           characterSet,
+          selectedCode,
+          priorityOf,
           transitionDuration,
         }),
         makeSchoolLabelsLayer(positionedRegionSchools, {
@@ -640,6 +661,7 @@ export default function DeckMap({
     labelTextOf,
     fontFamily,
     characterSet,
+    priorityOf,
     reduceMotion,
   ]);
 

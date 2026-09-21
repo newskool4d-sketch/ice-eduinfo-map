@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Color, Position } from "@deck.gl/core";
+import { CollisionFilterExtension } from "@deck.gl/extensions";
 
 import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
 import { makeSchoolRadiusScale, SCHOOL_LEVEL_COLORS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
@@ -222,7 +223,11 @@ describe("makeSchoolLabelsLayer", () => {
     expect(getText(d, ctxFor([d]))).toBe("무주초등학교");
   });
 
-  it("visible 토글: reflects the given `visible` option (zoom>=11 && region selected, computed by the caller)", () => {
+  // Task B — SCHOOL_LABEL_MIN_ZOOM 11 -> 10 (DeckMap.tsx); this factory has
+  // no zoom awareness of its own, so the change is purely in what the
+  // caller computes for `visible` — pinned here to keep the description in
+  // sync with DeckMap.tsx's actual threshold.
+  it("visible 토글: reflects the given `visible` option (zoom>=10 && region selected, computed by the caller)", () => {
     const visibleLayer = makeSchoolLabelsLayer([], {
       elevationOf,
       visible: true,
@@ -281,6 +286,75 @@ describe("makeSchoolLabelsLayer", () => {
       transitionDuration: 0,
     });
     expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
+  });
+
+  // Task B — CollisionFilterExtension, own collisionGroup
+  // ('school-labels', separate from region-labels' 'labels' — see
+  // labelLayer.test.ts) so a region's school names never fight a 시군 name
+  // for the same collision budget.
+  it("attaches exactly one CollisionFilterExtension instance, collisionGroup 'school-labels', sizeScale 1.6", () => {
+    const layer = makeSchoolLabelsLayer([], {
+      elevationOf,
+      visible: true,
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      triggerKey: "v1",
+    });
+    expect(layer.props.extensions).toHaveLength(1);
+    expect(layer.props.extensions[0]).toBeInstanceOf(CollisionFilterExtension);
+    expect(layer.props.collisionEnabled).toBe(true);
+    expect(layer.props.collisionGroup).toBe("school-labels");
+    expect(layer.props.collisionTestProps).toEqual({ sizeScale: 1.6 });
+  });
+
+  // getCollisionPriority = 학생수 (brief: `d => d.students ?? 0`), clamped to
+  // the extension's own documented range. CollisionFilterExtensionProps'
+  // getCollisionPriority doc (installed @deck.gl/extensions'
+  // collision-filter-extension.d.ts): "Must return a number in the range
+  // -1000 -> 1000" — the installed collision shader module
+  // (shader-module.js) enforces this literally: `position.z = -0.001 *
+  // collisionPriority * position.w` is a CLIP-SPACE z, so any priority
+  // magnitude over 1000 pushes a label's entire quad past the near clip
+  // plane in the collision pass, which the GPU then discards outright —
+  // i.e. an UNCLAMPED priority above 1000 makes that label invisible
+  // FOREVER (not just de-prioritized in a tie), not merely "less likely to
+  // win." Real data has schools above 1000 학생 (max 1607, 군산금빛초등학교 —
+  // see task-B-report.md) — clamping preserves the brief's intent (bigger
+  // school -> higher priority) for the realistic range while keeping every
+  // priority value inside the extension's documented safe bound.
+  it("getCollisionPriority is the school's student count, clamped to the extension's documented [-1000, 1000] range", () => {
+    const layer = makeSchoolLabelsLayer([], {
+      elevationOf,
+      visible: true,
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      triggerKey: "v1",
+    });
+    const getCollisionPriority = layer.props.getCollisionPriority as (d: School, ctx: Ctx) => number;
+    const small = school({ id: "a", regionCode: "52110", students: 120 });
+    const noData = school({ id: "b", regionCode: "52110", students: null });
+    const huge = school({ id: "c", regionCode: "52110", students: 1607 }); // 군산금빛초등학교's real count
+    expect(getCollisionPriority(small, ctxFor([small]))).toBe(120);
+    expect(getCollisionPriority(noData, ctxFor([noData]))).toBe(0);
+    expect(getCollisionPriority(huge, ctxFor([huge]))).toBe(1000);
+  });
+
+  // Task B — 칩 배경은 더 작게 (smaller than region-labels' [6,3]/6 — see
+  // labelLayer.test.ts's "renders a background chip" test): same dark
+  // translucent palette, a tighter footprint for the smaller (11px)
+  // school-name text.
+  it("renders a smaller background chip than region-labels", () => {
+    const layer = makeSchoolLabelsLayer([], {
+      elevationOf,
+      visible: true,
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      triggerKey: "v1",
+    });
+    expect(layer.props.background).toBe(true);
+    expect(layer.props.getBackgroundColor).toEqual([12, 14, 20, 170]);
+    expect(layer.props.backgroundPadding).toEqual([4, 2]);
+    expect(layer.props.backgroundBorderRadius).toBe(4);
   });
 });
 

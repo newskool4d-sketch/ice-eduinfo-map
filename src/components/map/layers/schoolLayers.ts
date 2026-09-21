@@ -1,8 +1,39 @@
 import { ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
+import { CollisionFilterExtension, type CollisionFilterExtensionProps } from "@deck.gl/extensions";
 
 import { SCHOOL_LEVEL_COLORS } from "@/lib/schoolVisuals";
 import type { School } from "@/lib/schools/types";
+
+// Task B — module-scope constant, same reasoning as labelLayer.ts's own
+// COLLISION_FILTER_EXTENSION (a fresh instance every render would be
+// equally correct — LayerExtension.equals() treats any two no-opts
+// instances as equal — this just skips the pointless per-render alloc). A
+// SEPARATE instance from labelLayer.ts's, deliberately: nothing shares
+// state through it (CollisionFilterExtension carries none — collisionGroup/
+// collisionTestProps/getCollisionPriority all live on the LAYER, not the
+// extension), so a second instance costs nothing and keeps this module
+// independent of labelLayer.ts.
+const COLLISION_FILTER_EXTENSION = new CollisionFilterExtension();
+
+/**
+ * Task B — clamps a school's raw student count into
+ * CollisionFilterExtension's documented safe range for `getCollisionPriority`
+ * ("Must return a number in the range -1000 -> 1000" — installed
+ * @deck.gl/extensions' collision-filter-extension.d.ts). The installed
+ * collision shader (shader-module.js) enforces this literally:
+ * `position.z = -0.001 * collisionPriority * position.w` is a CLIP-SPACE z,
+ * so an unclamped priority above 1000 pushes a label's entire quad past the
+ * near clip plane during the collision pass — the GPU then discards it
+ * outright, making that label invisible FOREVER (not merely de-prioritized).
+ * Real data has schools above 1000 학생 (max 1607, 군산금빛초등학교) — clamping
+ * keeps "more students -> higher priority" for the realistic range while
+ * never crossing into that failure mode. See task-B-report.md.
+ */
+const MAX_COLLISION_PRIORITY = 1000;
+function schoolCollisionPriority(students: number | null): number {
+  return Math.min(students ?? 0, MAX_COLLISION_PRIORITY);
+}
 
 // Task 6, Section C-추가 #4 — 학교 점 가독성: a dark, OPAQUE stroke (was
 // translucent white, alpha 120) so a point stays legible against a bright
@@ -105,7 +136,7 @@ export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayer
 
 export interface SchoolLabelsLayerOptions {
   elevationOf: (regionCode: string) => number;
-  /** Computed by the caller as `!!selectedCode && zoom >= 11` (see DeckMap.tsx) — this layer has no zoom/selection awareness of its own. */
+  /** Computed by the caller as `!!selectedCode && zoom >= 10` (see DeckMap.tsx's SCHOOL_LABEL_MIN_ZOOM, Task B: 11 -> 10) — this layer has no zoom/selection awareness of its own. */
   visible: boolean;
   fontFamily: string;
   characterSet: string[];
@@ -118,7 +149,7 @@ export interface SchoolLabelsLayerOptions {
 export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolLabelsLayerOptions) {
   const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
 
-  return new TextLayer<PositionedSchool>({
+  return new TextLayer<PositionedSchool, CollisionFilterExtensionProps<PositionedSchool>>({
     id: "school-labels",
     data: schools,
     visible: opts.visible,
@@ -138,6 +169,31 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
     outlineWidth: 0.15,
     outlineColor: [10, 14, 25, 255],
     getColor: [230, 233, 240, 255],
+    // Task B — 칩 배경은 더 작게: same dark/translucent palette as
+    // region-labels (labelLayer.ts), tighter padding/radius for the smaller
+    // (11px) school-name text.
+    background: true,
+    getBackgroundColor: [12, 14, 20, 170],
+    backgroundPadding: [4, 2],
+    backgroundBorderRadius: 4,
+    // Task B — CollisionFilterExtension: own collisionGroup
+    // ('school-labels', separate from region-labels' 'labels') so the two
+    // never compete for the same collision budget; `sizeScale: 1.6` (a
+    // bigger collision-test hitbox multiplier than region-labels' 1.3 —
+    // school names sit much closer together on screen once zoomed in).
+    // getCollisionPriority = 학생수 (schoolCollisionPriority, clamped — see
+    // its own doc comment above for why the clamp is necessary, not just
+    // defensive). No `updateTriggers.getCollisionPriority` entry: unlike
+    // region-labels' priority (which closes over `selectedCode`, state
+    // EXTERNAL to any one datum), this reads only `d.students` — deck.gl
+    // already re-evaluates every accessor whenever `data`'s reference
+    // changes (a new selected region), which is the only way a school's own
+    // student count could ever change here.
+    extensions: [COLLISION_FILTER_EXTENSION],
+    collisionEnabled: true,
+    collisionGroup: "school-labels",
+    collisionTestProps: { sizeScale: 1.6 },
+    getCollisionPriority: (d: PositionedSchool) => schoolCollisionPriority(d.students),
     parameters: { depthCompare: "always", depthWriteEnabled: false },
     // Task A — 그림자 캐스팅 제외: same reasoning as labelLayer.ts's
     // region-labels — an outer `shadowEnabled` prop never reaches TextLayer's

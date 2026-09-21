@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Position } from "@deck.gl/core";
+import { CollisionFilterExtension } from "@deck.gl/extensions";
 
 import { makeRegionLabelLayer, type RegionLabel } from "@/components/map/layers/labelLayer";
 
@@ -23,8 +24,31 @@ describe("makeRegionLabelLayer", () => {
     expect(layer.props.characterSet).toEqual(["a", "b"]);
     expect(layer.props.fontWeight).toBe(600);
     expect(layer.props.getAlignmentBaseline).toBe("bottom");
-    expect(layer.props.fontSettings).toEqual({ sdf: true, fontSize: 48 });
-    expect(layer.props.outlineWidth).toBe(0.15);
+    // Task B — 라벨 칩: buffer 8 gives the SDF atlas enough padding around
+    // each glyph for the (now larger, 0.25) outline plus the background's
+    // own padding to not clip; see the background-chip block below.
+    expect(layer.props.fontSettings).toEqual({ sdf: true, fontSize: 48, buffer: 8 });
+    expect(layer.props.outlineWidth).toBe(0.25);
+  });
+
+  // Task B — 라벨 칩: an opaque-ish dark chip behind each label (readable
+  // over the VWorld basemap tiles, Task C — see task-B-brief.md section 1),
+  // rendered by TextLayer's own `background` sub-layer (TextBackgroundLayer)
+  // — confirmed against the installed @deck.gl/layers' text-layer.js:
+  // `background && new BackgroundLayerClass(...)` only renders that
+  // sub-layer at all when `background: true`.
+  it("renders a background chip behind each label", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+    });
+    expect(layer.props.background).toBe(true);
+    expect(layer.props.getBackgroundColor).toEqual([12, 14, 20, 170]);
+    expect(layer.props.backgroundPadding).toEqual([6, 3]);
+    expect(layer.props.backgroundBorderRadius).toBe(6);
   });
 
   it("getPosition appends elevationOf(code)+200 as the z coordinate", () => {
@@ -121,6 +145,16 @@ describe("makeRegionLabelLayer", () => {
   // `_subLayerProps` (confirmed against the installed
   // @deck.gl/core's composite-layer.js: `getSubLayerProps` merges
   // `_subLayerProps[id]` directly into each sub-layer's own final props).
+  // Task B — now that `background: true` actually makes the `background`
+  // sub-layer render (see the "renders a background chip" test above), this
+  // exclusion is no longer hypothetical for it: confirmed against
+  // text-layer.js's `renderLayers()` — the `background` sub-layer's props
+  // come from `this.getSubLayerProps({id: 'background', ...})`, the SAME
+  // CompositeLayer method that merges in `_subLayerProps.background`
+  // regardless of whether the extension's own collision props are also
+  // merged in afterward (disjoint keys — `shadowEnabled` isn't one of
+  // CollisionFilterExtension's defaultProps, so neither can clobber the
+  // other).
   it("excludes both sub-layers (characters, background) from shadow casting via _subLayerProps", () => {
     const layer = makeRegionLabelLayer(labels, {
       elevationOf: () => 0,
@@ -158,5 +192,125 @@ describe("makeRegionLabelLayer", () => {
       });
       expect(layer.props.transitions).toMatchObject({ getPosition: 0 });
     });
+  });
+});
+
+// Task B — CollisionFilterExtension: hides overlapping region-name chips
+// instead of letting them stack illegibly. `collisionGroup: 'labels'` keeps
+// this layer's collision test separate from school-labels' own
+// ('school-labels', see schoolLayers.test.ts) — confirmed against the
+// installed @deck.gl/extensions' collision-filter-effect.js, which buckets
+// layers into one FBO per `collisionGroup`.
+describe("makeRegionLabelLayer — CollisionFilterExtension (Task B)", () => {
+  type Ctx = { index: number; data: RegionLabel[]; target: number[] };
+  const ctxFor = (data: RegionLabel[]): Ctx => ({ index: 0, data, target: [] });
+
+  it("attaches exactly one CollisionFilterExtension instance, collisionGroup 'labels', sizeScale 1.3", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+    });
+    expect(layer.props.extensions).toHaveLength(1);
+    expect(layer.props.extensions[0]).toBeInstanceOf(CollisionFilterExtension);
+    expect(layer.props.collisionEnabled).toBe(true);
+    expect(layer.props.collisionGroup).toBe("labels");
+    expect(layer.props.collisionTestProps).toEqual({ sizeScale: 1.3 });
+  });
+
+  it("gives the selected region's label priority 1000, regardless of priorityOf", () => {
+    const priorityOf = vi.fn(() => -5);
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: "52110",
+      priorityOf,
+    });
+    const getCollisionPriority = layer.props.getCollisionPriority as (d: RegionLabel, ctx: Ctx) => number;
+    expect(getCollisionPriority(labels[0], ctxFor(labels))).toBe(1000);
+  });
+
+  it("delegates to priorityOf(code) for a region that is NOT the selected one", () => {
+    const priorityOf = vi.fn((code: string) => (code === "52130" ? 42 : -1));
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: "52110", // labels[1] (52130) is NOT selected
+      priorityOf,
+    });
+    const getCollisionPriority = layer.props.getCollisionPriority as (d: RegionLabel, ctx: Ctx) => number;
+    expect(getCollisionPriority(labels[1], ctxFor(labels))).toBe(42);
+    expect(priorityOf).toHaveBeenCalledWith("52130");
+  });
+
+  // Mirrors DeckMap.tsx's real priorityOf (reversed rank — see
+  // task-B-report.md): a region whose indicator VALUE is bigger gets a
+  // HIGHER priority number (survives a collision over a smaller-value
+  // neighbor); a region with no data at all (absent from the rank map)
+  // gets the LOWEST priority of all.
+  it("a bigger-value region outranks a smaller-value region, which outranks a no-data (null) region", () => {
+    const rankOf = new Map([
+      ["52110", 1], // biggest value -> rank 1
+      ["52130", 2],
+    ]);
+    const priorityOf = (code: string): number => {
+      const r = rankOf.get(code);
+      return r === undefined ? -100 : -r;
+    };
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: null,
+      priorityOf,
+    });
+    const getCollisionPriority = layer.props.getCollisionPriority as (d: RegionLabel, ctx: Ctx) => number;
+    const biggerValue = getCollisionPriority(labels[0], ctxFor(labels)); // 52110, rank 1
+    const smallerValue = getCollisionPriority(labels[1], ctxFor(labels)); // 52130, rank 2
+    expect(biggerValue).toBeGreaterThan(smallerValue);
+
+    const noDataLabel: RegionLabel = { code: "99999", name: "?", position: [0, 0], labelOffset: [0, 0] };
+    const noData = getCollisionPriority(noDataLabel, ctxFor(labels));
+    expect(noData).toBeLessThan(smallerValue);
+    expect(noData).toBeLessThan(biggerValue);
+  });
+
+  it("updateTriggers.getCollisionPriority includes both triggerKey and selectedCode", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "indicator-7",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+      selectedCode: "52110",
+      priorityOf: () => 0,
+    });
+    expect(layer.props.updateTriggers.getCollisionPriority).toEqual(["indicator-7", "52110"]);
+  });
+
+  // Backward compatibility (same pattern as RegionsLayerOptions.selectedCode
+  // in regionLayers.ts): a caller that doesn't care about selection/priority
+  // still gets a sensible, working layer.
+  it("defaults selectedCode to null and priorityOf to a constant 0 when both are omitted", () => {
+    const layer = makeRegionLabelLayer(labels, {
+      elevationOf: () => 0,
+      textOf: (code) => code,
+      triggerKey: "v1",
+      fontFamily: "Test Font",
+      characterSet: ["a"],
+    });
+    const getCollisionPriority = layer.props.getCollisionPriority as (d: RegionLabel, ctx: Ctx) => number;
+    expect(getCollisionPriority(labels[0], ctxFor(labels))).toBe(0);
+    expect(layer.props.updateTriggers.getCollisionPriority).toEqual(["v1", null]);
   });
 });
