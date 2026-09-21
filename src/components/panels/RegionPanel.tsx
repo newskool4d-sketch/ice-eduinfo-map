@@ -175,7 +175,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         </p>
         <p
           data-testid="region-panel-delta"
-          className={`text-xs ${isWarnDelta ? "text-accent" : "text-ink-muted"}`}
+          className={`text-xs ${isWarnDelta ? "text-accent-text" : "text-ink-muted"}`}
         >
           {def.kind === "count"
             ? share === null
@@ -277,7 +277,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
               onClick={() => setLevelFilter(level)}
               aria-pressed={levelFilter === level}
               className={`rounded px-2 py-0.5 text-xs ${
-                levelFilter === level ? "bg-ink/10 font-semibold text-ink" : "text-ink-muted hover:bg-ink/10"
+                levelFilter === level ? "bg-accent-soft font-semibold text-ink" : "text-ink-muted hover:bg-ink/5"
               }`}
             >
               {LEVEL_FILTER_LABELS[level]}
@@ -328,7 +328,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
                         </span>
                       )}
                       {school.small && (
-                        <span className="ml-1 inline-block rounded bg-accent-soft px-1 text-[10px] text-accent">
+                        <span className="ml-1 inline-block rounded bg-accent-soft px-1 text-[10px] text-accent-text">
                           소규모
                         </span>
                       )}
