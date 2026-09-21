@@ -61,8 +61,16 @@ lightingEffect.shadowColor = [4 / 255, 6 / 255, 14 / 255, 0.3];
 // light's `_shadow` is off, so DeckMap can swap to a shadow-free effect
 // (`NEXT_PUBLIC_MAP_FX=off`) without constructing a new LightingEffect on
 // every render — see DeckMap.tsx's `effects` useMemo.
-// Fix round 1, finding 4 — fill removed here too, for symmetry with
-// lightingEffect above (see its comment for why).
+// Fix round 1, finding 4 — fill removed here too, though the shadow-pass
+// cost argument above does NOT apply to this variant: `this.shadow` is
+// false here (no light has `_shadow:true`), so `LightingEffect.setup()`'s
+// `if (this.shadow && !this.dummyShadowMap)` guard (lighting-effect.js:41)
+// never runs `_createShadowPasses` at all — zero ShadowPass instances exist
+// either way, whether this had 1 light or 2. Removed purely so both
+// variants share the exact same light SET (only `_shadow` differs), so the
+// `NEXT_PUBLIC_MAP_FX=off` render stays visually consistent with the
+// shadowed one minus shadows only — not lit by an extra light the other
+// variant wouldn't also have.
 export const lightingEffectNoShadow = new LightingEffect({
   ambient: new AmbientLight({ color: [255, 255, 255], intensity: AMBIENT_INTENSITY }),
   key: new DirectionalLight({ color: [255, 255, 255], intensity: 1.0, direction: KEY_DIRECTION, _shadow: false }),
@@ -124,8 +132,8 @@ export const lightingEffectNoShadow = new LightingEffect({
 // Verified two ways: (a) reading the installed sources end to end as above;
 // (b) empirically, by temporarily commenting out the two `useInPicking =
 // true` lines below and re-running a live pick + console-warning trace —
-// reproduced 0/10 `deck.pickObject()` hits (each aborted draw returning in
-// ~1ms) plus the exact predicted `shadow_uShadowMap0/1 not found in
+// reproduced (fix disabled) 0/10 `deck.pickObject()` hits (each aborted
+// draw returning in ~1ms) plus the exact predicted `shadow_uShadowMap0/1 not found in
 // regions-polygons-fill-{top,side}-cached` / `region-islands-polygons-
 // {fill-top,stroke}-cached` warnings, with a stack trace through
 // `WEBGLRenderPipeline._areTexturesRenderable` -> `WEBGLRenderPass.draw` ->
@@ -190,12 +198,23 @@ export const lightingEffectNoShadow = new LightingEffect({
 // (Confirmed empirically: temporarily disabling `useInPicking` above and
 // hover-sweeping produced exactly 8 warnings — 2 bindings x 4 pipelines —
 // with zero further growth across 10 more explicit picks and a region
-// click that re-exercised those same pipelines.) Leading hypothesis for
-// what the implementer actually saw (not confirmed further — out of this
-// finding's scope): a Turbopack-HMR-stale WebGL pipeline object from
-// mid-edit dev iteration — a JS-only hot patch doesn't recreate
-// already-compiled programs for already-mounted layers — which a hard
-// reload should clear.
+// click that re-exercised those same pipelines.) Best-supported reading of
+// what the implementer actually saw (their own words, task-A-report.md's
+// 검증 section: "여러 초 대기 + 카메라 nudge 후에도 지속되긴 하지만"/"persists even
+// after waiting several seconds + a camera nudge"): that description is
+// EXACTLY what a one-time, early-session occurrence looks like from the
+// outside — logged once (if timing/driver happens to hit the narrow window
+// before every pipeline/the dummy shadow texture is fully warm), then
+// permanently stuck in the console SCROLLBACK afterward (nothing makes an
+// already-printed line disappear); a recheck "several seconds later" can't
+// tell that apart from an ongoing problem without specifically checking
+// whether NEW lines keep appearing, which the once-cache above says they
+// structurally can't. Not confirmed further (out of this finding's scope):
+// a GPU/driver difference (their manual browser check vs. this
+// investigation's Playwright/headless Chromium) or a Turbopack-HMR-stale
+// pipeline from mid-edit dev iteration are both plausible secondary
+// explanations for why it fired at all in their session but not in either
+// of mine.
 
 // Fix round 1, finding 4 — ambient 0.35 -> 0.45, same compensation as
 // AMBIENT_INTENSITY above, for the removed fill light.
