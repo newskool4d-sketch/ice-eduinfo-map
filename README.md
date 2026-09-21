@@ -27,12 +27,13 @@
 | `npm run test:watch` | 단위 테스트 (watch 모드) |
 | `npm run e2e` | E2E 테스트 (Playwright) |
 | `npm run data:regions` | 시군 경계/행정구역 데이터 생성 |
+| `npm run data:emd` | 시군별 읍면동 경계 데이터 생성 (`public/data/emd/<시군코드>.geojson`) |
 | `npm run data:kess` | KESS 교육통계 원본 수집·파싱 |
 | `npm run data:schools` | 학교 목록/위치 데이터 생성 |
 | `npm run data:indicators` | 지표 집계 데이터 생성 |
 | `npm run data:charset` | 폰트/문자셋 서브셋 생성 |
 | `npm run data:validate` | 생성된 데이터 검증 |
-| `npm run data:build` | `regions → kess → schools → indicators → charset → validate` 순으로 데이터 파이프라인 전체 실행 (학교 점 레이어 포함) |
+| `npm run data:build` | `regions → emd → kess → schools → indicators → charset → validate` 순으로 데이터 파이프라인 전체 실행 (학교 점 레이어 포함) |
 
 ## CI
 
@@ -58,7 +59,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
    - 폐교재산 현황: `전북특별자치도교육청_폐교재산 현황_YYYYMMDD.csv` — 마찬가지로 파일명 끝의 날짜가 기준일자입니다.
    - 행정구역 경계: `data/raw/admdongkor-ver20260701.geojson` — 파일명의 `verYYYYMMDD` 가 기준일자입니다. 새 버전을 받으면 `scripts/pipeline/sources.ts`의 `BOUNDARY_SOURCE.url`(vuski/admdongkor의 새 `verYYYYMMDD` 태그)도 함께 갱신해야 합니다.
    - KESS 교육기본통계: `kess-<연도>.xlsx` (예: `kess-2026.xlsx`) — 파일명이 아니라 파일 내용에서 기준일자를 읽습니다(`npm run data:kess` 실행 로그의 `referenceDate=...` 로 확인 가능). `data:kess`가 `data/raw/`에 없는 연도 파일을 자동으로 내려받으려 시도합니다.
-2. **`npm run data:build` 를 실행합니다.** `regions → kess → schools → indicators → charset → validate` 순으로 전체 파이프라인이 돌고, 마지막 `data:validate` 단계가 실패하면(학교수/학생수/교원수 공식치 대비 오차, 좌표-시군 정합성, 매칭률 100% 등) 0이 아닌 종료 코드와 함께 무엇이 틀렸는지 표로 보여줍니다 — 이 단계를 통과하지 못한 데이터는 커밋하지 않습니다.
+2. **`npm run data:build` 를 실행합니다.** `regions → emd → kess → schools → indicators → charset → validate` 순으로 전체 파이프라인이 돌고, 마지막 `data:validate` 단계가 실패하면(학교수/학생수/교원수 공식치 대비 오차, 좌표-시군 정합성, 매칭률 100% 등) 0이 아닌 종료 코드와 함께 무엇이 틀렸는지 표로 보여줍니다 — 이 단계를 통과하지 못한 데이터는 커밋하지 않습니다.
 3. **`git status`/`git diff public/data/` 로 실제 변경 내용을 확인합니다.** `public/data/manifest.json`의 `builtAt` 필드는 실행할 때마다 항상 바뀌므로, 그 외 내용이 정말 달라졌는지(지표 값, 연도, 학교 수 등) 확인한 뒤 커밋하세요. `builtAt`만 바뀌고 나머지가 동일하다면(원천 데이터가 그대로인 재실행 등) 그 변경은 커밋하지 않아도 됩니다.
 4. `public/data/**`(그리고 필요 시 `data/interim/**`, `data/manual/label-offsets.json` 처럼 수동으로 조정한 파일)를 커밋합니다. `data/raw/**` 는 원천 파일이라 `.gitignore` 로 제외되어 있으니 커밋하지 않습니다.
 
@@ -69,7 +70,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 - **KESS 교육기본통계 학교별 데이터셋** (한국교육개발원 교육통계서비스) — 지표(학생수/학교수/교원수 등)의 원천. 기준일은 화면 하단 범례와 Footer에 표기됩니다.
 - **한국교육시설안전원 초중등학교위치 표준데이터** (data.go.kr) — 학교 점 위치(위도/경도). 시군 선택 시 지도 우측 패널과 화면 하단에 "위치 기준 YYYY-MM-DD" 로 기준일을 표기합니다. 전국 데이터셋 특성상 초·중·고등학교만 포함되어 있고 특수학교 위치는 제공되지 않습니다(자세한 내용은 `data/interim/schools-match-report.json` 참고). 이는 매칭 실패가 아니라 원천 데이터 자체의 구조적 공백이므로, 특수학교도 `public/data/schools.json` 에 좌표 없이(`lat`/`lng: null`, `locationMissingReason` 설명 포함) 실리며 매칭률·검증 대상에서는 제외됩니다 — 지도에는 점으로 그리지 않고, 우측 패널 학교 목록에는 "위치 없음" 배지로 표시됩니다.
 - **전북특별자치도교육청 폐교재산 현황** (공공데이터포털) — 폐교 지표(폐교 수/미활용 폐교 수/최근 10년 폐교 수)와 RegionPanel의 폐교 목록의 원천. 원천 파일의 게시(갱신)일이 데이터 기준일과 다른 경우 Footer에 "기준일 …(게시 …)" 형식으로 둘 다 표기합니다.
-- **통계청 SGIS 기반 행정동 경계** (vuski/admdongkor, `HangJeongDong_ver20260701.geojson`) — 시군 경계·라벨 위치의 원천. [vuski/admdongkor](https://github.com/vuski/admdongkor) 저장소는 **CC BY 4.0** 라이선스로 배포되며, 이 프로젝트는 그 경계 데이터를 단순화·가공(`npm run data:regions`)해 `public/data/regions.geojson`/`neighbors.geojson`으로 다시 배포합니다 — 출처 표기(CC BY 4.0이 요구하는 저작자 표시)는 화면 하단 Footer와 이 문서에 명시합니다.
+- **통계청 SGIS 기반 행정동 경계** (vuski/admdongkor, `HangJeongDong_ver20260701.geojson`) — 시군 경계·라벨 위치의 원천. [vuski/admdongkor](https://github.com/vuski/admdongkor) 저장소는 **CC BY 4.0** 라이선스로 배포되며, 이 프로젝트는 그 경계 데이터를 단순화·가공해 `public/data/regions.geojson`/`neighbors.geojson`(`npm run data:regions`)과, 선택한 시군의 하위 읍면동 경계선용 `public/data/emd/<시군코드>.geojson` 14개(`npm run data:emd`)로 다시 배포합니다 — 출처 표기(CC BY 4.0이 요구하는 저작자 표시)는 화면 하단 Footer와 이 문서에 명시합니다.
 - **배경지도: 국토교통부 브이월드(VWorld) 오픈API** (`midnight` WMTS 타일) — 지도 화면 우측 상단 "배경 지도" 토글을 켜면 표시되는 배경 타일의 원천. 브이월드 오픈API 이용약관에 따라 출처를 표기합니다(지도 오버레이 안의 "배경지도 © 국토교통부 브이월드(VWorld)" 문구). 브라우저에서 브이월드 WMTS 엔드포인트를 직접 호출하며(CORS `access-control-allow-origin: *` 확인됨), 별도의 서버 프록시는 두지 않습니다.
 
 `xlsx` 패키지(devDependency)는 KESS `.xlsx` 원본을 읽는 데이터 파이프라인 전용(`scripts/pipeline/parse-kess.ts` 등)이며, 브라우저로 번들되지 않습니다 — 알려진 보안 권고(advisory)가 있으나 런타임 노출 범위 밖이라 별도 조치 없이 유지합니다.

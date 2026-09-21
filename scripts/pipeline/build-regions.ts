@@ -23,7 +23,10 @@ const ROOT = path.resolve(__dirname, "../..");
 
 export const SOURCE_URL =
   "https://raw.githubusercontent.com/vuski/admdongkor/master/ver20260701/HangJeongDong_ver20260701.geojson";
-const RAW_PATH = path.join(ROOT, "data/raw/admdongkor-ver20260701.geojson");
+// Exported — Task E's build-emd.ts reads the SAME raw national file (it
+// needs the finer 읍면동 granularity this file dissolves away) and must
+// never drift to a second copy of this path.
+export const RAW_PATH = path.join(ROOT, "data/raw/admdongkor-ver20260701.geojson");
 const REGIONS_OUTPUT_PATH = path.join(ROOT, "public/data/regions.geojson");
 const NEIGHBORS_OUTPUT_PATH = path.join(ROOT, "public/data/neighbors.geojson");
 // Task 6, Section C.2 — 라벨 겹침 완화: manual per-region pixel nudges,
@@ -38,7 +41,9 @@ const NEIGHBORS_MAX_BYTES = 200 * 1024;
 // admdongkor's 2-digit `sido` code for 전북특별자치도. Not to be confused
 // with `PROVINCE_CODE` ('52000') in src/lib/geo/regions.ts, which is the
 // 5-digit "전북 전체" aggregate row code used by the indicators pipeline.
-const JB_SIDO = "52";
+// Exported — build-emd.ts filters to the exact same sido, and must never
+// hardcode a second copy of "52".
+export const JB_SIDO = "52";
 
 // Confirmed by inspecting the real source file's distinct `sido`/`sidonm`
 // pairs (see task-1A-report.md): the 2026-07-01 광주+전남 통합 entity is
@@ -65,7 +70,10 @@ function round5(nums: readonly number[]): number[] {
   return nums.map((n) => Math.round(n * 1e5) / 1e5);
 }
 
-async function runMapshaper(
+// Exported — build-emd.ts's own mapshaper pipeline (읍면동-level, no
+// -dissolve) reuses this exact IO wrapper rather than re-deriving the
+// mapshaper.applyCommands/output.geojson-extraction dance.
+export async function runMapshaper(
   commands: string[],
   inputGeojsonText: string,
 ): Promise<string> {
@@ -134,6 +142,21 @@ export function labelOffsetToLngLat([dxPx, dyPx]: readonly [number, number]): [n
   return [eastMeters / metersPerDegreeLongitude + 0, northMeters / METERS_PER_DEGREE_LATITUDE + 0];
 }
 
+// sgg (5자리 시군구 표준코드) is authoritative here — confirmed against the
+// real source that sgg === adm_cd2.slice(0,5), NOT adm_cd.slice(0,5) (adm_cd,
+// the 8-digit 통계청 code, uses an unrelated internal sequence for its middle
+// digits; see task-1A-report.md for the verification). Exported — build-emd.ts
+// needs the identical per-feature `sgg_cd` seed (as a JS-side grouping key,
+// not a mapshaper -dissolve target) so both pipelines agree on what "sgg_cd"
+// means without a second, possibly-drifting copy of this mapshaper -each string.
+export const SGG_CD_FROM_SGG_CMD = '-each "sgg_cd = sgg"';
+// 전주시 완산구(52111)/덕진구(52113) → 52110 (single 전주시 region). Exported
+// for the same reuse reason as SGG_CD_FROM_SGG_CMD above — build-emd.ts's
+// 읍면동-level output groups by this SAME merged code (see its own
+// transformEmd), so a 읍면동 feature from either gu lands in the one
+// `public/data/emd/52110.geojson`.
+export const MERGE_JEONJU_GU_CMD = `-each "sgg_cd = sgg_cd.slice(0,4) === '5211' ? '52110' : sgg_cd"`;
+
 /**
  * sido === '52' (전북) 필터 → sgg_cd(=sgg, 5211*는 52110으로 통합) 로 dissolve
  * → simplify → 미세 섬 제거 → bbox/labelPoint 계산. 14개 시군 코드표에 없는
@@ -155,13 +178,8 @@ export async function transformRegions(
     [
       "-i input.geojson",
       `-filter "sido === '${JB_SIDO}'"`,
-      // sgg (5자리 시군구 표준코드) is authoritative here — confirmed against
-      // the real source that sgg === adm_cd2.slice(0,5), NOT adm_cd.slice(0,5)
-      // (adm_cd, the 8-digit 통계청 code, uses an unrelated internal sequence
-      // for its middle digits; see task-1A-report.md for the verification).
-      '-each "sgg_cd = sgg"',
-      // 전주시 완산구(52111)/덕진구(52113) → 52110 (single 전주시 region).
-      `-each "sgg_cd = sgg_cd.slice(0,4) === '5211' ? '52110' : sgg_cd"`,
+      SGG_CD_FROM_SGG_CMD,
+      MERGE_JEONJU_GU_CMD,
       "-dissolve sgg_cd",
       `-simplify ${simplifyPercent}% keep-shapes`,
       // 추가 요구 #3: drop sub-`minIslandAreaKm2` detached polygon rings (군산
@@ -258,7 +276,10 @@ export async function transformNeighbors(
   return { type: "FeatureCollection", features };
 }
 
-async function ensureSourceDownloaded(): Promise<void> {
+// Exported — build-emd.ts's main() calls this directly (same RAW_PATH/
+// SOURCE_URL, per the task brief: "파일이 없으면 같은 방식으로 내려받는다"),
+// rather than re-implementing its own download/cache-check logic.
+export async function ensureSourceDownloaded(): Promise<void> {
   if (existsSync(RAW_PATH)) {
     console.log(`[build-regions] using cached ${path.relative(ROOT, RAW_PATH)}`);
     return;
