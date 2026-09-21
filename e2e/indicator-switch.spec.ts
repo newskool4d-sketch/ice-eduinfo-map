@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 
 test("switching the indicator updates the legend, with no console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
@@ -19,7 +19,7 @@ test("switching the indicator updates the legend, with no console errors", async
   const legendLabel = page.getByTestId("legend-indicator-label");
   await expect(legendLabel).toHaveText("학생수");
 
-  await page.screenshot({ path: "test-results/indicator-before.png" });
+  await docShot(page, "indicator-before");
 
   // Task 3: the radios now live behind TopBar's IndicatorMenu popover
   // (button + dialog), not inline in the header — open it first.
@@ -32,7 +32,7 @@ test("switching the indicator updates the legend, with no console errors", async
   // settle before the second screenshot, purely for a cleaner capture — this
   // test makes no pixel-comparison assertion either way.
   await page.waitForTimeout(700);
-  await page.screenshot({ path: "test-results/indicator-after.png" });
+  await docShot(page, "indicator-after");
 
   expect(consoleErrors).toEqual([]);
 });

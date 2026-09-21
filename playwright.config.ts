@@ -47,6 +47,13 @@ export default defineConfig({
   // enough that the trade is worth it for determinism.
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  // Per-test budget. On the swiftshader CI runner the fixed costs alone
+  // (context creation up to ~8-10 s on a warm worker, ~4.5 s to map-ready,
+  // ~2 s per frame-bound action) approach Playwright's 30 s default —
+  // trace analysis of run 35578948946 showed every attempt dying on the
+  // TEST timeout, not on an expect. Diagnostic screenshots are skipped on
+  // CI (e2e/fixtures.ts docShot); this is the belt-and-braces half.
+  timeout: process.env.CI ? 90_000 : 30_000,
   // CI fix (run 35570411276) — default expect() timeout, longer on CI's slow
   // software-GL runner; only the WAIT grows, not what's asserted.
   expect: { timeout: process.env.CI ? 15_000 : 5_000 },
@@ -55,9 +62,10 @@ export default defineConfig({
     // CI (software-GL runner): emulate prefers-reduced-motion so the app's own
     // reduced-motion path (useCamera/useReducedMotion → transitionDuration 0,
     // layers' `transitions` omitted) makes camera fly-to and layer morphs
-    // instant. Animated frames on swiftshader saturated the main thread and
-    // delayed React commits past the expect timeout (runs 35570411276,
-    // 35578948946: select-region "Esc → 목록" assertion). Locally unchanged.
+    // instant — saves the 2-3 s pitch poll and the per-frame collision FBO
+    // re-render on that runner. (Earlier revisions of this comment blamed a
+    // delayed React commit for the select-region flake; the traces showed
+    // it was the 30 s test budget — see `timeout` above.) Locally unchanged.
     reducedMotion: process.env.CI ? "reduce" : undefined,
     // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — no added
     // dependency (both reporters are built into @playwright/test); gives the
@@ -66,7 +74,10 @@ export default defineConfig({
     // 'only-on-failure'/'retain-on-failure' both already skip passing tests,
     // so this doesn't bloat the artifact on a green run. Local runs are
     // unaffected (default 'off').
-    trace: process.env.CI ? "retain-on-failure" : undefined,
+    // "on-first-retry": the first attempt runs without trace recording
+    // (context teardown measured ~5 s per test with tracing on), retries
+    // still record so a persistent failure ships a trace.
+    trace: process.env.CI ? "on-first-retry" : undefined,
     screenshot: process.env.CI ? "only-on-failure" : undefined,
   },
   webServer: {

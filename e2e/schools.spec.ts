@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 async function waitForMapReady(page: Page) {
@@ -68,7 +68,7 @@ test.describe("학교 점", () => {
     // 학교급 4색 legend key appears once a 시군 is selected.
     await expect(page.getByTestId("legend-school-swatch").first()).toBeVisible();
 
-    await page.screenshot({ path: "test-results/schools-before-highlight.png" });
+    await docShot(page, "schools-before-highlight");
 
     await rows.first().click();
     await expect(rows.first()).toHaveAttribute("aria-current", "true");
@@ -78,7 +78,7 @@ test.describe("학교 점", () => {
     // pause is just a generous margin for the frame to actually paint
     // before the screenshot, not a wait on any particular duration.
     await page.waitForTimeout(300);
-    await page.screenshot({ path: "test-results/schools-after-highlight.png" });
+    await docShot(page, "schools-after-highlight");
 
     expect(consoleErrors).toEqual([]);
   });

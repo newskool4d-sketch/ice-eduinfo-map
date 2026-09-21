@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { docShot, expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 // Flake mitigation: local 5-worker runs can hit CDP "session closed" on page.reload() here.
@@ -47,7 +47,7 @@ test.describe("배경 지도 (VWorld midnight)", () => {
     await expect.poll(() => basemapLayerId(page)).toBe("basemap");
     await expect(page.getByTestId("basemap-attribution")).toBeVisible();
 
-    await page.screenshot({ path: "test-results/basemap-on.png" });
+    await docShot(page, "basemap-on");
 
     // OFF: layer disappears (null, not just invisible), attribution hides.
     await toggle.click();
@@ -55,7 +55,7 @@ test.describe("배경 지도 (VWorld midnight)", () => {
     await expect.poll(() => basemapLayerId(page)).toBeNull();
     await expect(page.getByTestId("basemap-attribution")).toHaveCount(0);
 
-    await page.screenshot({ path: "test-results/basemap-off.png" });
+    await docShot(page, "basemap-off");
 
     // Persisted: a fresh page load still reads OFF back from localStorage.
     await page.reload();
