@@ -47,7 +47,7 @@ describe("createPostProcessEffects", () => {
       props: Record<string, unknown>;
     }[];
     const byId = Object.fromEntries(effects.map((e) => [e.id, e.props]));
-    expect(byId["vibrance-pass"]).toEqual({ amount: 0.15 });
+    expect(byId["vibrance-pass"]).toEqual({ amount: 0.05 });
     expect(byId["brightnessContrast-pass"]).toEqual({ brightness: 0.02, contrast: 0.05 });
     expect(byId["vignette-pass"]).toEqual({ radius: 0.9, amount: 0.15 });
     expect(byId["tiltShift-pass"]).toEqual({ blurRadius: 4, gradientRadius: 320 });

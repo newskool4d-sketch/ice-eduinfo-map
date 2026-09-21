@@ -3,7 +3,6 @@ import { BitmapLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import type { BitmapLayerProps } from "@deck.gl/layers";
 
 import type { BasemapMode } from "@/components/map/basemapPref";
-import { CONTROLLER } from "@/components/map/camera";
 
 /** The two modes that actually draw tiles — `off` never reaches these factories (DeckMap keeps the layer slots `null`). */
 export type BasemapTiles = Exclude<BasemapMode, "off">;
@@ -33,15 +32,24 @@ const TILE_SOURCE: Record<BasemapTiles, { layer: string; ext: string; desaturate
 };
 
 /**
- * `[west, south, east, north]` — MUST match `CONTROLLER.maxBounds`
- * (camera.ts) flattened, so the basemap never fetches tiles for anywhere
- * outside where the user can ever pan/zoom. Derived from CONTROLLER here
- * (not re-typed as a literal) so the two can never silently drift apart —
- * `tests/unit/basemapLayer.test.ts` pins both the derived value AND the
- * literal `[125.6, 34.7, 128.7, 36.7]` it currently resolves to.
+ * One coverage rectangle for BOTH the tile extent and the wash polygon
+ * (final review ruling, 2026-09-21). It is deliberately much larger than
+ * `CONTROLLER.maxBounds` (camera.ts): TileLayer's `extent` only decides which
+ * tiles may load — a tile straddling the edge is drawn whole — and tiles
+ * outside the old maxBounds-sized extent left a hard "map sheet" edge on the
+ * paper floor at the overview. TileLayer still only requests tiles inside the
+ * viewport ∩ extent, so widening the extent does not add requests beyond what
+ * is visible. MapController keeps the camera inside maxBounds (measured worst
+ * settled view at pitch 56: lng 124.1–130.2 / lat 34.5–39.2), so this
+ * rectangle always covers the whole screen.
  */
-const [[WEST, SOUTH], [EAST, NORTH]] = CONTROLLER.maxBounds;
-const BASEMAP_EXTENT: [number, number, number, number] = [WEST, SOUTH, EAST, NORTH];
+export const BASEMAP_COVERAGE = { west: 120, south: 30, east: 135, north: 41 } as const;
+const BASEMAP_EXTENT: [number, number, number, number] = [
+  BASEMAP_COVERAGE.west,
+  BASEMAP_COVERAGE.south,
+  BASEMAP_COVERAGE.east,
+  BASEMAP_COVERAGE.north,
+];
 
 /**
  * Lowest tile zoom the TileLayer will ever request (far tiles in the
@@ -130,38 +138,19 @@ const WASH_ALPHA: Record<BasemapTiles, number> = { satellite: 110, base: 60 };
 type WashDatum = { polygon: [number, number][] };
 
 /**
- * The wash geometry: ONE fixed rectangle, deliberately much larger than
- * `BASEMAP_EXTENT` and NOT derived from it (Task 3 review ruling).
- *
- * Why not the extent itself: TileLayer's `extent` only decides WHICH tiles
- * load — a tile that straddles the extent edge is still drawn whole, so at
- * low zoom a band of tiles spills past the rectangle. A wash cut at the
- * extent left that band unwashed (dark satellite framing a visibly lighter
- * rectangle — Task 3 screenshot round 1), and padding the extent by a tile
- * width still leaves an edge that some zoom/pitch can bring on screen, plus
- * a brightness step where washed paper meets bare paper (≈10 levels).
- *
- * Why this size: it is bigger than any area the camera can show. At the
- * nominal zoom floor (VIEW_LIMITS.minZoom 7.5, pitch 56) a 1600px viewport
- * spans ≈12.3° of longitude corner to corner, and `CONTROLLER.maxBounds`
- * (125.6–128.7 / 34.7–36.7) keeps the camera center within ≈2° of this
- * ring's middle (127.5°E, 35.5°N) — so the ring always covers the whole
- * screen and none of its edges can ever be seen. In practice the margin is
- * larger still: deck.gl's MapController keeps the whole (pitch-0) viewport
- * inside `maxBounds`, which raises the effective zoom floor (≈8.5 at 1600px
- * wide); measured with WebMercatorViewport at pitch 56, settled camera
- * states see at most lng 124.1–130.2 / lat 34.5–39.2 for every viewport
- * ≥768px, and a drag's `rubberBand` overshoot at most 122.5–131.8 /
- * 33.5–40.1 (wheel/widget zoom is hard-clamped, no overshoot). Where the
- * ring lies past the tiles it just tints the paper background (#f5f2eb →
- * ≈#f9f8f4 at alpha 110) — uniform across the viewport, so invisible.
+ * The wash covers the same fixed rectangle as the tile extent
+ * (`BASEMAP_COVERAGE`), so there is never a visible wash edge or brightness
+ * band inside the viewport. Coverage rests on MapController keeping the
+ * pitch-0 viewport inside `CONTROLLER.maxBounds` (effective zoom floor ≈8.5 at
+ * 1600px) with pitch fixed at 56/58 by camera.ts; VIEW_LIMITS.maxPitch (72)
+ * would break it only if tilt input were ever re-enabled.
  */
 const WASH_RING: [number, number][] = [
-  [120, 30],
-  [135, 30],
-  [135, 41],
-  [120, 41],
-  [120, 30],
+  [BASEMAP_COVERAGE.west, BASEMAP_COVERAGE.south],
+  [BASEMAP_COVERAGE.east, BASEMAP_COVERAGE.south],
+  [BASEMAP_COVERAGE.east, BASEMAP_COVERAGE.north],
+  [BASEMAP_COVERAGE.west, BASEMAP_COVERAGE.north],
+  [BASEMAP_COVERAGE.west, BASEMAP_COVERAGE.south],
 ];
 
 /** One datum holding the ring — module constant so the layer's `data` reference is stable across renders. */

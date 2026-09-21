@@ -78,7 +78,7 @@ export default function Legend({
           <div key={i} className="flex flex-col items-center gap-1">
             <span
               data-testid="legend-swatch"
-              className="h-3 w-7"
+              className="h-3 w-7 ring-1 ring-inset ring-ink/10"
               style={{ backgroundColor: rgbCss(rgb) }}
               aria-hidden
             />
@@ -92,7 +92,7 @@ export default function Legend({
           <div className="ml-2 flex flex-col items-center gap-1">
             <span
               data-testid="legend-null-swatch"
-              className="h-3 w-7"
+              className="h-3 w-7 ring-1 ring-inset ring-ink/10"
               style={{ backgroundColor: rgbCss(NULL_COLOR) }}
               aria-hidden
             />
@@ -115,7 +115,7 @@ export default function Legend({
                     columns rather than flat points. */}
                 <span
                   data-testid="legend-school-swatch"
-                  className="h-2.5 w-2.5 rounded-sm"
+                  className="h-2.5 w-2.5 rounded-sm ring-1 ring-inset ring-ink/10"
                   style={{ backgroundColor: rgbCss([r, g, b]) }}
                   aria-hidden
                 />

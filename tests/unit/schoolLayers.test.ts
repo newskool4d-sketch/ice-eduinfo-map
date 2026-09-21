@@ -91,7 +91,7 @@ describe("SCHOOL_LEVEL_COLORS — 급별 색 alpha 255", () => {
   // pastel-on-dark set, so a column reads against a light pastel top face.
   it("SCHOOL_LEVEL_COLORS are the light-theme values", () => {
     expect(SCHOOL_LEVEL_COLORS.elem).toEqual([29, 155, 209, 255]);
-    expect(SCHOOL_LEVEL_COLORS.mid).toEqual([224, 169, 43, 255]);
+    expect(SCHOOL_LEVEL_COLORS.mid).toEqual([191, 138, 16, 255]);
     expect(SCHOOL_LEVEL_COLORS.high).toEqual([224, 89, 42, 255]);
     expect(SCHOOL_LEVEL_COLORS.special).toEqual([90, 166, 74, 255]);
   });

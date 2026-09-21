@@ -67,7 +67,7 @@ export default function IndicatorPicker({ value, onChange, series = {} }: Indica
                       checked={checked}
                       onChange={() => onChange(def.id)}
                       aria-describedby={descriptionId}
-                      className="mr-1 align-middle"
+                      className="mr-1 align-middle accent-accent"
                     />
                     {displayLabel(def, series)}
                   </label>

@@ -247,9 +247,11 @@ describe("MapOverlay", () => {
         expect(onChange).toHaveBeenCalledWith("base");
         expect(radios[2]).toHaveFocus();
         await user.keyboard("{ArrowDown}");
-        // Controlled component with a vi.fn(): `value` is still "satellite",
-        // so "next" is computed from the checked option again.
-        expect(onChange).toHaveBeenLastCalledWith("base");
+        // Movement is relative to the FOCUSED radio (WAI-ARIA), so from the
+        // last option ArrowDown wraps to the first even though the controlled
+        // `value` (vi.fn) is still "satellite".
+        expect(onChange).toHaveBeenLastCalledWith("off");
+        expect(radios[0]).toHaveFocus();
         expect(onChange).toHaveBeenCalledTimes(2);
       });
 
@@ -261,11 +263,25 @@ describe("MapOverlay", () => {
         expect(last.onChange).toHaveBeenLastCalledWith("off");
         expect(last.radios[0]).toHaveFocus();
         await user.keyboard("{ArrowLeft}");
+        // From the focused first option, ArrowLeft wraps to the last.
+        expect(last.onChange).toHaveBeenLastCalledWith("base");
+        expect(last.radios[2]).toHaveFocus();
+        await user.keyboard("{ArrowUp}");
+        // From the focused last option, ArrowUp moves to the middle one.
         expect(last.onChange).toHaveBeenLastCalledWith("satellite");
         expect(last.radios[1]).toHaveFocus();
-        await user.keyboard("{ArrowUp}");
-        expect(last.onChange).toHaveBeenLastCalledWith("satellite");
         expect(last.onChange).toHaveBeenCalledTimes(3);
+      });
+
+      it("ignores Alt/Ctrl/Meta+Arrow chords (browser Back/Forward etc.)", async () => {
+        const user = userEvent.setup();
+        const { radios, onChange } = renderGroup("satellite");
+        radios[1].focus();
+        await user.keyboard("{Alt>}{ArrowRight}{/Alt}");
+        await user.keyboard("{Meta>}{ArrowLeft}{/Meta}");
+        await user.keyboard("{Control>}{ArrowDown}{/Control}");
+        expect(onChange).not.toHaveBeenCalled();
+        expect(radios[1]).toHaveFocus();
       });
 
       it("ArrowLeft from the first option wraps to the last", async () => {

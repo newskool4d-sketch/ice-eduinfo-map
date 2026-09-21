@@ -31,6 +31,9 @@ type PatchableProto = { _resizeRenderBuffers?: (canvasContext?: CanvasContextLik
 
 let applied = false;
 
+/** Canvas-equivalent depth precision — see the comment at the createTexture call. */
+export const DEPTH_FORMAT = "depth24plus";
+
 /**
  * Task 2 fix round 1 (spec §3 "깊이 버퍼 패치") — deck.gl 9.4.0 renders the
  * layers pass into depth-less offscreen buffers whenever any
@@ -41,13 +44,13 @@ let applied = false;
  * test is a no-op, so later-drawn 시군 overpaint earlier, taller ones (전주시's
  * top face vanished under 완주군's fill; its school columns floated on the
  * wrong color). deck's own shadow pass (shadow-pass.js:22-29) shows the
- * intended recipe — `device.createTexture({ format: 'depth16unorm', width,
+ * intended recipe — `device.createTexture({ format: 'depth24plus', width,
  * height })` passed as `depthStencilAttachment` — so this replaces the method
  * with the same body plus that attachment on both buffers.
  *
- * No extra resize handling is needed: luma's `Framebuffer.resizeAttachments`
- * (framebuffer.js) clones the depth attachment alongside the color ones, so
- * the per-frame `buffer.resize(size)` keeps both in step. The post-process
+ *  * Resizing: luma's `Framebuffer.resizeAttachments` clones the depth attachment on every
+ * size change but leaks the replaced texture (view-vs-texture mismatch, framebuffer.js:122-130);
+ * `releaseReplacedDepthTexture` below detaches and destroys it.
  * ScreenPass draws with `depthCompare: 'always'` and `clearDepth: 1`
  * (screen-pass.js), so the added attachment doesn't affect the effect chain.
  *
@@ -67,12 +70,23 @@ export function applyDeckDepthPatch(): boolean {
     if (this.renderBuffers.length === 0) {
       for (const i of [0, 1]) {
         const color = this.device.createTexture({ sampler: { minFilter: "linear", magFilter: "linear" }, width, height });
-        const depth = this.device.createTexture({ format: "depth16unorm", width, height });
+        // Only renderBuffers[0] ever receives the layers pass (deck-renderer.js
+        // `outputBuffer`); [1] is a ping-pong target for screen-space passes
+        // that run with depthCompare 'always', so it needs no depth.
+        // `depth24plus` (WebGL2 DEPTH_COMPONENT24) matches the canvas' own
+        // precision: deck's per-layer polygonOffset (`getPolygonOffset`
+        // default `-layerIndex * 100` units) is expressed in depth-buffer
+        // resolution units, so a 16-bit buffer would amplify every layer's
+        // offset ~256× and let later layers (rings, emd lines, columns)
+        // bleed through nearer geometry.
+        const depth = i === 0 ? this.device.createTexture({ format: DEPTH_FORMAT, width, height }) : undefined;
         this.renderBuffers.push(
           this.device.createFramebuffer({
             id: `deck-renderbuffer-${i}`,
+            width,
+            height,
             colorAttachments: [color],
-            depthStencilAttachment: depth,
+            ...(depth ? { depthStencilAttachment: depth } : {}),
           }),
         );
       }
@@ -101,12 +115,12 @@ export function applyDeckDepthPatch(): boolean {
  * (resource.js:155-158) — it is handed the view, but what was registered on
  * the previous resize is the texture, so the delete never matches, nothing is
  * destroyed, and each distinct drawing-buffer size leaves one more full-size
- * depth16unorm texture (≈2.9 MB at 1600×900) strongly held in the set until
+ * depth24plus texture (≈2.9 MB at 1600×900) strongly held in the set until
  * `DeckRenderer.finalize()`. (Our very first texture is never registered at
  * all — `autoCreateAttachmentTextures` only attaches string-created ones —
  * so it only leaks its GL handle, not a JS reference.) The color branch
  * (:112-120) attaches the VIEW both times and is symmetric, so it is left
- * alone. Passing the string 'depth16unorm' instead of a texture accumulates
+ * alone. Passing the string 'depth24plus' instead of a texture accumulates
  * identically (verified by the reviewer), hence this explicit release: once
  * `resize` has swapped the attachment, drop the replaced texture from the
  * ownership set (so `finalize()` doesn't double-destroy) and destroy it.

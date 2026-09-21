@@ -16,6 +16,21 @@ test("home page renders the 3D map with 14 regions and no console errors", async
   await expect(page).toHaveTitle(/전북교육지도/);
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
+
+  // Final review: lock that the deck.gl depth-buffer patch (deckDepthPatch.ts)
+  // is applied at runtime — post-processing is on by default, so the
+  // offscreen render buffers exist and buffer 0 must carry a depth attachment.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const deck = window.__jbmap?.deck as unknown as
+          | { deckRenderer?: { renderBuffers?: { depthStencilAttachment?: unknown }[] } }
+          | undefined;
+        const buffers = deck?.deckRenderer?.renderBuffers ?? [];
+        return buffers.length === 2 && Boolean(buffers[0].depthStencilAttachment);
+      }),
+    )
+    .toBe(true);
   // CI Linux fix (ci-linux-fixes branch, see ci-fix-report.md) — also wait
   // for data-labels-ready: an actual deck.gl render frame that occurred
   // once the font was ready, i.e. AFTER deck.gl's synchronous SDF-atlas

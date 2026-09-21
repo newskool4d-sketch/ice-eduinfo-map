@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { DeckRenderer } from "@deck.gl/core";
+import { DeckRenderer, VERSION } from "@deck.gl/core";
 
-import { applyDeckDepthPatch } from "@/components/map/deckDepthPatch";
+import { applyDeckDepthPatch, DEPTH_FORMAT } from "@/components/map/deckDepthPatch";
 
 // Task 2 fix round 1 — deck.gl 9.4.0 renders the layers pass into
 // `DeckRenderer.renderBuffers` (two ping-pong offscreen framebuffers) whenever
@@ -10,7 +10,7 @@ import { applyDeckDepthPatch } from "@/components/map/deckDepthPatch";
 // luma.gl 9 does not auto-create a depth attachment, so depth testing is
 // silently off for the whole scene and later-drawn 시군 overpaint earlier,
 // taller ones (전주시's top face vanished under 완주군). The patch attaches a
-// `depth16unorm` texture (the same format deck's own ShadowPass uses,
+// `depth24plus` texture (the same format deck's own ShadowPass uses,
 // shadow-pass.js:22-29) to both buffers.
 
 type Proto = { _resizeRenderBuffers?: (ctx?: unknown) => void };
@@ -46,27 +46,30 @@ describe("applyDeckDepthPatch", () => {
     expect(patched).not.toBe(original);
   });
 
-  it("(b) first call creates 2 framebuffers, each with a depth16unorm depthStencilAttachment sized to the drawing buffer", () => {
+  it("(b) first call creates 2 framebuffers; only renderBuffers[0] gets a depth24plus depthStencilAttachment sized to the drawing buffer", () => {
     const self = fakeRenderer([800, 600]);
     patched!.call(self);
 
     expect(self.device.createFramebuffer).toHaveBeenCalledTimes(2);
-    for (const [props] of self.device.createFramebuffer.mock.calls as [Record<string, unknown>][]) {
+    const fbCalls = self.device.createFramebuffer.mock.calls as [Record<string, unknown>][];
+    expect(fbCalls[0][0]).toMatchObject({ width: 800, height: 600 });
+    expect(fbCalls[1][0]).not.toHaveProperty("depthStencilAttachment");
+    for (const [props] of fbCalls.slice(0, 1)) {
       expect(props).toHaveProperty("depthStencilAttachment");
-      expect(props.depthStencilAttachment).toMatchObject({ format: "depth16unorm", width: 800, height: 600 });
+      expect(props.depthStencilAttachment).toMatchObject({ format: "depth24plus", width: 800, height: 600 });
       expect(Array.isArray(props.colorAttachments)).toBe(true);
       expect((props.colorAttachments as unknown[]).length).toBe(1);
     }
     expect(self.device.createFramebuffer.mock.calls[0][0]).toMatchObject({ id: "deck-renderbuffer-0" });
     expect(self.device.createFramebuffer.mock.calls[1][0]).toMatchObject({ id: "deck-renderbuffer-1" });
 
-    // 4 textures in total: 2 color (deck's original) + 2 depth (the patch).
+    // 3 textures in total: 2 color (deck's original) + 1 depth (the patch, buffer 0 only).
     const textureCalls = self.device.createTexture.mock.calls as [Record<string, unknown>][];
-    expect(textureCalls).toHaveLength(4);
-    const depthCalls = textureCalls.filter(([p]) => p.format === "depth16unorm");
-    expect(depthCalls).toHaveLength(2);
-    for (const [p] of depthCalls) expect(p).toEqual({ format: "depth16unorm", width: 800, height: 600 });
-    const colorCalls = textureCalls.filter(([p]) => p.format !== "depth16unorm");
+    expect(textureCalls).toHaveLength(3);
+    const depthCalls = textureCalls.filter(([p]) => p.format === "depth24plus");
+    expect(depthCalls).toHaveLength(1);
+    for (const [p] of depthCalls) expect(p).toEqual({ format: "depth24plus", width: 800, height: 600 });
+    const colorCalls = textureCalls.filter(([p]) => p.format !== "depth24plus");
     expect(colorCalls).toHaveLength(2);
     for (const [p] of colorCalls) {
       expect(p).toEqual({ sampler: { minFilter: "linear", magFilter: "linear" }, width: 800, height: 600 });
@@ -113,7 +116,7 @@ describe("applyDeckDepthPatch", () => {
   // `destroyAttachedResource(this.depthStencilAttachment)` with the old
   // TextureVIEW but `attachResource(resizedTexture)` with the new TEXTURE,
   // so the `Set.delete(view)` never matches: every distinct drawing-buffer
-  // size left one more full-size depth16unorm texture strongly held in the
+  // size left one more full-size depth24plus texture strongly held in the
   // framebuffer's `_attachedResources` (≈2.9 MB each at 1600×900) until
   // `DeckRenderer.finalize()`. The patch releases the replaced texture
   // itself. This fake mirrors luma's shape: `depthStencilAttachment` is a
@@ -181,5 +184,16 @@ describe("applyDeckDepthPatch", () => {
       expect(() => patched!.call(rendererWith(fb, [640, 480]))).not.toThrow();
       expect(fb.resize).toHaveBeenCalledWith([640, 480]);
     });
+  });
+});
+
+// Loud guard for a deck.gl bump: the patch reproduces deck-renderer.js's
+// private `_resizeRenderBuffers` body for exactly this version. When deck.gl
+// changes (or ships its own depth attachment), re-verify against
+// node_modules/@deck.gl/core/dist/lib/deck-renderer.js and update both.
+describe("deck.gl version guard", () => {
+  it("is the version the patch was written against (9.4.0) and uses the canvas-equivalent depth format", () => {
+    expect(VERSION).toBe("9.4.0");
+    expect(DEPTH_FORMAT).toBe("depth24plus");
   });
 });

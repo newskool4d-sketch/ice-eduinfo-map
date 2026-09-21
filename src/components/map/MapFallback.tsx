@@ -123,7 +123,7 @@ export default function MapFallback({ indicatorId, bundle, selectedCode, onSelec
                   <div className="h-3 w-full rounded-sm bg-ink/5">
                     <div
                       data-testid="fallback-bar-fill"
-                      className="h-3 rounded-sm"
+                      className="h-3 rounded-sm ring-1 ring-inset ring-ink/15"
                       style={{ width: `${pct}%`, backgroundColor: rgbCss([cr, cg, cb]) }}
                     />
                   </div>

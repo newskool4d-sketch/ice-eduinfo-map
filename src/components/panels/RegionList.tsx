@@ -53,7 +53,7 @@ export default function RegionList({ bundle }: RegionListProps) {
               >
                 <span
                   aria-hidden
-                  className="h-3 w-3 shrink-0 rounded-sm"
+                  className="h-3 w-3 shrink-0 rounded-sm ring-1 ring-inset ring-ink/10"
                   style={{ backgroundColor: rgbCss([cr, cg, cb]) }}
                 />
                 <span className="flex-1 truncate text-sm text-ink">{regionName(code)}</span>

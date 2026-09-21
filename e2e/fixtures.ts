@@ -49,10 +49,11 @@ export { expect };
 /**
  * Diagnostic screenshot for local runs only. On CI (headless Chromium on
  * swiftshader software GL) a full-page WebGL capture costs ~10 s each —
- * trace analysis of run 35578946 showed two of them consuming 20–22 s of
+ * trace analysis of run 35578948946 showed two of them consuming 20–22 s of
  * a test's 30 s budget, which is what actually made select-region flake
  * (not the Escape assertion). CI already keeps `screenshot: "only-on-failure"`
- * and traces, so nothing is lost there.
+ * and records a trace from the first retry onward (playwright.config.ts
+ * `trace: "on-first-retry"`), so nothing is lost there.
  */
 export async function docShot(page: Page, name: string): Promise<void> {
   if (process.env.CI) return;

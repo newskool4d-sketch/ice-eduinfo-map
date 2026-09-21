@@ -21,7 +21,7 @@ export type RGBA = [number, number, number, number];
  */
 export const SCHOOL_LEVEL_COLORS: Record<SchoolLevel, RGBA> = {
   elem: [29, 155, 209, 255], // #1d9bd1 — blue
-  mid: [224, 169, 43, 255], // #e0a92b — amber
+  mid: [191, 138, 16, 255], // #bf8a10 — amber (darkened for the light theme; 1.9:1 → ≥ 3:1 on paper)
   high: [224, 89, 42, 255], // #e0592a — orange-red
   special: [90, 166, 74, 255], // #5aa64a — green
 };

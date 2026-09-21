@@ -151,15 +151,21 @@ function SegmentedRadioGroup({ item }: { item: MapOverlaySegmentedItem }) {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const count = item.options.length;
     if (count === 0) return;
+    // Leave browser/OS chords alone (Alt/Cmd+Arrow = Back/Forward, etc.).
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    // Move relative to the FOCUSED radio (WAI-ARIA), falling back to the
+    // checked one when focus is not on a radio.
+    const focusedIndex = buttonRefs.current.indexOf(document.activeElement as HTMLButtonElement | null);
+    const fromIndex = focusedIndex >= 0 ? focusedIndex : tabStopIndex;
     let next: number;
     switch (event.key) {
       case "ArrowRight":
       case "ArrowDown":
-        next = (tabStopIndex + 1) % count;
+        next = (fromIndex + 1) % count;
         break;
       case "ArrowLeft":
       case "ArrowUp":
-        next = (tabStopIndex - 1 + count) % count;
+        next = (fromIndex - 1 + count) % count;
         break;
       case "Home":
         next = 0;

@@ -3,11 +3,7 @@ import { SolidPolygonLayer } from "@deck.gl/layers";
 import type { BitmapLayer } from "@deck.gl/layers";
 
 import { CONTROLLER } from "@/components/map/camera";
-import {
-  makeBasemapLayer,
-  makeBasemapWashLayer,
-  vworldTileUrl,
-} from "@/components/map/layers/basemapLayer";
+import { BASEMAP_COVERAGE, makeBasemapLayer, makeBasemapWashLayer, vworldTileUrl } from "@/components/map/layers/basemapLayer";
 
 describe("vworldTileUrl", () => {
   it("builds the VWorld WMTS midnight URL template, row=y col=x", () => {
@@ -63,19 +59,14 @@ describe("makeBasemapLayer", () => {
     }
   });
 
-  // Task C brief: extent MUST equal CONTROLLER.maxBounds flattened — fixed by
-  // this test both against the literal (catches an accidental typo in this
-  // file) AND against CONTROLLER itself (catches the two ever drifting
-  // apart if camera.ts's maxBounds is ever tuned later).
-  it("extent equals CONTROLLER.maxBounds flattened to [west, south, east, north]", () => {
+  // Final review ruling: the tile extent is the fixed BASEMAP_COVERAGE
+  // rectangle (shared with the wash ring), NOT CONTROLLER.maxBounds — tiles
+  // straddling a maxBounds-sized extent left a hard "map sheet" edge on the
+  // paper floor at the overview.
+  it("extent is the fixed BASEMAP_COVERAGE rectangle [120, 30, 135, 41]", () => {
     const layer = makeBasemapLayer("mykey", "satellite");
-    expect(layer.props.extent).toEqual([125.6, 34.7, 128.7, 36.7]);
-    expect(layer.props.extent).toEqual([
-      CONTROLLER.maxBounds[0][0],
-      CONTROLLER.maxBounds[0][1],
-      CONTROLLER.maxBounds[1][0],
-      CONTROLLER.maxBounds[1][1],
-    ]);
+    expect(layer.props.extent).toEqual([120, 30, 135, 41]);
+    expect(layer.props.extent).toEqual([BASEMAP_COVERAGE.west, BASEMAP_COVERAGE.south, BASEMAP_COVERAGE.east, BASEMAP_COVERAGE.north]);
   });
 
   // REQUIRED: TileLayer's own default onTileError is console.error — 8 of
@@ -150,7 +141,7 @@ describe("makeBasemapLayer", () => {
 // the tiles. BitmapLayer's `tintColor` is multiplicative and can only darken,
 // so "brighter satellite" has to be a white polygon over it (spec "검증된 사실").
 describe("makeBasemapWashLayer", () => {
-  it("is a non-pickable, non-shadow-casting white SolidPolygonLayer over the basemap extent", () => {
+  it("is a non-pickable, non-shadow-casting white SolidPolygonLayer (one fixed oversized rectangle)", () => {
     const layer = makeBasemapWashLayer("satellite");
     expect(layer).toBeInstanceOf(SolidPolygonLayer);
     expect(layer.props.id).toBe("basemap-wash");
@@ -170,9 +161,7 @@ describe("makeBasemapWashLayer", () => {
   // TileLayer's `extent` only decides WHICH tiles load, a tile straddling
   // the edge is still drawn whole, so any wash cut near the extent leaves a
   // visible unwashed band / brightness edge. `[120,30]–[135,41]` is larger
-  // than any area the camera can ever show (minZoom 7.5 at 1600px ≈ 12.4°
-  // of longitude; maxBounds keeps the center within ±6.2° of the ring's
-  // middle), so no edge of it is ever on screen. Pinned as a literal — it is
+  // than any area the camera can ever show (see the coverage comment in basemapLayer.ts: MapController keeps the camera inside maxBounds, worst settled view lng 124.1–130.2 / lat 34.5–39.2), so no edge of it is ever on screen. Pinned as a literal — it is
   // deliberately NOT derived from CONTROLLER.maxBounds or the tile zoom.
   it("is one fixed closed ring [120,30]–[135,41], larger than anything the viewport can reach", () => {
     const data = makeBasemapWashLayer("satellite").props.data as { polygon: number[][] }[];

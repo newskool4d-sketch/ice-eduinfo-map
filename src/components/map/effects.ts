@@ -38,7 +38,7 @@ export function createPostProcessEffects({ presentation, fxOff }: CreatePostProc
   if (fxOff) return [];
 
   const effects: Effect[] = [
-    new PostProcessEffect(vibrance, { amount: 0.15 }),
+    new PostProcessEffect(vibrance, { amount: 0.05 }),
     new PostProcessEffect(brightnessContrast, { brightness: 0.02, contrast: 0.05 }),
     new PostProcessEffect(vignette, { radius: 0.9, amount: 0.15 }),
   ];
