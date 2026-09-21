@@ -199,11 +199,13 @@ describe("makeRegionLabelLayer", () => {
 });
 
 // Task B — CollisionFilterExtension: hides overlapping region-name chips
-// instead of letting them stack illegibly. `collisionGroup: 'labels'` keeps
-// this layer's collision test separate from school-labels' own
-// ('school-labels', see schoolLayers.test.ts) — confirmed against the
-// installed @deck.gl/extensions' collision-filter-effect.js, which buckets
-// layers into one FBO per `collisionGroup`.
+// instead of letting them stack illegibly. `collisionGroup: 'labels'` is
+// SHARED with school-labels since Task D fix round 1 (see schoolLayers.ts /
+// schoolLayers.test.ts): the installed @deck.gl/extensions'
+// collision-filter-effect.js buckets layers into one FBO per
+// `collisionGroup`, so sharing the group is what lets a 시군 chip (priority
+// [-15, 1000]) out-rank and hide any school chip ([-1000, -100]) whose
+// anchor it covers. `collisionTestProps` stays per-layer inside the group.
 describe("makeRegionLabelLayer — CollisionFilterExtension (Task B)", () => {
   type Ctx = { index: number; data: RegionLabel[]; target: number[] };
   const ctxFor = (data: RegionLabel[]): Ctx => ({ index: 0, data, target: [] });

@@ -92,6 +92,11 @@ test.describe("학교 점", () => {
   }) => {
     await page.goto("/?region=52110");
     await waitForMapReady(page);
+    // Both label layers only enter DeckMap's layers array once the font gate
+    // opens (`fontReady`), which is decoupled from `data-map-ready` — same
+    // wait as e2e/select-region.spec.ts / smoke.spec.ts use before reading
+    // font-gated layers.
+    await expect(page.locator('[data-labels-ready="true"]')).toBeAttached({ timeout: 20000 });
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
 
     const { schoolLabels, regionLabels } = await readLabelLayerIndices(page);
