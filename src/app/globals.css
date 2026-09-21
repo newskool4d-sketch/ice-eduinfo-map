@@ -4,6 +4,9 @@ html,
 body {
   height: 100%;
   overflow: hidden;
+  /* 트랙패드 두 손가락 가로 스와이프가 브라우저 뒤로/앞으로 가기로 새지 않게
+     (지도 위 제스처 보호, 2026-09-21). 모바일 pull-to-refresh 도 함께 꺼진다. */
+  overscroll-behavior: none;
   background: #0b0f19;
   color: #e6e9f0;
 }

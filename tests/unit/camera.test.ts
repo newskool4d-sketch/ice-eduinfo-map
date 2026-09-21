@@ -172,7 +172,12 @@ describe("fitRegion", () => {
 
 describe("constants", () => {
   it("CONTROLLER carries the specified interaction options", () => {
-    expect(CONTROLLER.dragRotate).toBe(true);
+    // 2026-09-21 사용자 요구: 북쪽 고정·회전 없음, 좌클릭 드래그 = 이동, 스크롤 = 줌.
+    expect(CONTROLLER.dragPan).toBe(true);
+    expect(CONTROLLER.dragRotate).toBe(false);
+    expect(CONTROLLER.touchRotate).toBe(false);
+    expect(CONTROLLER.scrollZoom).toBe(true);
+    expect(OVERVIEW_BEARING).toBe(0);
     expect(CONTROLLER.doubleClickZoom).toBe(false);
     expect(CONTROLLER.keyboard).toBe(false);
     expect(CONTROLLER.inertia).toBe(300);

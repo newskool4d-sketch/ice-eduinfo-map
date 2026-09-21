@@ -3,7 +3,9 @@ import { FlyToInterpolator, WebMercatorViewport } from "@deck.gl/core";
 import type { Bbox } from "@/lib/geo/geo";
 
 export const OVERVIEW_PITCH = 56;
-export const OVERVIEW_BEARING = -15;
+// 사용자 요구(2026-09-21): 지도는 항상 북쪽이 위 — 회전 없음. bearing 은 0 으로 고정되고
+// CONTROLLER 가 drag/touch 회전을 모두 끈다(아래).
+export const OVERVIEW_BEARING = 0;
 
 export const VIEW_LIMITS = {
   minZoom: 7.5,
@@ -16,7 +18,14 @@ export const VIEW_LIMITS = {
 // ControllerOptions in @deck.gl/core/dist/controllers/controller.d.ts) — no
 // type augmentation needed.
 export const CONTROLLER = {
-  dragRotate: true,
+  // 사용자 요구(2026-09-21): 좌클릭 드래그 = 이동, 스크롤 = 줌만. 회전·기울기
+  // 변경은 어떤 입력으로도 불가(우클릭·Shift 드래그·두 손가락 회전·키보드).
+  // 트랙패드 두 손가락 스와이프가 브라우저 뒤로가기로 새는 문제는
+  // globals.css 의 overscroll-behavior 와 DeckMap 의 onContextMenu 가 막는다.
+  dragPan: true,
+  dragRotate: false,
+  touchRotate: false,
+  scrollZoom: true,
   doubleClickZoom: false,
   keyboard: false,
   inertia: 300,
@@ -185,7 +194,7 @@ type OverviewViewState = {
 /**
  * Computes the camera view state that frames `bbox` (e.g. `unionBbox` of all
  * 14 regions) and every region's label point in the overview camera style
- * (pitch 56 / bearing -15), used for DeckMap's initial (uncontrolled)
+ * (pitch 56 / bearing 0, 북쪽 고정), used for DeckMap's initial (uncontrolled)
  * `initialViewState`. Label points are included (not just the bbox corners)
  * because a region's tallest/farthest label can otherwise land outside the
  * frame even when the polygon bbox itself just barely fits.

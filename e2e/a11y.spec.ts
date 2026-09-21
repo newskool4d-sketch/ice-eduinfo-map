@@ -82,8 +82,8 @@ test.describe("접근성", () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test("나침반/전체보기 위젯 버튼이 Tab 으로 도달 가능하다 (대체 버튼 불필요 확인)", async ({ page }) => {
-    // deck.gl's CompassWidget/ResetViewWidget render real DOM <button
+  test("전체보기/확대/축소 위젯 버튼이 Tab 으로 도달 가능하다 (대체 버튼 불필요 확인)", async ({ page }) => {
+    // deck.gl's ResetViewWidget/ZoomWidget render real DOM <button
     // aria-label> elements as siblings of the canvas inside the map
     // wrapper — confirmed here they're genuinely Tab-reachable, so the task
     // brief's fallback clause ("대체 버튼... 위젯은 제거") doesn't apply; no
@@ -92,9 +92,7 @@ test.describe("접근성", () => {
     await waitForMapReady(page);
 
     await page.getByLabel("전북 시군 3D 지도").focus();
-    const compass = page.getByRole("button", { name: "나침반" });
     const resetView = page.getByRole("button", { name: "전체보기" });
-    expect(await tabUntilFocused(page, compass, 3)).toBe(true);
     expect(await tabUntilFocused(page, resetView, 3)).toBe(true);
   });
 

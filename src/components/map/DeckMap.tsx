@@ -5,7 +5,7 @@ import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView } from "@deck.gl/core";
 import type { Effect, LayersList, PickingInfo } from "@deck.gl/core";
-import { CompassWidget, DarkGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
+import { DarkGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
 import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/geo/regions";
@@ -113,7 +113,7 @@ const VIEW = new MapView();
 
 // 추가 요구 #4: 16px margin (deck.gl/widgets' own default is 12px);
 // DarkGlassTheme (Task A — swapped from DarkTheme) keeps the
-// compass/전체보기/줌 buttons legible against the varied 3D scene behind them
+// 전체보기/줌 buttons legible against the varied 3D scene behind them
 // (the default LightTheme assumes a light page background) while its
 // translucent, blurred buttons match this task's glass-widget aesthetic. A
 // MODULE constant, not an inline object literal inside the component — Task
@@ -477,7 +477,8 @@ export default function DeckMap({
     onHighlightSchool,
   });
 
-  // 추가 요구 #4: 나침반(bearing/pitch reset) + 전체보기(fit-to-overview) +
+  // 추가 요구 #4: 전체보기(fit-to-overview) + (나침반은 2026-09-21 북쪽 고정·회전
+  // 제거와 함께 삭제 — bearing 이 항상 0 이라 의미가 없다) +
   // (Task A) 줌 버튼, bottom-left inside the canvas. All official deck.gl
   // widgets (already a direct dependency) rather than hand-rolled buttons.
   // ResetViewWidget defaults to `deck.props.initialViewState` when its own
@@ -486,12 +487,11 @@ export default function DeckMap({
   // Passing `overview` explicitly keeps "전체보기" always meaning the
   // overview, regardless of what's currently selected (see task-4A-report.md).
   // ZoomWidget is appended LAST (Task A requirement) — confirmed against
-  // e2e/a11y.spec.ts's "나침반/전체보기 위젯 버튼이 Tab 으로 도달 가능하다" test that
-  // Tab order among compass/reset-view is unaffected by a widget appended
-  // after them in this array.
+  // e2e/a11y.spec.ts's "전체보기/확대/축소 위젯 버튼이 Tab 으로 도달 가능하다" test
+  // that Tab order is unaffected by a widget appended after reset-view in
+  // this array.
   const widgets = useMemo(
     () => [
-      new CompassWidget({ id: "compass", placement: "bottom-left", label: "나침반" }),
       new ResetViewWidget({
         id: "reset-view",
         placement: "bottom-left",
@@ -829,6 +829,9 @@ export default function DeckMap({
       tabIndex={0}
       aria-label="전북 시군 3D 지도"
       onKeyDown={handleWrapperKeyDown}
+      // 사용자 요구(2026-09-21): 지도 위 우클릭은 아무 조작도 아니므로(회전 제거)
+      // 브라우저 컨텍스트 메뉴가 뜨지 않게 한다.
+      onContextMenu={(event) => event.preventDefault()}
       // CI Linux fix — useFontGate's OWN gate: the font itself finished
       // loading. Decoupled from data-map-ready (deck.gl's first render
       // frame, unrelated to fonts). NOT what e2e waits on before touching
