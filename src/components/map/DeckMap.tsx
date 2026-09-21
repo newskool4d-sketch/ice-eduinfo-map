@@ -510,9 +510,10 @@ export default function DeckMap({
   );
 
   // Task A — 발표 모드: a session-only (not persisted) toggle, surfaced via
-  // MapOverlay's "발표 모드" button (see `overlayItems` below). Adds a
-  // tilt-shift/미니어처 post-process pass (effects.ts's createPostProcessEffects)
-  // while on; resets to off on every fresh page load, by design.
+  // MapOverlay's "발표 모드" button (see `overlayItems` below). It is the ONLY
+  // mode with a post-processing chain (tilt-shift + FXAA, effects.ts) — the
+  // default mode renders straight to the canvas (2026-09-22 성능 조정).
+  // Resets to off on every fresh page load, by design.
   const [presentation, setPresentation] = useState(false);
 
   // Task C / Task 3 (bright diorama) — 배경 지도: a 3-way mode (`off` /
@@ -891,6 +892,17 @@ export default function DeckMap({
           useDevicePixels={Math.min(window.devicePixelRatio || 1, 1.5)}
         />
       )}
+      {/* 2026-09-22 성능 조정 — the faint vignette that used to be a luma.gl
+          post-processing pass (radius 0.9 / amount 0.15) is now a static CSS
+          radial gradient: zero GPU cost, no offscreen buffers, and it lets the
+          default mode skip post-processing entirely (canvas MSAA instead of
+          FXAA — see effects.ts). pointer-events: none keeps picking/drag intact. */}
+      <div
+        aria-hidden
+        data-testid="map-vignette"
+        className="pointer-events-none absolute inset-0 z-[5]"
+        style={{ background: "radial-gradient(ellipse 85% 75% at 50% 50%, transparent 60%, rgba(28, 35, 49, 0.12) 100%)" }}
+      />
       <MapOverlay
         items={overlayItems}
         attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}

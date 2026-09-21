@@ -16,40 +16,28 @@ describe("createPostProcessEffects", () => {
     expect(createPostProcessEffects({ presentation: true, fxOff: true })).toEqual([]);
   });
 
-  it("normal mode (presentation: false): vibrance, brightnessContrast, vignette, fxaa — no tiltShift", () => {
+  it("normal mode (presentation: false): NO post-processing at all (canvas MSAA instead)", () => {
     const effects = createPostProcessEffects({ presentation: false, fxOff: false });
-    expect(ids(effects)).toEqual(["vibrance-pass", "brightnessContrast-pass", "vignette-pass", "fxaa-pass"]);
+    expect(effects).toEqual([]);
   });
 
   it("presentation mode: tiltShift is included, immediately before fxaa", () => {
     const effects = createPostProcessEffects({ presentation: true, fxOff: false });
-    expect(ids(effects)).toEqual([
-      "vibrance-pass",
-      "brightnessContrast-pass",
-      "vignette-pass",
-      "tiltShift-pass",
-      "fxaa-pass",
-    ]);
+    expect(ids(effects)).toEqual(["tiltShift-pass", "fxaa-pass"]);
   });
 
-  it("fxaa is always the last effect when fx is on", () => {
-    expect(ids(createPostProcessEffects({ presentation: false, fxOff: false })).at(-1)).toBe("fxaa-pass");
+  it("fxaa is always the last effect when a post-processing chain exists (presentation mode)", () => {
     expect(ids(createPostProcessEffects({ presentation: true, fxOff: false })).at(-1)).toBe("fxaa-pass");
   });
 
-  // 밝은 디오라마 (2026-09-21 spec §3) — lighter touch than the dark-theme
-  // values (vibrance 0.35, contrast 0.06, vignette 0.85/0.35): a pastel scene
-  // needs less saturation push and a much fainter vignette, or the paper
-  // corners go gray. tiltShift is unchanged.
-  it("uses the light-theme post-processing values for each pass", () => {
+  // 2026-09-22 성능 조정: 기본 모드는 후처리 없음(캔버스 MSAA), 발표 모드만
+  // 틸트시프트 + FXAA. The values below are presentation mode's only look pass.
+  it("uses the tilt-shift values for presentation mode", () => {
     const effects = createPostProcessEffects({ presentation: true, fxOff: false }) as {
       id: string;
       props: Record<string, unknown>;
     }[];
     const byId = Object.fromEntries(effects.map((e) => [e.id, e.props]));
-    expect(byId["vibrance-pass"]).toEqual({ amount: 0.05 });
-    expect(byId["brightnessContrast-pass"]).toEqual({ brightness: 0.02, contrast: 0.05 });
-    expect(byId["vignette-pass"]).toEqual({ radius: 0.9, amount: 0.15 });
     expect(byId["tiltShift-pass"]).toEqual({ blurRadius: 4, gradientRadius: 320 });
   });
 });

@@ -111,10 +111,10 @@ describe("lightingEffect", () => {
 // `shadow_uShadowMap0/1 not found` warnings with a matching stack trace —
 // see lighting.ts's own comment and task-A-report.md's "Fix round 1"
 // section for the full methodology).
-describe("useInPicking (Task A — picking-pass regression fix)", () => {
-  it("is true on both lightingEffect and lightingEffectNoShadow", () => {
-    expect((lightingEffect as Effect).useInPicking).toBe(true);
-    expect((lightingEffectNoShadow as Effect).useInPicking).toBe(true);
+describe("useInPicking (Task A fix, retired 2026-09-22 — shadows are off, so it is no longer needed)", () => {
+  it("is NOT set on either variant (lighting stays out of the picking pass)", () => {
+    expect((lightingEffect as Effect).useInPicking).toBeFalsy();
+    expect((lightingEffectNoShadow as Effect).useInPicking).toBeFalsy();
   });
 });
 

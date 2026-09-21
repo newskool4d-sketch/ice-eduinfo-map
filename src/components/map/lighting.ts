@@ -265,8 +265,13 @@ export const lightingEffectNoShadow = new CollisionAwareLightingEffect({
 // symmetry, though it's a no-op for `lightingEffectNoShadow` (shadow's
 // default shader module is never registered at all when `this.shadow` is
 // false, so nothing depends on this flag there).
-(lightingEffect as Effect).useInPicking = true;
-(lightingEffectNoShadow as Effect).useInPicking = true;
+// 2026-09-22 성능 조정: `useInPicking` is no longer set. It was Task A's fix for a
+// deck.gl 9.4 picking regression caused by the SHADOW module's unbound shadow
+// maps in the picking pass; with `_shadow: false` on both variants the shadow
+// module is never installed, so the lighting effect can stay out of the
+// picking AND collision passes (one fewer lighting evaluation per hover pick;
+// verified on a production build that every label chip still renders once
+// `data-labels-ready` fires — CollisionFilterExtension does not need it).
 
 // Fix round 1, finding 3 — performance cost of the fix above, MEASURED (not
 // just estimated). (2026-09-21, Task 2 fix round 1: with `_shadow: false` on

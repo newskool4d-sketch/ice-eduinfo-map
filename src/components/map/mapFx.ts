@@ -1,6 +1,7 @@
 /**
- * Task A — 비상 스위치: `NEXT_PUBLIC_MAP_FX=off` turns off the post-processing
- * chain (effects.ts's `createPostProcessEffects` returns []) and swaps in
+ * Task A — 비상 스위치: `NEXT_PUBLIC_MAP_FX=off` turns off the (presentation-mode
+ * only, since 2026-09-22) post-processing chain (effects.ts's
+ * `createPostProcessEffects` returns []) and swaps in
  * `lightingEffectNoShadow` (now configured identically — shadows are off on
  * both variants since the light theme), for use only if CI flakiness or a
  * real device's GPU can't tolerate the post-process FBO chain. Deliberately

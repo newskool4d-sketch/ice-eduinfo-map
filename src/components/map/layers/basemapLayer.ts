@@ -80,6 +80,12 @@ export function makeBasemapLayer(key: string, tiles: BasemapTiles) {
     maxZoom: 18,
     extent: BASEMAP_EXTENT,
     maxRequests: 6,
+    // 2026-09-22 성능 조정: the imagery sits under a white wash, so one zoom
+    // level coarser is invisible but loads ~4× fewer tiles (≈4× less texture
+    // memory), and the cache is capped so panning around cannot pile up
+    // 100 MB+ of tile textures (measured before: 58 → 101 MB after a pan).
+    zoomOffset: -1,
+    maxCacheSize: 64,
     // REQUIRED: TileLayer's own default onTileError is console.error — 8 of
     // this suite's e2e specs assert zero console errors (see
     // e2e/fixtures.ts, which stubs the VWorld route for exactly this

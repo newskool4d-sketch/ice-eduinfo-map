@@ -1,10 +1,16 @@
 import { PostProcessEffect } from "@deck.gl/core";
 import type { Effect } from "@deck.gl/core";
-import { brightnessContrast, fxaa, tiltShift, vibrance, vignette } from "@luma.gl/effects";
+import { fxaa, tiltShift } from "@luma.gl/effects";
 
 /**
- * Task A — post-processing chain: 바이브런스 → 명암 → 비네팅 →
- * (발표 모드일 때만) 틸트시프트 → FXAA.
+ * Post-processing chain — PRESENTATION MODE ONLY (2026-09-22 성능 조정):
+ * 틸트시프트 → FXAA. In the default mode the array is empty, so deck renders
+ * straight to the canvas and gets the browser's own MSAA for free (luma.gl
+ * creates the WebGL context with the default `antialias: true`); that removes
+ * four full-screen passes per frame and the three offscreen buffers. The
+ * old vibrance 0.05 / brightness 0.02 / contrast 0.05 passes were visually
+ * negligible; the faint vignette is now a CSS radial gradient overlay in
+ * DeckMap (zero GPU cost).
  *
  * `fxaa` MUST stay last: routing the scene through post-processing sends it
  * to an offscreen FBO first, which turns off MSAA (verified against the
@@ -27,24 +33,14 @@ export interface CreatePostProcessEffectsOptions {
   fxOff: boolean;
 }
 
-// 밝은 디오라마 (2026-09-21 spec §3) — a lighter touch than the dark-theme
-// values (vibrance 0.35, contrast 0.06, vignette radius 0.85/amount 0.35,
-// themselves fix round 1's re-tune of Task A's originals): pastel top faces
-// need far less saturation push (0.15) and only a hint of contrast (0.05),
-// and the vignette drops to a faint edge (radius 0.9, amount 0.15) so the
-// paper-colored corners don't turn gray. Presentation mode's tilt-shift
-// (blurRadius 4, gradientRadius 320) is unchanged.
+// Presentation mode's tilt-shift (blurRadius 4, gradientRadius 320) is the
+// only "look" pass left; fxaa follows it because the offscreen route loses
+// MSAA (see the header comment).
 export function createPostProcessEffects({ presentation, fxOff }: CreatePostProcessEffectsOptions): Effect[] {
-  if (fxOff) return [];
-
+  if (fxOff || !presentation) return [];
   const effects: Effect[] = [
-    new PostProcessEffect(vibrance, { amount: 0.05 }),
-    new PostProcessEffect(brightnessContrast, { brightness: 0.02, contrast: 0.05 }),
-    new PostProcessEffect(vignette, { radius: 0.9, amount: 0.15 }),
+    new PostProcessEffect(tiltShift, { blurRadius: 4, gradientRadius: 320 }),
+    new PostProcessEffect(fxaa, {}),
   ];
-  if (presentation) {
-    effects.push(new PostProcessEffect(tiltShift, { blurRadius: 4, gradientRadius: 320 }));
-  }
-  effects.push(new PostProcessEffect(fxaa, {}));
   return effects;
 }

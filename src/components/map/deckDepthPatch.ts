@@ -29,6 +29,9 @@ type RendererLike = {
 };
 type PatchableProto = { _resizeRenderBuffers?: (canvasContext?: CanvasContextLike) => void };
 
+// Since the 2026-09-22 성능 조정 only 발표 모드 has a post-processing chain, so
+// the offscreen buffers (and this patch's effect) exist only while it is on;
+// the default mode renders straight to the canvas, which already has depth.
 let applied = false;
 
 /** Canvas-equivalent depth precision — see the comment at the createTexture call. */

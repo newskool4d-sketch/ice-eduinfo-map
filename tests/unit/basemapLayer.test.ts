@@ -49,13 +49,16 @@ describe("makeBasemapLayer", () => {
     expect(makeBasemapLayer("k", "base").props.data).toBe(vworldTileUrl("k", "Base", "png"));
   });
 
-  it("tileSize 256, minZoom 6, maxZoom 18, maxRequests 6 (both modes)", () => {
+  it("tileSize 256, minZoom 6, maxZoom 18, maxRequests 6, zoomOffset -1, maxCacheSize 64 (both modes)", () => {
     for (const tiles of ["satellite", "base"] as const) {
       const layer = makeBasemapLayer("mykey", tiles);
       expect(layer.props.tileSize).toBe(256);
       expect(layer.props.minZoom).toBe(6);
       expect(layer.props.maxZoom).toBe(18);
       expect(layer.props.maxRequests).toBe(6);
+      // 성능 조정 (2026-09-22): coarser tiles under the wash + a bounded cache.
+      expect(layer.props.zoomOffset).toBe(-1);
+      expect(layer.props.maxCacheSize).toBe(64);
     }
   });
 
