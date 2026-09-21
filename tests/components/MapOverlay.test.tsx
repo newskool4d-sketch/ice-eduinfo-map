@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
@@ -122,6 +122,96 @@ describe("MapOverlay", () => {
       render(<MapOverlay items={items} attribution="배경지도 © 국토교통부 브이월드(VWorld)" />);
       expect(screen.getAllByRole("button")).toHaveLength(2);
       expect(screen.getByTestId("basemap-attribution")).toBeInTheDocument();
+    });
+  });
+
+  // Task 3 (bright diorama) — `kind: "segmented"` renders a radiogroup
+  // instead of a toggle button. The toggle tests above deliberately pass
+  // items WITHOUT `kind` so the old shape stays accepted as-is.
+  describe("segmented item (Task 3 — 배경 지도 3단)", () => {
+    const options = [
+      { value: "off", label: "끄기" },
+      { value: "satellite", label: "위성" },
+      { value: "base", label: "일반" },
+    ];
+
+    it("renders a segmented item as a radiogroup with one checked radio, and reports changes", async () => {
+      const onChange = vi.fn();
+      render(
+        <MapOverlay
+          items={[
+            {
+              kind: "segmented",
+              id: "basemap",
+              label: "배경 지도",
+              value: "satellite",
+              options,
+              onChange,
+            },
+          ]}
+        />,
+      );
+      const group = screen.getByRole("radiogroup", { name: "배경 지도" });
+      const radios = within(group).getAllByRole("radio");
+      expect(radios.map((r) => r.textContent)).toEqual(["끄기", "위성", "일반"]);
+      expect(radios[1]).toHaveAttribute("aria-checked", "true");
+      expect(radios[0]).toHaveAttribute("aria-checked", "false");
+      expect(radios[2]).toHaveAttribute("aria-checked", "false");
+      await userEvent.setup().click(radios[2]);
+      expect(onChange).toHaveBeenCalledWith("base");
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it("passes `title` through to the group, and mixes with toggle items in the given order", () => {
+      render(
+        <MapOverlay
+          items={[
+            { id: "presentation", label: "발표 모드", pressed: false, onToggle: vi.fn() },
+            {
+              kind: "segmented",
+              id: "basemap",
+              label: "배경 지도",
+              value: "off",
+              options,
+              onChange: vi.fn(),
+              title: "브이월드 배경 타일: 끄기 / 위성 / 일반",
+            },
+            { kind: "toggle", id: "emd", label: "읍면동 경계", pressed: true, onToggle: vi.fn() },
+          ]}
+        />,
+      );
+      const group = screen.getByRole("radiogroup", { name: "배경 지도" });
+      expect(group).toHaveAttribute("title", "브이월드 배경 타일: 끄기 / 위성 / 일반");
+      // The three radios are NOT `button`s in the a11y tree — the toggle
+      // buttons around them still are, in DOM order.
+      expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+        "발표 모드",
+        "읍면동 경계",
+      ]);
+      const row = group.parentElement!;
+      expect(Array.from(row.children).map((c) => c.textContent)).toEqual([
+        "발표 모드",
+        "끄기위성일반",
+        "읍면동 경계",
+      ]);
+    });
+
+    it("styles the checked radio like a pressed chip and the rest like unpressed ones", () => {
+      render(
+        <MapOverlay
+          items={[
+            { kind: "segmented", id: "basemap", label: "배경 지도", value: "base", options, onChange: vi.fn() },
+          ]}
+        />,
+      );
+      const group = screen.getByRole("radiogroup", { name: "배경 지도" });
+      expect(group.className).toMatch(/(^|\s)pointer-events-auto(\s|$)/);
+      expect(group.className).toMatch(/(^|\s)border-line(\s|$)/);
+      const [off, , base] = within(group).getAllByRole("radio");
+      expect(base.className).toMatch(/(^|\s)bg-accent-soft(\s|$)/);
+      expect(base.className).toMatch(/(^|\s)font-semibold(\s|$)/);
+      expect(off.className).toMatch(/(^|\s)hover:bg-surface(\s|$)/);
+      expect(off.className).not.toMatch(/(^|\s)bg-accent-soft(\s|$)/);
     });
   });
 });

@@ -12,10 +12,10 @@ import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/g
 import { lightingEffect, lightingEffectNoShadow } from "@/components/map/lighting";
 import { createPostProcessEffects } from "@/components/map/effects";
 import { isMapFxOff } from "@/components/map/mapFx";
-import { readBasemapPref, writeBasemapPref } from "@/components/map/basemapPref";
+import { readBasemapPref, writeBasemapPref, type BasemapMode } from "@/components/map/basemapPref";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
-import { makeBasemapLayer } from "@/components/map/layers/basemapLayer";
+import { makeBasemapLayer, makeBasemapWashLayer } from "@/components/map/layers/basemapLayer";
 import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
 import {
   makeFootprintLayer,
@@ -102,7 +102,7 @@ const MAP_FX_OFF = isMapFxOff();
 // every `VWORLD_KEY &&` gate below.
 const VWORLD_KEY = process.env.NEXT_PUBLIC_VWORLD_KEY;
 
-/** Task C — shown next to the "배경 지도" MapOverlay toggle while the basemap is on. No "기준일" word, no date string — those two specifically break e2e/closed-schools.spec.ts's footer-source assertions and tests/components/Footer.test.tsx's 기준일 count (see task-C-brief.md). */
+/** Task C — shown under the "배경 지도" MapOverlay control while the basemap is not `off`. No "기준일" word, no date string — those two specifically break e2e/closed-schools.spec.ts's footer-source assertions and tests/components/Footer.test.tsx's 기준일 count (see task-C-brief.md). */
 const BASEMAP_ATTRIBUTION = "배경지도 © 국토교통부 브이월드(VWorld)";
 
 function nameOf(code: string): string {
@@ -509,26 +509,25 @@ export default function DeckMap({
   // while on; resets to off on every fresh page load, by design.
   const [presentation, setPresentation] = useState(false);
 
-  // Task C — 배경 지도 (VWorld midnight): unlike `presentation`, this toggle
-  // IS persisted (localStorage, via basemapPref.ts) — `useState(() => ...)`
-  // (lazy initializer) so `readBasemapPref()`'s localStorage read only ever
-  // happens once, on mount, not every render. Defaults to ON when nothing
-  // is stored yet, per the task brief. Gated on `VWORLD_KEY` everywhere it's
-  // read below (`basemapLayer`, `overlayItems`, the attribution string) —
-  // with no key, the toggle never renders and the layer is always `null`,
-  // regardless of what's in localStorage.
-  const [basemapEnabled, setBasemapEnabled] = useState(() => readBasemapPref());
-  const handleBasemapToggle = useCallback(() => {
-    setBasemapEnabled((prev) => {
-      const next = !prev;
-      writeBasemapPref(next);
-      return next;
-    });
+  // Task C / Task 3 (bright diorama) — 배경 지도: a 3-way mode (`off` /
+  // `satellite` + white wash / `base` road map, spec §2), unlike
+  // `presentation` this one IS persisted (localStorage, via basemapPref.ts,
+  // which also migrates the old "1"/"0" boolean values) — `useState(() =>
+  // ...)` (lazy initializer) so `readBasemapPref()`'s localStorage read only
+  // ever happens once, on mount, not every render. Defaults to `satellite`
+  // when nothing is stored yet. Gated on `VWORLD_KEY` everywhere it's read
+  // below (`basemapLayer`/`basemapWashLayer`, `overlayItems`, the
+  // attribution string) — with no key, the control never renders and both
+  // layers are always `null`, regardless of what's in localStorage.
+  const [basemapMode, setBasemapMode] = useState<BasemapMode>(() => readBasemapPref());
+  const handleBasemapChange = useCallback((mode: BasemapMode) => {
+    writeBasemapPref(mode);
+    setBasemapMode(mode);
   }, []);
 
   // Task E — 읍면동 경계: persisted (localStorage via emdPref.ts, same
-  // lazy-initializer pattern as basemapEnabled/basemapPref.ts just above)
-  // toggle, default ON. Unlike the basemap toggle, this one is never gated
+  // lazy-initializer pattern as basemapMode/basemapPref.ts just above)
+  // toggle, default ON. Unlike the basemap control, this one is never gated
   // on an external key — it always renders.
   const [emdEnabled, setEmdEnabled] = useState(() => readEmdPref());
   const handleEmdToggle = useCallback(() => {
@@ -557,11 +556,12 @@ export default function DeckMap({
     [presentation],
   );
 
-  // Task A — MapOverlay's controlled button list. `items` is an array (not
+  // Task A — MapOverlay's controlled control list. `items` is an array (not
   // fixed named props) specifically so Task C could append a "배경 지도"
-  // button without changing MapOverlay's shape — it does, below, but ONLY
-  // when a VWorld key is configured at all (per the task brief: no key ->
-  // no toggle, not a disabled one).
+  // entry without changing MapOverlay's shape — it does, below (a 3-way
+  // segmented radiogroup since Task 3), but ONLY when a VWorld key is
+  // configured at all (per the task brief: no key -> no control, not a
+  // disabled one).
   const overlayItems = useMemo<MapOverlayItem[]>(() => {
     const items: MapOverlayItem[] = [];
     // I-4 — NEXT_PUBLIC_MAP_FX=off strips the post-process chain down to
@@ -578,11 +578,17 @@ export default function DeckMap({
     }
     if (VWORLD_KEY) {
       items.push({
+        kind: "segmented",
         id: "basemap",
         label: "배경 지도",
-        pressed: basemapEnabled,
-        onToggle: handleBasemapToggle,
-        title: "브이월드 배경 타일",
+        value: basemapMode,
+        options: [
+          { value: "off", label: "끄기" },
+          { value: "satellite", label: "위성" },
+          { value: "base", label: "일반" },
+        ],
+        onChange: handleBasemapChange,
+        title: "브이월드 배경 타일: 끄기 / 위성 / 일반",
       });
     }
     // Task E — 읍면동 경계: always rendered (unlike "배경 지도", never gated
@@ -596,32 +602,37 @@ export default function DeckMap({
       title: "선택한 시군의 읍면동 경계선",
     });
     return items;
-  }, [presentation, basemapEnabled, handleBasemapToggle, emdEnabled, handleEmdToggle]);
+  }, [presentation, basemapMode, handleBasemapChange, emdEnabled, handleEmdToggle]);
 
   // I-1 — single source of truth for "is the basemap actually visually on,"
   // computed once and reused everywhere that used to gate on
-  // `VWORLD_KEY`/`basemapEnabled` separately (the basemap TileLayer just
-  // below, the neighbors layer's `masked` option, and the attribution
-  // caption in the JSX below). Without this, a no-key deployment correctly
-  // left `basemapLayer` `null` but still passed `masked: basemapEnabled`
-  // (true by default) to `makeNeighborsLayer` — the masked fill color
-  // ([11,15,25,140]) sat almost exactly on top of the then-dark (#0b0f19)
-  // container background, silently hiding every neighboring 시도
-  // silhouette even though no basemap tile was ever drawn to mask them
-  // against.
-  const basemapOn = !!VWORLD_KEY && basemapEnabled;
+  // `VWORLD_KEY`/the stored mode separately (the neighbors layer's `masked`
+  // option and the attribution caption in the JSX below). Without this, a
+  // no-key deployment correctly left `basemapLayer` `null` but still passed
+  // `masked: true` (the default pref) to `makeNeighborsLayer` — the masked
+  // fill color sat almost exactly on top of the then-dark container
+  // background, silently hiding every neighboring 시도 silhouette even
+  // though no basemap tile was ever drawn to mask them against.
+  const basemapOn = !!VWORLD_KEY && basemapMode !== "off";
 
-  // Task C — the VWorld basemap TileLayer, or `null` when there's no key or
-  // the toggle is off. Memoized on `basemapOn` only (not `[]`) — VWORLD_KEY
-  // is a build-time-fixed module constant (same reasoning as MAP_FX_OFF
-  // above), so it can never change across renders and including it as a dep
-  // would be a permanent no-op. The extra `VWORLD_KEY &&` alongside
-  // `basemapOn` is redundant at runtime (basemapOn already implies it) —
-  // it's there purely so TypeScript narrows VWORLD_KEY to `string` for the
-  // makeBasemapLayer(VWORLD_KEY) call below.
+  // Task C / Task 3 — the VWorld basemap TileLayer (Satellite jpeg or Base
+  // png per `basemapMode`), or `null` when there's no key or the mode is
+  // `off`. Memoized on `basemapMode` only (not `[]`) — VWORLD_KEY is a
+  // build-time-fixed module constant (same reasoning as MAP_FX_OFF above),
+  // so it can never change across renders and including it as a dep would
+  // be a permanent no-op. The `VWORLD_KEY &&` narrows it to `string` for
+  // the factory call; `basemapMode !== "off"` narrows the mode to
+  // `BasemapTiles`.
   const basemapLayer = useMemo(
-    () => (VWORLD_KEY && basemapOn ? makeBasemapLayer(VWORLD_KEY) : null),
-    [basemapOn],
+    () => (VWORLD_KEY && basemapMode !== "off" ? makeBasemapLayer(VWORLD_KEY, basemapMode) : null),
+    [basemapMode],
+  );
+  // Task 3 — the translucent white wash right on top of the tiles (spec §2:
+  // heavier over the satellite photo, lighter over the already-light road
+  // map). Same `null`-when-off contract as `basemapLayer`.
+  const basemapWashLayer = useMemo(
+    () => (VWORLD_KEY && basemapMode !== "off" ? makeBasemapWashLayer(basemapMode) : null),
+    [basemapMode],
   );
 
   // Only ever fetches while emdEnabled AND a 시군 is selected (see
@@ -637,6 +648,9 @@ export default function DeckMap({
       // `deck.props.layers[0]` directly, and `layers` must stay a FLAT array
       // (a nested array here would break that same test's plain `.find`).
       basemapLayer,
+      // Task 3 — slot 1: the white wash, drawn right over the tiles and
+      // under everything else; `null` in lockstep with `basemapLayer`.
+      basemapWashLayer,
       makeNeighborsLayer(bundle.neighbors, { masked: basemapOn }),
       makeFootprintLayer(bundle.regions),
       makeRegionsLayer(bundle.regionsMain, {
@@ -736,6 +750,7 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
+    basemapWashLayer,
     basemapOn,
     bundle.regions,
     bundle.regionsMain,
