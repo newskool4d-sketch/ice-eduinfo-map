@@ -1,33 +1,53 @@
 /**
- * Task C — persists whether the VWorld basemap toggle (DeckMap's "배경 지도"
- * MapOverlay item) is on, across page loads. `localStorage` access is
- * wrapped in try/catch because it can throw synchronously in some private-
- * browsing modes (notably older Safari) even just on `getItem`/`setItem` —
- * this module treats that exactly like "nothing stored yet": default ON,
- * write silently no-ops. `typeof window === "undefined"` guards SSR/non-DOM
- * callers (DeckMap itself is client-only — see MapShell.tsx's `ssr:false` —
- * but this module makes no assumption about who calls it).
+ * Persists which VWorld basemap the "배경 지도" segmented control (DeckMap's
+ * MapOverlay item) is showing, across page loads. Three modes since the
+ * bright-diorama redesign (2026-09-21, spec §2):
+ *
+ * - `off`       — no tiles; the blocks sit on the plain paper floor.
+ * - `satellite` — `Satellite` jpeg tiles under a bright white wash (default).
+ * - `base`      — `Base` road-map png tiles, desaturated, lighter wash.
+ *
+ * Storage key is unchanged from the boolean era (2차 개선 Task C), so the old
+ * "1"/"0" values are still read back as satellite/off — a returning user who
+ * had switched the midnight basemap off keeps it off.
+ *
+ * `localStorage` access is wrapped in try/catch because it can throw
+ * synchronously in some private-browsing modes (notably older Safari) even
+ * just on `getItem`/`setItem` — this module treats that exactly like
+ * "nothing stored yet": default satellite, write silently no-ops.
+ * `typeof window === "undefined"` guards SSR/non-DOM callers (DeckMap itself
+ * is client-only — see MapShell.tsx's `ssr:false` — but this module makes no
+ * assumption about who calls it).
  */
-const STORAGE_KEY = "jbmap.basemap";
+export type BasemapMode = "off" | "satellite" | "base";
 
-/** No stored value yet -> ON by default (matches the task brief: "없으면 기본 ON"). */
-export function readBasemapPref(): boolean {
-  if (typeof window === "undefined") return true;
+const STORAGE_KEY = "jbmap.basemap";
+const DEFAULT_MODE: BasemapMode = "satellite";
+
+function parse(raw: string | null): BasemapMode {
+  if (raw === null) return DEFAULT_MODE;
+  if (raw === "1") return "satellite"; // 2차 개선(Task C) boolean-era value: ON
+  if (raw === "0") return "off"; // …and OFF
+  if (raw === "off" || raw === "satellite" || raw === "base") return raw;
+  return DEFAULT_MODE; // garbage (e.g. a hand-edited "midnight") → default
+}
+
+/** No stored value yet -> satellite by default. The caller (DeckMap) still gates on `NEXT_PUBLIC_VWORLD_KEY` — with no key the mode is irrelevant and nothing renders. */
+export function readBasemapPref(): BasemapMode {
+  if (typeof window === "undefined") return DEFAULT_MODE;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw === null) return true;
-    return raw === "1";
+    return parse(window.localStorage.getItem(STORAGE_KEY));
   } catch {
-    return true;
+    return DEFAULT_MODE;
   }
 }
 
-export function writeBasemapPref(enabled: boolean): void {
+export function writeBasemapPref(mode: BasemapMode): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, enabled ? "1" : "0");
+    window.localStorage.setItem(STORAGE_KEY, mode);
   } catch {
-    // Private mode / storage disabled / quota exceeded — the toggle still
+    // Private mode / storage disabled / quota exceeded — the control still
     // works for the rest of this session, it just won't be remembered next
     // time. Not worth surfacing to the user.
   }
