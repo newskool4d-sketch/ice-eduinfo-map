@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, type KeyboardEvent } from "react";
+
 /** A press/unpress chip (`aria-pressed`). `kind` is optional so the original item shape (Task A/C/E callers and tests) keeps working unchanged. */
 export interface MapOverlayToggleItem {
   kind?: "toggle";
@@ -82,36 +84,7 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
         <div className="flex gap-1.5">
           {items.map((item) =>
             item.kind === "segmented" ? (
-              // Same surface language as the chips (line border, translucent
-              // surface, shadow); the checked segment reuses the pressed-chip
-              // fill so "selected" reads the same across both control kinds.
-              // Each radio is a real <button> (Enter/Space activate it) and a
-              // Tab stop — no roving tabindex, matching the spec's markup.
-              <div
-                key={item.id}
-                role="radiogroup"
-                aria-label={item.label}
-                title={item.title}
-                className="pointer-events-auto flex overflow-hidden rounded border border-line bg-surface/85 shadow-sm backdrop-blur-sm"
-              >
-                {item.options.map((opt) => {
-                  const checked = opt.value === item.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      onClick={() => item.onChange(opt.value)}
-                      className={`px-2.5 py-1 text-xs transition-colors ${
-                        checked ? "bg-accent-soft font-semibold text-ink" : "text-ink-muted hover:bg-surface"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <SegmentedRadioGroup key={item.id} item={item} />
             ) : (
               <button
                 key={item.id}
@@ -139,6 +112,97 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
           {attribution}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Task 3 — the segmented control, following the WAI-ARIA radiogroup
+ * keyboard pattern (fix round 1): a roving tabindex (only the checked
+ * radio — or the first one, if nothing is checked — is a Tab stop, so the
+ * whole group costs one Tab) plus ArrowLeft/ArrowUp → previous and
+ * ArrowRight/ArrowDown → next (both wrapping) and Home/End → first/last.
+ * Moving calls `onChange(value)` and then focuses the target button
+ * directly (via the ref array — focus works on a `tabIndex={-1}` button;
+ * the parent's re-render then flips its tabIndex to 0). Enter/Space are
+ * left to the native <button> so they still activate the focused option.
+ *
+ * Same surface language as the chips (line border, translucent surface,
+ * shadow); the checked segment reuses the pressed-chip fill so "selected"
+ * reads the same across both control kinds. The focus ring is `ring-inset`
+ * because the group clips its children (`overflow-hidden` for the rounded
+ * corners) — an outset ring would be cut off.
+ *
+ * A separate component (not inline in `items.map`) only because it needs a
+ * `useRef` of its own per group; it is still purely controlled.
+ */
+function SegmentedRadioGroup({ item }: { item: MapOverlaySegmentedItem }) {
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const checkedIndex = item.options.findIndex((opt) => opt.value === item.value);
+  const tabStopIndex = checkedIndex === -1 ? 0 : checkedIndex;
+
+  const moveTo = (index: number) => {
+    const opt = item.options[index];
+    if (!opt) return;
+    item.onChange(opt.value);
+    buttonRefs.current[index]?.focus();
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const count = item.options.length;
+    if (count === 0) return;
+    let next: number;
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = (tabStopIndex + 1) % count;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = (tabStopIndex - 1 + count) % count;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = count - 1;
+        break;
+      default:
+        return; // Enter/Space/Tab/…: native button behavior, untouched.
+    }
+    event.preventDefault(); // keep the arrows from scrolling the page / Home-End from jumping it
+    moveTo(next);
+  };
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label={item.label}
+      title={item.title}
+      onKeyDown={onKeyDown}
+      className="pointer-events-auto flex overflow-hidden rounded border border-line bg-surface/85 shadow-sm backdrop-blur-sm"
+    >
+      {item.options.map((opt, index) => {
+        const checked = index === checkedIndex;
+        return (
+          <button
+            key={opt.value}
+            ref={(el) => {
+              buttonRefs.current[index] = el;
+            }}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            tabIndex={index === tabStopIndex ? 0 : -1}
+            onClick={() => item.onChange(opt.value)}
+            className={`px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
+              checked ? "bg-accent-soft font-semibold text-ink" : "text-ink-muted hover:bg-surface"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

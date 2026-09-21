@@ -15,8 +15,9 @@ const PNG_1X1 = Buffer.from(PNG_1X1_BASE64, "base64");
  * here (not `@playwright/test` directly) so this VWorld tile stub applies
  * uniformly. It's not just for e2e/basemap.spec.ts — `playwright.config.ts`
  * sets `NEXT_PUBLIC_VWORLD_KEY: 'e2e-test'` for the whole webServer, so the
- * basemap toggle (default ON) renders a real TileLayer, and thus fires real
- * tile requests, on EVERY page load across the whole suite. A resource load
+ * 3-way basemap control (끄기 · 위성 · 일반, default 위성) renders a real
+ * TileLayer, and thus fires real tile requests, on EVERY page load across
+ * the whole suite. A resource load
  * failure — a real network call to api.vworld.kr racing/timing out, or any
  * non-2xx response — surfaces as a Playwright console 'error' event even
  * though `makeBasemapLayer`'s `onTileError` itself is a no-op, which would

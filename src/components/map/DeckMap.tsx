@@ -630,6 +630,9 @@ export default function DeckMap({
   // Task 3 — the translucent white wash right on top of the tiles (spec §2:
   // heavier over the satellite photo, lighter over the already-light road
   // map). Same `null`-when-off contract as `basemapLayer`.
+  // Known/accepted (Task 3 review, minor): on a 위성 ↔ 일반 switch the wash
+  // alpha changes immediately while the new tiles are still loading, so the
+  // previous source's tiles briefly show under the new alpha.
   const basemapWashLayer = useMemo(
     () => (VWORLD_KEY && basemapMode !== "off" ? makeBasemapWashLayer(basemapMode) : null),
     [basemapMode],

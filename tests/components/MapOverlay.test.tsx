@@ -213,5 +213,126 @@ describe("MapOverlay", () => {
       expect(off.className).toMatch(/(^|\s)hover:bg-surface(\s|$)/);
       expect(off.className).not.toMatch(/(^|\s)bg-accent-soft(\s|$)/);
     });
+
+    // Task 3 fix round 1 — WAI-ARIA radiogroup keyboard pattern: roving
+    // tabindex (only the checked radio is a Tab stop) + arrow keys move the
+    // selection (and focus) within the group, Home/End jump to the ends.
+    describe("keyboard (roving tabindex + arrows/Home/End)", () => {
+      function renderGroup(value: string, onChange = vi.fn()) {
+        render(
+          <MapOverlay
+            items={[{ kind: "segmented", id: "basemap", label: "배경 지도", value, options, onChange }]}
+          />,
+        );
+        const group = screen.getByRole("radiogroup", { name: "배경 지도" });
+        return { group, radios: within(group).getAllByRole("radio"), onChange };
+      }
+
+      it("only the checked radio has tabIndex 0; the others are -1", () => {
+        const { radios } = renderGroup("satellite");
+        expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1]);
+      });
+
+      it("falls back to the first radio as the Tab stop when no option is checked", () => {
+        const { radios } = renderGroup("nope");
+        expect(radios.map((r) => r.tabIndex)).toEqual([0, -1, -1]);
+        expect(radios.every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
+      });
+
+      it("ArrowRight/ArrowDown select the next option and move focus to it", async () => {
+        const user = userEvent.setup();
+        const { radios, onChange } = renderGroup("satellite");
+        radios[1].focus();
+        await user.keyboard("{ArrowRight}");
+        expect(onChange).toHaveBeenCalledWith("base");
+        expect(radios[2]).toHaveFocus();
+        await user.keyboard("{ArrowDown}");
+        // Controlled component with a vi.fn(): `value` is still "satellite",
+        // so "next" is computed from the checked option again.
+        expect(onChange).toHaveBeenLastCalledWith("base");
+        expect(onChange).toHaveBeenCalledTimes(2);
+      });
+
+      it("ArrowLeft/ArrowUp select the previous option; both directions wrap around", async () => {
+        const user = userEvent.setup();
+        const last = renderGroup("base");
+        last.radios[2].focus();
+        await user.keyboard("{ArrowRight}");
+        expect(last.onChange).toHaveBeenLastCalledWith("off");
+        expect(last.radios[0]).toHaveFocus();
+        await user.keyboard("{ArrowLeft}");
+        expect(last.onChange).toHaveBeenLastCalledWith("satellite");
+        expect(last.radios[1]).toHaveFocus();
+        await user.keyboard("{ArrowUp}");
+        expect(last.onChange).toHaveBeenLastCalledWith("satellite");
+        expect(last.onChange).toHaveBeenCalledTimes(3);
+      });
+
+      it("ArrowLeft from the first option wraps to the last", async () => {
+        const user = userEvent.setup();
+        const { radios, onChange } = renderGroup("off");
+        radios[0].focus();
+        await user.keyboard("{ArrowLeft}");
+        expect(onChange).toHaveBeenCalledWith("base");
+        expect(radios[2]).toHaveFocus();
+      });
+
+      it("Home/End select the first/last option", async () => {
+        const user = userEvent.setup();
+        const { radios, onChange } = renderGroup("satellite");
+        radios[1].focus();
+        await user.keyboard("{End}");
+        expect(onChange).toHaveBeenLastCalledWith("base");
+        expect(radios[2]).toHaveFocus();
+        await user.keyboard("{Home}");
+        expect(onChange).toHaveBeenLastCalledWith("off");
+        expect(radios[0]).toHaveFocus();
+        expect(onChange).toHaveBeenCalledTimes(2);
+      });
+
+      it("arrow keys drive a controlled parent: the selection and the Tab stop follow", async () => {
+        const user = userEvent.setup();
+        function Wrapper() {
+          const [value, setValue] = useState("satellite");
+          return (
+            <MapOverlay
+              items={[{ kind: "segmented", id: "basemap", label: "배경 지도", value, options, onChange: setValue }]}
+            />
+          );
+        }
+        render(<Wrapper />);
+        const radios = within(screen.getByRole("radiogroup", { name: "배경 지도" })).getAllByRole("radio");
+        radios[1].focus();
+        await user.keyboard("{ArrowRight}");
+        expect(radios[2]).toHaveAttribute("aria-checked", "true");
+        expect(radios[2]).toHaveFocus();
+        expect(radios.map((r) => r.tabIndex)).toEqual([-1, -1, 0]);
+        await user.keyboard("{ArrowRight}");
+        expect(radios[0]).toHaveAttribute("aria-checked", "true");
+        expect(radios[0]).toHaveFocus();
+        expect(radios.map((r) => r.tabIndex)).toEqual([0, -1, -1]);
+      });
+
+      it("Enter/Space keep the button's native activation (onChange for the focused option)", async () => {
+        const user = userEvent.setup();
+        const { radios, onChange } = renderGroup("satellite");
+        radios[0].focus();
+        await user.keyboard("{Enter}");
+        expect(onChange).toHaveBeenLastCalledWith("off");
+        await user.keyboard(" ");
+        expect(onChange).toHaveBeenLastCalledWith("off");
+        expect(onChange).toHaveBeenCalledTimes(2);
+      });
+
+      it("has an inset focus-visible ring so the container's overflow-hidden can't clip it", () => {
+        const { radios } = renderGroup("satellite");
+        for (const r of radios) {
+          expect(r.className).toMatch(/(^|\s)focus-visible:outline-none(\s|$)/);
+          expect(r.className).toMatch(/(^|\s)focus-visible:ring-2(\s|$)/);
+          expect(r.className).toMatch(/(^|\s)focus-visible:ring-inset(\s|$)/);
+          expect(r.className).toMatch(/(^|\s)focus-visible:ring-accent(\s|$)/);
+        }
+      });
+    });
   });
 });
