@@ -43,7 +43,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 1. Vercel 대시보드에서 "Add New Project" → 이 저장소(GitHub)를 import 합니다.
 2. 빌드 설정은 기본값을 그대로 씁니다 — Framework Preset이 자동으로 "Next.js"로 인식되고, Build Command(`next build` = `npm run build`)·Output Directory·Install Command(`npm ci`) 모두 손댈 필요가 없습니다. Node.js 버전은 Vercel이 `package.json`의 `engines.node`(프로젝트 설정에서도 지정 가능)를 기준으로 선택합니다 — `.nvmrc`는 로컬 `nvm use` 전용이며 Vercel은 이를 읽지 않습니다.
-3. 환경변수는 `NEXT_PUBLIC_VWORLD_KEY`(선택)와 `NEXT_PUBLIC_MAP_FX`(선택, 아래 참고) 2개입니다 — 지표·경계·학교 데이터는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고 런타임에 외부 API 키나 서버 비밀값을 쓰지 않지만, 배경 지도(브이월드 타일)를 켜려면 이 키가 필요합니다. 없어도 앱은 정상 동작합니다 — "배경 지도" 토글이 아예 표시되지 않고 나머지 기능은 그대로입니다.
+3. 환경변수는 `NEXT_PUBLIC_VWORLD_KEY`(선택)와 `NEXT_PUBLIC_MAP_FX`(선택, 아래 참고) 2개입니다 — 지표·경계·학교 데이터는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고 런타임에 외부 API 키나 서버 비밀값을 쓰지 않지만, 배경 지도(브이월드 타일)를 켜려면 이 키가 필요합니다. 없어도 앱은 정상 동작합니다 — "배경 지도" 컨트롤이 아예 표시되지 않고 나머지 기능은 그대로입니다. 배경 지도는 끄기 · 위성(기본, 밝은 워시) · 일반(채도 낮춤) 3단이며 선택은 브라우저에 저장됩니다(`jbmap.basemap`). 화면 전체는 라이트 테마입니다.
    - 발급: [브이월드 오픈API](https://www.vworld.kr/dev/v4dv_openapireferrer_s001.do)에서 무료로 키를 발급받고, 사용할 배포 도메인(예: `xxx.vercel.app`, 커스텀 도메인)을 인증키 관리에 등록합니다.
    - Vercel 프로젝트 설정 → Environment Variables 에 `NEXT_PUBLIC_VWORLD_KEY`를 추가합니다(Production/Preview 모두 필요하면 각각 등록). `vercel env add NEXT_PUBLIC_VWORLD_KEY production` 로도 등록할 수 있습니다.
    - 로컬 개발은 `.env.local`(`.gitignore`됨 — 커밋되지 않음)에 같은 키를 넣으면 됩니다.
@@ -72,7 +72,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 - **한국교육시설안전원 초중등학교위치 표준데이터** (data.go.kr) — 학교 점 위치(위도/경도). 시군 선택 시 지도 우측 패널과 화면 하단에 "위치 기준 YYYY-MM-DD" 로 기준일을 표기합니다. 전국 데이터셋 특성상 초·중·고등학교만 포함되어 있고 특수학교 위치는 제공되지 않습니다(자세한 내용은 `data/interim/schools-match-report.json` 참고). 이는 매칭 실패가 아니라 원천 데이터 자체의 구조적 공백이므로, 특수학교도 `public/data/schools.json` 에 좌표 없이(`lat`/`lng: null`, `locationMissingReason` 설명 포함) 실리며 매칭률·검증 대상에서는 제외됩니다 — 지도에는 점으로 그리지 않고, 우측 패널 학교 목록에는 "위치 없음" 배지로 표시됩니다.
 - **전북특별자치도교육청 폐교재산 현황** (공공데이터포털) — 폐교 지표(폐교 수/미활용 폐교 수/최근 10년 폐교 수)와 RegionPanel의 폐교 목록의 원천. 원천 파일의 게시(갱신)일이 데이터 기준일과 다른 경우 Footer에 "기준일 …(게시 …)" 형식으로 둘 다 표기합니다.
 - **통계청 SGIS 기반 행정동 경계** (vuski/admdongkor, `HangJeongDong_ver20260701.geojson`) — 시군 경계·라벨 위치의 원천. [vuski/admdongkor](https://github.com/vuski/admdongkor) 저장소는 **CC BY 4.0** 라이선스로 배포되며, 이 프로젝트는 그 경계 데이터를 단순화·가공해 `public/data/regions.geojson`/`neighbors.geojson`(`npm run data:regions`)과, 선택한 시군의 하위 읍면동 경계선용 `public/data/emd/<시군코드>.geojson` 14개(`npm run data:emd`)로 다시 배포합니다 — 출처 표기(CC BY 4.0이 요구하는 저작자 표시)는 화면 하단 Footer와 이 문서에 명시합니다.
-- **배경지도: 국토교통부 브이월드(VWorld) 오픈API** (`midnight` WMTS 타일) — 지도 화면 우측 상단 "배경 지도" 토글을 켜면 표시되는 배경 타일의 원천. 브이월드 오픈API 이용약관에 따라 출처를 표기합니다(지도 오버레이 안의 "배경지도 © 국토교통부 브이월드(VWorld)" 문구). 브라우저에서 브이월드 WMTS 엔드포인트를 직접 호출하며(CORS `access-control-allow-origin: *` 확인됨), 별도의 서버 프록시는 두지 않습니다.
+- **배경지도: 국토교통부 브이월드(VWorld) 오픈API** (`Satellite` 위성 · `Base` 일반 WMTS 타일) — 지도 화면 우측 상단 "배경 지도" 컨트롤(끄기 · 위성 · 일반)에서 위성/일반을 고르면 표시되는 배경 타일의 원천. 브이월드 오픈API 이용약관에 따라 출처를 표기합니다(지도 오버레이 안의 "배경지도 © 국토교통부 브이월드(VWorld)" 문구). 브라우저에서 브이월드 WMTS 엔드포인트를 직접 호출하며(CORS `access-control-allow-origin: *` 확인됨), 별도의 서버 프록시는 두지 않습니다.
 
 `xlsx` 패키지(devDependency)는 KESS `.xlsx` 원본을 읽는 데이터 파이프라인 전용(`scripts/pipeline/parse-kess.ts` 등)이며, 브라우저로 번들되지 않습니다 — 알려진 보안 권고(advisory)가 있으나 런타임 노출 범위 밖이라 별도 조치 없이 유지합니다.
 
@@ -82,4 +82,4 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 - **다문화(이주배경) 학생 지표** — KESS 통계표(`[주제별] 이주배경(유형별) 학생수`)는 존재하지만, 공개 출처에서 시군 단위로 분해된 데이터를 확보하지 못해 1차 범위에서 제외했습니다.
 - **연도 슬라이더** — 특정 연도를 직접 골라보는 UI는 1차 범위에 포함되지 않았습니다. 연도별 추이는 시군 선택 시 RegionPanel의 스파크라인으로 확인할 수 있습니다.
-- **배경 타일 지도** — 1차 범위에서는 제외했으나(deck.gl 레이어만으로 화면 구성), 2차(2026-09-21)에서 브이월드(VWorld) midnight WMTS 타일을 배경으로 도입했습니다(우측 상단 "배경 지도" 토글, `NEXT_PUBLIC_VWORLD_KEY` 필요 — 위 "배포 (Vercel)" 3번 항목 참고).
+- **배경 타일 지도** — 1차 범위에서는 제외했으나(deck.gl 레이어만으로 화면 구성), 2차(2026-09-21)에서 브이월드(VWorld) midnight WMTS 타일을 배경으로 도입했고, 이어진 밝은 디오라마 개편에서 위성(`Satellite` + 밝은 흰색 워시, 기본) · 일반(`Base`, 채도 낮춤) · 끄기 3단으로 바꿨습니다(우측 상단 "배경 지도" 컨트롤, `NEXT_PUBLIC_VWORLD_KEY` 필요 — 위 "배포 (Vercel)" 3번 항목 참고).

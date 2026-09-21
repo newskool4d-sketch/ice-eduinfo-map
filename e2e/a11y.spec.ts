@@ -62,10 +62,26 @@ test.describe("접근성", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog", { name: "조건별 맵 선택" })).not.toBeVisible();
 
+    // 2b) 배경 지도 세그먼트 (Task 3, spec §7): the radiogroup uses a roving
+    // tabindex, so its ONE Tab stop is the checked radio (위성 by default —
+    // playwright.config.ts sets NEXT_PUBLIC_VWORLD_KEY for the e2e server,
+    // so the control renders). Reachability only, not an exact position
+    // (same bounded helper as the other steps). ArrowRight then moves the
+    // selection to the next option (일반) and focuses it — the WAI-ARIA
+    // radiogroup keyboard pattern.
+    const basemapGroup = page.getByRole("radiogroup", { name: "배경 지도" });
+    const satelliteRadio = basemapGroup.getByRole("radio", { name: "위성" });
+    await expect(satelliteRadio).toHaveAttribute("aria-checked", "true");
+    expect(await tabUntilFocused(page, satelliteRadio, 15)).toBe(true);
+    await page.keyboard.press("ArrowRight");
+    const baseRadio = basemapGroup.getByRole("radio", { name: "일반" });
+    await expect(baseRadio).toHaveAttribute("aria-checked", "true");
+    await expect(baseRadio).toBeFocused();
+
     // 3) 시군 목록: RegionList's buttons live in the complementary landmark
     // (<aside>) — first one reachable by continuing to Tab forward from
-    // wherever focus landed after closing the popover (back on the menu
-    // button itself — IndicatorMenu's close-effect cleanup restores it).
+    // wherever focus is now (the 일반 radio in the map overlay, which sits
+    // before the <aside> in DOM order).
     const firstRegionButton = page.getByRole("complementary").getByRole("button").first();
     expect(await tabUntilFocused(page, firstRegionButton, 15)).toBe(true);
 
