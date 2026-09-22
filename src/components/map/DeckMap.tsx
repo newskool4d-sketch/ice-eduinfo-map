@@ -250,6 +250,7 @@ export default function DeckMap({
     bundle.schools.schools.find((s) => s.id === highlightedSchoolId) ?? null;
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef | null>(null);
+  const pointerDownRef = useRef<{ x: number; y: number; id: number } | null>(null);
   const mapReadyRef = useRef(false);
   const lastLabelViewportKey = useRef("");
   const lastLabelUpdateTime = useRef(0);
@@ -663,7 +664,7 @@ export default function DeckMap({
       // tap lands a few pixels outside the dot, deck.gl reports the polygon
       // and reselecting that region flies the camera back to its overview.
       // Give the visible school point a forgiving hit area first.
-      if (info && (zoom >= 13 || schoolChart !== "auto")) {
+      if (info && (selectedCode !== null || schoolChart !== "auto")) {
         const schoolId = nearbySchoolId(info.x, info.y, info.viewport);
         if (schoolId) {
           handleSchoolClick(schoolId);
@@ -682,7 +683,7 @@ export default function DeckMap({
         onSelect(code);
       }
     },
-    [selectedCode, onSelect, reselect, zoom, schoolChart, nearbySchoolId, handleSchoolClick],
+    [selectedCode, onSelect, reselect, schoolChart, nearbySchoolId, handleSchoolClick],
   );
 
   // Mirrored into a ref (same reasoning/pattern as fontReadyRef above) so
@@ -720,14 +721,14 @@ export default function DeckMap({
         t: performance.now(),
       });
       if (!info.picked) {
-        const schoolId = (zoom >= 13 || schoolChart !== "auto")
+        const schoolId = (selectedCode !== null || schoolChart !== "auto")
           ? nearbySchoolId(info.x, info.y, info.viewport)
           : null;
         if (schoolId) handleSchoolClick(schoolId);
         else if (selectedCode !== null) onSelect(null);
       }
     },
-    [selectedCode, onSelect, nearbySchoolId, handleSchoolClick, zoom, schoolChart],
+    [selectedCode, onSelect, nearbySchoolId, handleSchoolClick, schoolChart],
   );
 
   // Task 6, "현재 코드 상태" — ←/→/Enter cycling + document-level
@@ -1153,12 +1154,21 @@ export default function DeckMap({
       // 사용자 요구(2026-09-21): 지도 위 우클릭은 아무 조작도 아니므로(회전 제거)
       // 브라우저 컨텍스트 메뉴가 뜨지 않게 한다.
       onContextMenu={(event) => event.preventDefault()}
-      onClickCapture={(event) => {
+      onPointerDownCapture={(event) => {
+        pointerDownRef.current = event.button === 0 && event.target instanceof HTMLCanvasElement && event.target.id === "deckgl-overlay"
+          ? { x: event.clientX, y: event.clientY, id: event.pointerId }
+          : null;
+      }}
+      onPointerCancelCapture={() => { pointerDownRef.current = null; }}
+      onPointerUpCapture={(event) => {
+        const start = pointerDownRef.current;
+        pointerDownRef.current = null;
+        if (!start || start.id !== event.pointerId || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
         if (!(event.target instanceof HTMLCanvasElement) || event.target.id !== "deckgl-overlay") return;
         // At the province overview, school dots are densely packed. Keep the
         // region surface clickable there and reserve the forgiving radius for
         // a region close-up or an explicit dots/columns view.
-        if (zoom < 13 && schoolChart === "auto") return;
+        if (selectedCode === null && schoolChart === "auto") return;
         const bounds = event.currentTarget.getBoundingClientRect();
         const hit = deckRef.current?.deck?.pickObject({
           x: event.clientX - bounds.left,

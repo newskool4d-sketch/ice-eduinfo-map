@@ -42,6 +42,14 @@ test("통계 화면에서 학교 점을 누르면 해당 학교 상세가 열린
   await expect(page.getByRole("region", { name: "선택한 학교" })).toContainText("전주초등학교");
 });
 
+test("기본 지도 설정에서도 학교 점 주변을 누르면 상세가 열린다", async ({ page }) => {
+  await page.goto("/?scene=flat&view=schools&region=52110");
+  await openPanel(page);
+  await page.getByRole("searchbox", { name: "학교명 검색" }).fill("전주초등학교");
+  await clickOnlySchoolPoint(page, 10);
+  await expect(page.getByRole("region", { name: "선택한 학교" })).toContainText("전주초등학교");
+});
+
 test("모바일에서 학교 점을 누르면 정보를 바로 볼 수 있다", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scene=flat&schoolChart=dots&view=schools&region=52110");
