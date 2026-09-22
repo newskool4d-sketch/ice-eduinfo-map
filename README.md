@@ -54,6 +54,7 @@ NEXT_PUBLIC_EDU_MAP_PROFILE=<지역ID> npm run dev
 | `npm run data:charset` | 폰트/문자셋 서브셋 생성 |
 | `npm run data:validate` | 생성된 데이터 검증 |
 | `npm run data:build` | `regions → emd → kess → schools → indicators → issues → charset → validate` 순으로 데이터 파이프라인 전체 실행 (학교 점 레이어 포함) |
+| `npm run social:build` | 시군 경계로 공유 썸네일과 파비콘 생성 |
 
 ## CI
 
@@ -71,6 +72,8 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
    - (`NEXT_PUBLIC_E2E` 는 Playwright e2e 전용으로 `playwright.config.ts` 가 테스트 실행 시에만 주입하며, 배포본에는 전혀 관여하지 않습니다.)
 4. Deploy를 누르면 끝입니다. 이후 `main`(또는 배포 대상 브랜치)에 푸시할 때마다 Vercel이 자동으로 재배포합니다.
 5. 데이터를 갱신했다면(아래 "데이터 갱신 절차" 참고) 재빌드된 `public/data/**` 를 포함한 커밋을 푸시하는 것만으로 배포본에도 반영됩니다 — 별도의 배포 시점 데이터 빌드 단계는 없습니다(파이프라인은 로컬/CI에서 미리 실행해 결과 JSON을 커밋하는 방식).
+
+카카오톡 등 공유 미리보기에는 1200×630 PNG와 Open Graph 제목·설명을 사용합니다. 다른 지역으로 배포할 때는 `NEXT_PUBLIC_SITE_URL`을 해당 공개 주소로 설정하고, 경계 데이터를 생성한 뒤 `SOCIAL_PROVINCE_NAME`, `SOCIAL_SHORT_NAME`, `SOCIAL_SITE_HOST`를 지정해 `npm run social:build`를 실행하세요. 생성된 `public/social-preview.png`와 `src/app`의 아이콘 파일을 함께 커밋해야 합니다.
 
 ## 데이터 갱신 절차
 

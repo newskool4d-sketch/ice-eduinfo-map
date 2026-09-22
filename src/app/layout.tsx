@@ -11,9 +11,30 @@ const notoSansKr = Noto_Sans_KR({
   variable: "--font-sans",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://jb-edu-map.vercel.app";
+const siteTitle = `${ACTIVE_PROFILE.province.shortName}교육지도`;
+const siteDescription = `${ACTIVE_PROFILE.province.shortName}의 학교와 교육 현황을 지도에서 살펴보세요. 시군별 통계와 교육문제를 함께 비교할 수 있습니다.`;
+
 export const metadata: Metadata = {
-  title: `${ACTIVE_PROFILE.province.shortName}교육지도`,
-  description: `${ACTIVE_PROFILE.province.shortName} 시군 교육통계를 3D 데이터 지도로 보여주는 대시보드입니다.`,
+  metadataBase: new URL(siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: "/",
+    siteName: siteTitle,
+    title: siteTitle,
+    description: siteDescription,
+    images: [{ url: "/social-preview.png", width: 1200, height: 630, alt: `${siteTitle} 공유 미리보기` }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: ["/social-preview.png"],
+  },
 };
 
 export default function RootLayout({
