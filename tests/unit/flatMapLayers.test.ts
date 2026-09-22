@@ -15,6 +15,8 @@ describe("flat satellite overlays", () => {
   it("anchors school dots at ground coordinates with a fixed pixel radius", () => {
     const school = { id: "one", lng: 127, lat: 35, level: "elem" } as PositionedSchool;
     const layer = makeFlatSchoolsLayer([school], null, vi.fn());
+    expect(layer.props.billboard).toBe(true);
+    expect(layer.props.parameters).toMatchObject({ depthCompare: "always", depthWriteEnabled: false });
     expect(layer.props.radiusUnits).toBe("pixels");
     expect(layer.props.radiusMinPixels).toBe(5);
     expect(layer.props.radiusMaxPixels).toBe(5);

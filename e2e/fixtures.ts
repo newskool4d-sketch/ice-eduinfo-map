@@ -21,6 +21,9 @@ export const test = base.extend<object>({
         body: PNG_1X1,
       }),
     );
+    await page.route("**/api/buildings/**", route => route.fulfill({ json: {
+      type: "FeatureCollection", features: [], metadata: { complete: true, fetchedAt: "2026-09-22T00:00:00Z", source: "test" },
+    } }));
     // Playwright's own fixture-callback convention — this `use` is the
     // fixture-teardown callback (Playwright's `TestFixture` param), not a
     // React hook; eslint-plugin-react-hooks flags it purely because of the

@@ -32,7 +32,7 @@ const TILE_SOURCE: Record<
   { layer: string; ext: string; desaturate: number }
 > = {
   satellite: { layer: "Satellite", ext: "jpeg", desaturate: 0 },
-  base: { layer: "Base", ext: "png", desaturate: 0 },
+  base: { layer: "Base", ext: "png", desaturate: 0.8 },
 };
 
 /**

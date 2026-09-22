@@ -29,7 +29,7 @@ test("모바일에서도 지도와 학교 검색을 사용하고 선택 후 패�
     .poll(() =>
       page.evaluate(() => window.__jbmap?.deck.getViewports()[0].zoom),
     )
-    .toBeCloseTo(15, 2);
+    .toBeCloseTo(16, 2);
   await expect(
     page.getByRole("button", { name: "전주초등학교 학교 정보 보기" }),
   ).toBeVisible();

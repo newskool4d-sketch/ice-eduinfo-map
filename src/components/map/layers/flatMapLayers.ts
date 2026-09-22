@@ -14,7 +14,7 @@ export function makeFlatRegionsLayer(
   onClick: (code: string) => void,
   issueModel?: IssueMapModel | null,
 ) {
-  return new GeoJsonLayer({
+  return new GeoJsonLayer<NonNullable<RegionsFeatureCollection["features"][number]["properties"]>>({
     id: "regions",
     data: regions,
     extruded: false,
@@ -47,6 +47,7 @@ export function makeFlatSchoolsLayer(
     data: schools,
     pickable: true,
 
+    billboard: true,
     radiusUnits: "pixels",
     getRadius: 5,
     radiusMinPixels: 5,

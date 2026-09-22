@@ -122,7 +122,7 @@ describe("makeBasemapLayer", () => {
     // Spec §2: only the `Base` road map is desaturated (0.5) — it's a busy
     // yellow-highway routing style that would fight the pastel blocks; the
     // satellite photo keeps its color and is lightened by the wash instead.
-    it("keeps both sources in their original colors", () => {
+    it("desaturates the road map while retaining satellite colors", () => {
       const fakeTile = {
         tile: { boundingBox: [[126, 35], [127, 36]] },
         data: {} as ImageBitmap,
@@ -135,7 +135,7 @@ describe("makeBasemapLayer", () => {
         fakeTile as never,
       ) as BitmapLayer;
       expect(sat.props.desaturate).toBe(0);
-      expect(base.props.desaturate).toBe(0);
+      expect(base.props.desaturate).toBe(0.8);
     });
   });
 });

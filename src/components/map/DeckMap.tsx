@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -11,7 +12,7 @@ import {
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView, WebMercatorViewport } from "@deck.gl/core";
-import type { LayersList, PickingInfo } from "@deck.gl/core";
+import type { LayersList, PickingInfo, MapViewState, ViewStateChangeParameters } from "@deck.gl/core";
 import { LightGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
@@ -26,7 +27,10 @@ import type { IssueMapModel } from "@/lib/issues/types";
 import type { School } from "@/lib/schools/types";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
-import { makeBasemapLayer } from "@/components/map/layers/basemapLayer";
+import { makeBuildingLayer } from "./layers/buildingLayer";
+import { buildingsActive, scenePitch } from "./scene";
+import { useScene } from "./useScene";
+import { makeBasemapWashLayer, makeBasemapLayer } from "@/components/map/layers/basemapLayer";
 import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import {
@@ -168,6 +172,28 @@ export default function DeckMap({
   issueModel = null,
 }: DeckMapProps) {
   const bundle = useBundle();
+  const { scene, setScene, enabled: buildingsEnabled } = useScene();
+  const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const update = () => setMobile(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  const [buildingErrors, setBuildingErrors] = useState<Set<string>>(() => new Set());
+  const [buildingFetchedAt, setBuildingFetchedAt] = useState<string | null>(null);
+  const [buildingRetry, setBuildingRetry] = useState(0);
+  const onBuildingStatus = useCallback((id: string, error: boolean, fetchedAt?: string) => {
+    queueMicrotask(() => {
+      setBuildingErrors((old) => {
+        if (old.has(id) === error) return old;
+        const next = new Set(old);
+        if (error) next.add(id); else next.delete(id);
+        return next;
+      });
+      if (fetchedAt) setBuildingFetchedAt(fetchedAt);
+    });
+  }, []);
   const [showSchoolNames, setShowSchoolNames] = useState(true);
   const selectedSchool =
     bundle.schools.schools.find((s) => s.id === highlightedSchoolId) ?? null;
@@ -175,6 +201,9 @@ export default function DeckMap({
   const deckRef = useRef<DeckGLRef | null>(null);
   const mapReadyRef = useRef(false);
   const lastLabelViewportKey = useRef("");
+  const lastLabelUpdateTime = useRef(0);
+  const labelUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (labelUpdateTimer.current) clearTimeout(labelUpdateTimer.current); }, []);
   const [labelViewport, setLabelViewport] =
     useState<WebMercatorViewport | null>(null);
   const labelsReadyRef = useRef(false);
@@ -196,6 +225,7 @@ export default function DeckMap({
     reduceMotion,
     selectedSchool,
     schoolFocusNonce,
+    scene, mobile,
   );
 
   // Task 6, Section A.2 — WebGL context loss: deck.gl's own internal
@@ -256,10 +286,11 @@ export default function DeckMap({
   const [zoom, setZoom] = useState<number>(VIEW_LIMITS.minZoom);
   const lastZoomUpdateRef = useRef(0);
   const handleViewStateChange = useCallback(
-    ({ viewState }: { viewState: Record<string, unknown> }) => {
+    <T extends MapViewState,>({ viewState }: ViewStateChangeParameters<T>) => {
+      viewState = { ...viewState, bearing: 0, pitch: scenePitch(scene, Number(viewState.zoom), mobile) };
       rememberViewState(viewState);
       const now = Date.now();
-      if (now - lastZoomUpdateRef.current < ZOOM_THROTTLE_MS) return;
+      if (now - lastZoomUpdateRef.current < ZOOM_THROTTLE_MS) return viewState;
       lastZoomUpdateRef.current = now;
       const nextZoom = viewState.zoom;
       if (typeof nextZoom !== "number") return;
@@ -275,8 +306,9 @@ export default function DeckMap({
       // render finishes, before the next paint) without adding a
       // human-perceptible delay the way a setTimeout(0) macrotask would.
       queueMicrotask(() => setZoom(nextZoom));
+      return viewState;
     },
-    [rememberViewState],
+    [rememberViewState, scene, mobile],
   );
 
   const def = indicatorById(indicatorId);
@@ -592,6 +624,10 @@ export default function DeckMap({
 
   const overlayItems = useMemo<MapOverlayItem[]>(() => {
     const items: MapOverlayItem[] = [];
+    if (buildingsEnabled) items.push({ kind: "segmented", id: "scene", label: "지도 표현", value: scene,
+      options: [{ value: "city", label: "입체 현황판" }, { value: "flat", label: "평면" }],
+      onChange: (value) => setScene(value as "city" | "flat"),
+    });
     items.push({
       id: "school-names",
       label: "학교명",
@@ -605,7 +641,7 @@ export default function DeckMap({
       onToggle: handleEmdToggle,
     });
     return items;
-  }, [showSchoolNames, emdEnabled, handleEmdToggle]);
+  }, [showSchoolNames, emdEnabled, handleEmdToggle, scene, setScene, buildingsEnabled]);
 
   const basemapOn = !!VWORLD_KEY;
   const basemapLayer = useMemo(
@@ -618,16 +654,26 @@ export default function DeckMap({
   // zero-console-error assertions) — null the rest of the time.
   const emdFc = useEmdBoundaries(selectedCode, emdEnabled);
 
+  const buildingsVisible = buildingsEnabled && buildingsActive(scene, zoom, mobile);
+  const buildingLayer = useMemo(() => buildingsVisible ? makeBuildingLayer({
+    mobile, issueActive: !!issueModel, retry: buildingRetry, onStatus: onBuildingStatus,
+  }) : null, [buildingsVisible, mobile, issueModel, buildingRetry, onBuildingStatus]);
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = 0;
     const layerList: LayersList = [
       basemapLayer,
+      basemapLayer ? makeBasemapWashLayer("base") : null,
       makeFlatRegionsLayer(
         bundle.regions,
         selectedCode,
         handleRegionClick,
         issueModel,
       ),
+      buildingLayer,
+      buildingLayer ? makeFlatRegionsLayer(bundle.regions, selectedCode, handleRegionClick).clone({
+        id: "region-boundaries", filled: false, pickable: false,
+        parameters: { depthCompare: "always", depthWriteEnabled: false },
+      }) : null,
       emdEnabled && selectedCode && emdFc
         ? makeEmdBoundaryLayer(emdFc, {
             elevation: 1,
@@ -672,6 +718,7 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
+    buildingLayer,
     issueModel,
     bundle.regions,
     selectedCode,
@@ -728,12 +775,20 @@ export default function DeckMap({
         viewport.zoom,
         viewport.pitch,
       ].join(",");
-      if (key !== lastLabelViewportKey.current) {
+      if (key !== lastLabelViewportKey.current && performance.now() - lastLabelUpdateTime.current >= 100) {
+        lastLabelUpdateTime.current = performance.now();
+        if (labelUpdateTimer.current) clearTimeout(labelUpdateTimer.current);
+        labelUpdateTimer.current = null;
         lastLabelViewportKey.current = key;
         queueMicrotask(() => {
           setLabelViewport(viewport);
           setZoom(viewport.zoom);
         });
+      } else if (key !== lastLabelViewportKey.current && !labelUpdateTimer.current) {
+        labelUpdateTimer.current = setTimeout(() => {
+          labelUpdateTimer.current = null;
+          deckRef.current?.deck?.redraw("label placement update");
+        }, 100);
       }
     }
     if (!mapReadyRef.current) {
@@ -807,13 +862,23 @@ export default function DeckMap({
           // devicePixelRatio straight through supersamples on an already-high-DPR
           // screen. `Math.min(..., 1.5)` caps render resolution without ever
           // exceeding the device's native pixel ratio.
-          useDevicePixels={Math.min(window.devicePixelRatio || 1, 1.5)}
+          useDevicePixels={Math.min(window.devicePixelRatio || 1, mobile ? 1 : 1.5)}
         />
       )}
       <MapOverlay
         items={overlayItems}
         attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
-      />
+      >
+      {scene === "city" && (
+        <div className="max-w-full rounded border border-line bg-surface/90 px-2 py-1 text-[10px] text-ink-muted" role="status">
+          {!buildingsVisible ? <p>건물은 더 확대하면 표시됩니다</p> : <>
+            <p>건물 © 국토교통부·브이월드 · 일부 높이는 층수로 추정</p>
+            {buildingFetchedAt && <p>건물 조회: {new Date(buildingFetchedAt).toLocaleString("ko-KR")}</p>}
+            {buildingErrors.size > 0 && <p>일부 건물 정보를 불러오지 못했습니다 <button className="pointer-events-auto underline" onClick={() => { setBuildingErrors(new Set()); setBuildingRetry((n) => n + 1); }}>재시도</button></p>}
+          </>}
+        </div>
+      )}
+      </MapOverlay>
       {contextLost && (
         <div
           role="alert"
@@ -822,10 +887,10 @@ export default function DeckMap({
           <p>그래픽 컨텍스트가 끊겼습니다</p>
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => { setScene("flat"); const url = new URL(window.location.href); url.searchParams.set("scene", "flat"); window.location.assign(url); }}
             className="rounded bg-ink/5 px-3 py-1.5 hover:bg-ink/15"
           >
-            새로고침
+            평면으로 다시 열기
           </button>
         </div>
       )}

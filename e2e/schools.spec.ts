@@ -61,7 +61,7 @@ test("학교 선택은 지역 필터를 바꾸지 않고 확대하며 이름과 
     .poll(() =>
       page.evaluate(() => window.__jbmap?.deck.getViewports()[0].zoom),
     )
-    .toBeCloseTo(15, 2);
+    .toBeCloseTo(16, 2);
   const style = () =>
     page.evaluate(() => {
       const layers = window.__jbmap!.deck.props.layers as ({
@@ -94,7 +94,7 @@ test("학교 선택은 지역 필터를 바꾸지 않고 확대하며 이름과 
       .poll(() =>
         page.evaluate(() => window.__jbmap?.deck.getViewports()[0].zoom),
       )
-      .toBeCloseTo(16 + i, 2);
+      .toBeCloseTo(Math.min(18, 17 + i), 2);
   }
   await expect
     .poll(() =>

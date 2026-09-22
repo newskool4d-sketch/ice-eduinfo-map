@@ -115,7 +115,7 @@ export default defineConfig({
     // 1x1 PNG), it only needs a truthy value so DeckMap's `VWORLD_KEY` gate
     // renders the "배경 지도" segmented control (끄기 · 위성 · 일반, default
     // 위성) and constructs the TileLayer.
-    env: { NEXT_PUBLIC_E2E: "1", NEXT_PUBLIC_VWORLD_KEY: "e2e-test" },
+    env: { NEXT_PUBLIC_E2E: "1", NEXT_PUBLIC_VWORLD_KEY: process.env.LIVE_BUILDINGS === "1" ? process.env.NEXT_PUBLIC_VWORLD_KEY ?? "" : "e2e-test" },
   },
   projects: [
     {

@@ -1,5 +1,6 @@
 "use client";
 
+import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import IssueExplorer, { IssueLegend } from "@/components/panels/IssueExplorer";
@@ -121,9 +122,7 @@ function DashboardInner({
   }, [tab, issueId, issueMetric, issueState, bundle]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [highlightedSchoolId, setHighlightedSchoolId] = useState<string | null>(
-    null,
-  );
+  const [highlightedSchoolId, setHighlightedSchoolId] = useQueryState("school", parseAsString.withOptions({ history: "push", shallow: true }));
   const [schoolFocusNonce, setSchoolFocusNonce] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
   const panelButtonRef = useRef<HTMLButtonElement>(null);
@@ -136,7 +135,9 @@ function DashboardInner({
   );
   const selectedSchool =
     filteredSchools.find((s) => s.id === highlightedSchoolId) ?? null;
-  if (highlightedSchoolId && !selectedSchool) setHighlightedSchoolId(null);
+  useEffect(() => {
+    if (highlightedSchoolId && !selectedSchool) void setHighlightedSchoolId(null, { history: "replace" });
+  }, [highlightedSchoolId, selectedSchool, setHighlightedSchoolId]);
 
   useEffect(() => {
     if (!panelOpen) return;

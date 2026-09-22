@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
+import { useRef, type ReactNode, type KeyboardEvent } from "react";
 
 /** A press/unpress chip (`aria-pressed`). `kind` is optional so the original item shape (Task A/C/E callers and tests) keeps working unchanged. */
 export interface MapOverlayToggleItem {
@@ -58,6 +58,7 @@ export interface MapOverlayProps {
    * DeckMap owns that pairing.
    */
   attribution?: string;
+  children?: ReactNode;
 }
 
 /**
@@ -75,13 +76,13 @@ export interface MapOverlayProps {
  * child, so in fallback mode (DeckMap not rendered at all) this is
  * automatically absent too — no separate fallback-mode check needed here.
  */
-export default function MapOverlay({ items, attribution }: MapOverlayProps) {
-  if (items.length === 0 && !attribution) return null;
+export default function MapOverlay({ items, attribution, children }: MapOverlayProps) {
+  if (items.length === 0 && !attribution && !children) return null;
 
   return (
     <div className="pointer-events-none absolute right-3 top-16 lg:top-3 z-10 flex max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5">
       {items.length > 0 && (
-        <div className="flex max-w-[calc(100vw-24px)] flex-wrap justify-end gap-1.5">
+        <div className="flex max-w-[250px] sm:max-w-[calc(100vw-24px)] flex-wrap justify-end gap-1.5">
           {items.map((item) =>
             item.kind === "segmented" ? (
               <SegmentedRadioGroup key={item.id} item={item} />
@@ -112,6 +113,7 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
           {attribution}
         </div>
       )}
+      {children}
     </div>
   );
 }

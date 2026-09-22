@@ -86,7 +86,7 @@ test.describe("시군 선택", () => {
     // confirm the asynchronous camera transition has actually started.
     await expect.poll(async () => (await readCamera(page)).zoom, { timeout: 15000 })
       .toBeGreaterThan(overviewCamera.zoom);
-    expect((await readCamera(page)).pitch).toBe(0);
+    expect((await readCamera(page)).pitch).toBeGreaterThanOrEqual(20);
 
     await docShot(page, "select-region-after");
 
