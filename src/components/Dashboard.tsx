@@ -113,7 +113,7 @@ function DashboardInner({
   const [name, setName] = useState("");
   const [level, setLevel] = useState<SchoolFilters["level"]>("all");
   const { view: tab, setView: setTab, issueId, issueMetric, setIssue, setIssueMetric } = useMapQuery();
-  const { state: issueState, retry: retryIssues } = useIssueData(tab === "issues", bundle.schools);
+  const { state: issueState, retry: retryIssues } = useIssueData(tab === "issues" || ["special_classes", "special_students", "zero_entrant_schools"].includes(indicatorId), bundle.schools);
   const issueModel = useMemo(() => {
     const definition = issueById(issueId);
     return tab === "issues" && definition && issueState.status === "ready"
@@ -359,6 +359,7 @@ function DashboardInner({
             schools={filteredSchools}
             schoolFocusNonce={schoolFocusNonce}
             issueModel={issueModel}
+            schoolFacts={issueState.status === "ready" ? issueState.data : null}
             statisticsVisible={tab === "statistics"}
             interactionBlocked={panelOpen}
           />

@@ -9,6 +9,9 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { schoolChartMetric, chartMaximum, chartHeight, chartValueText } from "@/lib/schools/chart";
+import { makeSchoolChartLayer } from "./layers/schoolChartLayer";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView, WebMercatorViewport } from "@deck.gl/core";
@@ -23,7 +26,7 @@ import {
   type RegionCode,
 } from "@/lib/geo/regions";
 import { declutterLabels, type LabelCandidate } from "./declutterLabels";
-import type { IssueMapModel } from "@/lib/issues/types";
+import type { EducationIssuesFile, IssueMapModel } from "@/lib/issues/types";
 import type { School } from "@/lib/schools/types";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
@@ -144,6 +147,7 @@ const WIDGET_THEME_STYLE: CSSProperties = {
 
 export interface DeckMapProps {
   issueModel?: IssueMapModel | null;
+  schoolFacts?: EducationIssuesFile | null;
   schools?: School[];
   schoolFocusNonce?: number;
   statisticsVisible?: boolean;
@@ -170,8 +174,10 @@ export default function DeckMap({
   statisticsVisible = false,
   interactionBlocked = false,
   issueModel = null,
+  schoolFacts = null,
 }: DeckMapProps) {
   const bundle = useBundle();
+  const [schoolChart, setSchoolChart] = useQueryState("schoolChart", parseAsStringLiteral(["columns", "dots"] as const).withDefault("columns").withOptions({ history: "push", shallow: true }));
   const { scene, setScene, enabled: buildingsEnabled } = useScene();
   const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
   useEffect(() => {
@@ -417,6 +423,10 @@ export default function DeckMap({
     () => (schools ?? bundle.schools.schools).filter(hasCoordinates),
     [schools, bundle.schools],
   );
+  const chartMetric = useMemo(() => schoolChartMetric(indicatorId, issueModel?.metric, schoolFacts), [indicatorId, issueModel, schoolFacts]);
+  const chartMax = useMemo(() => chartMetric ? chartMaximum(bundle.schools.schools, chartMetric) : 0, [bundle.schools, chartMetric]);
+  const columnsVisible = scene === "city" && schoolChart === "columns" && chartMetric !== null;
+  const heightOfSchool = useCallback((school: School) => columnsVisible && chartMetric ? chartHeight(chartMetric.value(school), chartMax, zoom) : 0, [columnsVisible, chartMetric, chartMax, zoom]);
   const schoolLabelsVisible = showSchoolNames && zoom >= SCHOOL_LABEL_MIN_ZOOM;
   const handleSchoolClick = useCallback(
     (id: string) => onHighlightSchool(id),
@@ -440,7 +450,7 @@ export default function DeckMap({
       for (const value of positionedSchools)
         candidates.push({
           value: { kind: "school", value },
-          position: [value.lng, value.lat],
+          position: [value.lng, value.lat, heightOfSchool(value)],
           text: value.name,
           size: 11,
           priority:
@@ -472,17 +482,18 @@ export default function DeckMap({
     selectedCode,
     highlightedSchoolId,
     schoolLabelsVisible,
+    heightOfSchool,
   ]);
 
   const getRegionTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
   const getSchoolTooltip = useMemo(
-    () => makeSchoolTooltip(schoolTooltipLines),
-    [],
+    () => makeSchoolTooltip((school) => [...schoolTooltipLines(school), ...(chartMetric ? [`원통 · ${chartMetric.label}: ${chartValueText(chartMetric.value(school), chartMetric.unit)}`] : [])]),
+    [chartMetric],
   );
   // School dots have plain School objects; boundaries have GeoJSON properties.
   const getTooltip = useCallback(
     (info: Parameters<typeof getRegionTooltip>[0]) =>
-      info.layer?.id === "schools"
+      (info.layer?.id === "schools" || info.layer?.id === "school-columns")
         ? getSchoolTooltip(info)
         : getRegionTooltip(info),
     [getRegionTooltip, getSchoolTooltip],
@@ -628,6 +639,10 @@ export default function DeckMap({
       options: [{ value: "city", label: "입체 현황판" }, { value: "flat", label: "평면" }],
       onChange: (value) => setScene(value as "city" | "flat"),
     });
+    items.push({ kind: "segmented", id: "school-chart", label: "학교 표현", value: schoolChart,
+      options: [{ value: "columns", label: "원통" }, { value: "dots", label: "점" }],
+      onChange: value => { void setSchoolChart(value as "columns" | "dots"); },
+    });
     items.push({
       id: "school-names",
       label: "학교명",
@@ -641,7 +656,7 @@ export default function DeckMap({
       onToggle: handleEmdToggle,
     });
     return items;
-  }, [showSchoolNames, emdEnabled, handleEmdToggle, scene, setScene, buildingsEnabled]);
+  }, [showSchoolNames, emdEnabled, handleEmdToggle, scene, setScene, buildingsEnabled, schoolChart, setSchoolChart]);
 
   const basemapOn = !!VWORLD_KEY;
   const basemapLayer = useMemo(
@@ -681,6 +696,7 @@ export default function DeckMap({
             transitionDuration,
           })
         : null,
+      columnsVisible ? makeSchoolChartLayer(positionedSchools, heightOfSchool, highlightedSchoolId, handleSchoolClick) : null,
       makeFlatSchoolsLayer(
         positionedSchools,
         highlightedSchoolId,
@@ -701,6 +717,9 @@ export default function DeckMap({
           characterSet,
           triggerKey: indicatorId,
           transitionDuration,
+        }).clone({
+          getPosition: (school) => [school.lng, school.lat, heightOfSchool(school)],
+          updateTriggers: { getPosition: [heightOfSchool] },
         }),
         makeRegionLabelLayer(visibleLabels.regions, {
           collisionEnabled: false,
@@ -718,6 +737,8 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
+    columnsVisible,
+    heightOfSchool,
     buildingLayer,
     issueModel,
     bundle.regions,
@@ -869,6 +890,15 @@ export default function DeckMap({
         items={overlayItems}
         attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
       >
+      {schoolChart === "columns" && (
+        <div data-testid="school-chart-legend" className="max-w-full rounded border border-line bg-surface/95 px-3 py-2 text-xs text-ink-muted">
+          {scene === "flat" ? "원통 높이는 입체 현황판에서 표시됩니다" : chartMetric ? <>
+            <p className="font-semibold text-ink">원통 높이 · {chartMetric.label}</p>
+            <p>0 → {chartValueText(chartMax, chartMetric.unit)} · 전북 전체 학교 기준</p>
+            <p>높이는 값에 정비례 · 0·자료 없음은 점으로 표시</p>
+          </> : <p>이 지표는 학교별 높이 자료가 없어 점으로 표시합니다</p>}
+        </div>
+      )}
       {scene === "city" && (
         <div className="max-w-full rounded border border-line bg-surface/90 px-2 py-1 text-[10px] text-ink-muted" role="status">
           {!buildingsVisible ? <p>건물은 더 확대하면 표시됩니다</p> : <>

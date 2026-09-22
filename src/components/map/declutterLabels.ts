@@ -1,6 +1,6 @@
 export interface LabelCandidate<T> {
   value: T;
-  position: [number, number];
+  position: [number, number] | [number, number, number];
   text: string;
   size: number;
   priority: number;
