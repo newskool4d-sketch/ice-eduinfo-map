@@ -7,7 +7,7 @@
 1. `src/lib/profiles/jeonbuk.ts`를 복사해 `src/lib/profiles/<지역ID>.ts`를 만듭니다. `id`, 시도명, 전체 집계 코드, 시군구 코드와 이름을 채웁니다.
 2. `src/lib/profiles/index.ts`의 `PROFILES`에 새 profile을 등록합니다.
 3. 해당 지역의 `sidoCode`, 인접 시도 코드, KESS 시도명, 교육청 코드, 주소 접두어를 입력합니다. 시군구를 하나로 합쳐 표시해야 하면 `sggPrefixOverrides` 또는 `sggCodeOverrides`를 사용합니다.
-4. `data/manual/`을 지역 전용 경로로 복사하고 profile의 `files.manualDir`을 바꿉니다. 필요한 파일은 `label-offsets.json`, `school-aliases.json`, `special-school-locations.json`, `population-designations.json`입니다. 자료가 없는 교육문제는 정책 질문에서 `planned` 상태로 둡니다.
+4. `data/manual/`을 지역 전용 경로로 복사하고 profile의 `files.manualDir`을 바꿉니다. 필요한 파일은 `label-offsets.json`, `school-aliases.json`, `special-school-locations.json`, `population-designations.json`입니다. 기관형 질문을 공개한다면 `issue-resources.json`도 해당 지역 자료로 교체합니다. 자료가 없는 교육문제는 정책 질문에서 `planned` 상태로 둡니다.
 5. 해당 지역의 정책 문서와 출처를 `src/lib/profiles/<지역ID>/issues.ts`에 작성합니다. 질문은 공약·백서의 과제 번호와 쪽수, 공개 데이터의 기준일을 근거로 해야 합니다.
 6. 원천 파일을 `data/raw/`에 놓고 `npm run data:build -- --profile=<지역ID>`를 실행합니다. 이 명령은 경계, 읍면동, KESS, 학교 위치, 지표, 교육문제, 문자셋을 차례로 생성하고 검증합니다.
 
@@ -23,6 +23,7 @@
 | 교육청 폐교재산 자료 | 폐교 활용 질문 | 선택 |
 | 교육감 공약·인수위 백서 | 교육문제 질문의 정책 근거 | 필수 |
 | 지역별 수동 보정과 출처 | 별칭·특수학교 위치·인구감소 지정 | 필요할 때 |
+| 교육 자원 명단 (`issue-resources.json`) | 기관·학교 사업의 시군별 수와 상세 목록 | 기관형 질문을 공개할 때 |
 
 ## 데이터와 코드의 라이선스
 

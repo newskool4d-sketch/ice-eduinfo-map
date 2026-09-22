@@ -24,4 +24,13 @@ export const METRIC_LABELS: Record<string, string> = {
   "special-schools": "특수학교 수",
   "unused-count": "미활용 폐교 수",
   "unused-share": "미활용 폐교 비율",
+  "basic-centers": "기초학력지원센터 수",
+  libraries: "교육청 도서관 수",
+  "care-pilots": "거점형 돌봄 시범기관 수",
+  "care-centers": "지역아동센터 수",
+  "librarian-schools": "사서교사 배치 학교 수",
+  "counselor-schools": "전문상담교사 배치 학교 수",
+  "wee-centers": "지역 Wee센터 수",
+  "career-regions": "지역별 진로진학 상담 제공",
+  "ai-focus-schools": "AI 중점학교 수",
 };

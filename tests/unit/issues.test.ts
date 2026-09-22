@@ -25,10 +25,10 @@ const regional = () => issueById("regional-sustainability")!;
 const special = () => issueById("special-education")!;
 
 describe("policy-linked education issues", () => {
-  it("registers ten sourced themes, publishing four supported themes", () => {
+  it("publishes all ten sourced themes", () => {
     expect(EDUCATION_ISSUES).toHaveLength(10);
-    expect(PUBLISHED_ISSUES).toHaveLength(4);
-    expect(issueById("reading")).toBeNull();
+    expect(PUBLISHED_ISSUES).toHaveLength(10);
+    expect(issueById("reading")).not.toBeNull();
     expect(EDUCATION_ISSUES.every((i) => i.policyPage && i.policyTask)).toBe(
       true,
     );
@@ -152,7 +152,36 @@ describe("policy-linked education issues", () => {
     );
     expect(q.issue).toBe("regional-sustainability");
     expect(q.region).toBe("52720");
-    expect(load("?view=issues&issue=reading").issue).toBeNull();
+    expect(load("?view=issues&issue=reading").issue).toBe("reading");
+  });
+});
+
+describe("new source-backed resource questions", () => {
+  it("counts the six inventories without projecting a partial list onto all schools", () => {
+    for (const [id, metric, total] of [
+      ["basic-learning", "basic-centers", 14],
+      ["reading", "libraries", 18],
+      ["care", "care-pilots", 7],
+      ["wellbeing", "wee-centers", 16],
+      ["career", "career-regions", 14],
+      ["ai-education", "ai-focus-schools", 81],
+    ] as const) {
+      const issue = issueById(id)!;
+      const model = buildIssueModel(bundle, data, issue, metric);
+      expect(issueValue(bundle, data, metric, "52000")).toBe(total);
+      expect(model.sources).toHaveLength(1);
+      expect(model.note.length).toBeGreaterThan(20);
+      expect(model.regions).toHaveLength(14);
+      expect(model.schools).toHaveLength(id === "ai-education" ? 81 : 0);
+    }
+    expect(data.resources?.filter((r) => r.issue === "care" && r.regionCode === null)).toHaveLength(1);
+    expect(buildIssueModel(bundle, data, issueById("care")!, null).provinceText).toContain("지역 확인 6곳");
+  });
+  it("rejects an AI operating school with a wrong school or district", () => {
+    const copy = structuredClone(data);
+    const ai = copy.resources!.find((r) => r.issue === "ai-education")!;
+    ai.regionCode = "52110";
+    expect(() => assertIssueData(copy, bundle.schools)).toThrow();
   });
 });
 

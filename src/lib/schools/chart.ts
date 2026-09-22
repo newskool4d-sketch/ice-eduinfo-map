@@ -16,6 +16,8 @@ export function schoolChartMetric(indicator: string, issueMetric?: string, facts
     if (issueMetric === "school-size") return { label: "학생수", unit: "명", value: s => s.students };
     if (issueMetric === "decline-small") return { label: "작은학교 학생수", unit: "명", value: s => s.students };
     if (issueMetric === "special-schools") return { label: "특수학교 수", unit: "교", heightMode: "school-count", value: s => s.level === "special" && !s.branch ? 1 : 0 };
+    if (issueMetric === "librarian-schools") return facts ? { label: "사서교사 배치 학교", unit: "교", heightMode: "school-count", value: s => s.branch ? 0 : facts.schools[s.id]?.librarianTeachers == null ? null : facts.schools[s.id].librarianTeachers! > 0 ? 1 : 0 } : null;
+    if (issueMetric === "counselor-schools") return facts ? { label: "전문상담교사 배치 학교", unit: "교", heightMode: "school-count", value: s => s.branch ? 0 : facts.schools[s.id]?.counselorTeachers == null ? null : facts.schools[s.id].counselorTeachers! > 0 ? 1 : 0 } : null;
     if (issueMetric === "special-classes") indicator = "special_classes";
     else if (issueMetric === "special-students") indicator = "special_students";
     else if (issueMetric === "zero-entrants") indicator = "zero_entrant_schools";

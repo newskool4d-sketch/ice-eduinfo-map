@@ -27,6 +27,7 @@ import {
 import MetricLegend from "@/components/panels/MetricLegend";
 import { buildMapMetric, type MapMetricSpec } from "@/lib/mapMetrics";
 import DeckGL from "@deck.gl/react";
+import { ScatterplotLayer } from "@deck.gl/layers";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView, WebMercatorViewport } from "@deck.gl/core";
 import type {
@@ -45,7 +46,7 @@ import {
   type RegionCode,
 } from "@/lib/geo/regions";
 import { declutterLabels, type LabelCandidate } from "./declutterLabels";
-import type { EducationIssuesFile, IssueMapModel } from "@/lib/issues/types";
+import type { EducationIssuesFile, IssueMapModel, IssueResource } from "@/lib/issues/types";
 import type { School } from "@/lib/schools/types";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
@@ -609,7 +610,9 @@ export default function DeckMap({
   // School dots have plain School objects; boundaries have GeoJSON properties.
   const getTooltip = useCallback(
     (info: Parameters<typeof getRegionTooltip>[0]) =>
-      info.layer?.id?.startsWith("schools") ||
+      info.layer?.id === "issue-resources"
+        ? info.object ? { text: `${(info.object as IssueResource).name}\n${(info.object as IssueResource).address ?? ""}` } : null
+      : info.layer?.id?.startsWith("schools") ||
       info.layer?.id === "school-columns"
         ? getSchoolTooltip(info)
         : getRegionTooltip(info),
@@ -931,6 +934,26 @@ export default function DeckMap({
             metricModel,
             handleSchoolClick,
           )
+        : null,
+      issueModel && schoolFacts?.resources?.length
+        ? new ScatterplotLayer<IssueResource>({
+            id: "issue-resources",
+            data: schoolFacts.resources.filter((resource) =>
+              resource.issue === issueModel.issue.id && resource.metric === issueModel.metric &&
+              resource.lat != null && resource.lng != null),
+            getPosition: (resource) => [resource.lng!, resource.lat!],
+            getRadius: 6,
+            radiusUnits: "pixels",
+            getFillColor: [15, 136, 177, 225],
+            getLineColor: [255, 255, 255, 255],
+            lineWidthUnits: "pixels",
+            getLineWidth: 2,
+            stroked: true,
+            pickable: true,
+            onClick: ({ object }) => {
+              if (object?.regionCode) handleRegionClick(object.regionCode);
+            },
+          })
         : null,
     ];
     if (fontReady) {

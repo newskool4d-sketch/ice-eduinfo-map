@@ -27,6 +27,7 @@ if (
 )
   throw new Error("학교·교육통계·지표 자료의 기준연도가 일치하지 않습니다.");
 const population = await read(`${ACTIVE_PROFILE.files.manualDir}/population-designations.json`);
+const resources = await read(`${ACTIVE_PROFILE.files.manualDir}/issue-resources.json`);
 const byCode = new Map<string, SchoolRow>();
 for (const row of kess.rows) {
   if (!row.kediCode || byCode.has(row.kediCode))
@@ -51,6 +52,8 @@ for (const school of schools.schools) {
     entrants: row.entrants,
     specialClasses: row.specialClasses,
     specialStudents: row.specialStudents,
+    librarianTeachers: row.librarianTeachers ?? null,
+    counselorTeachers: row.counselorTeachers ?? null,
   };
 }
 const specialTrends: NonNullable<EducationIssuesFile["specialTrends"]> = [];
@@ -78,6 +81,8 @@ const data: EducationIssuesFile = {
   sources: [population.source, schools.source.stats],
   designations: population.designations,
   schools: facts,
+  resourceSources: resources.sources,
+  resources: resources.resources,
 };
 assertIssueData(data, schools);
 await writeFile(

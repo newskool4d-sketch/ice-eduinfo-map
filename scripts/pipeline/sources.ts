@@ -342,6 +342,8 @@ export interface HeaderLabels {
   students: string;
   classes: string;
   teachers: string;
+  librarianTeachers: string;
+  counselorTeachers: string;
   staff: string;
   entrants: string;
   graduates: string;
@@ -367,6 +369,8 @@ const COMMON_HEADER_LABELS: Omit<HeaderLabels, "kediCode"> = {
   students: "학생수_총계_계",
   classes: "편성학급수_계", // == 일반학급_학급수 + 특수학급_학급수, verified on real 2026 rows
   teachers: "교원수_총계_계",
+  librarianTeachers: "교원수_정규_사서_계",
+  counselorTeachers: "교원수_정규_상담_계",
   staff: "전체직원_계",
   entrants: "입학자_계",
   graduates: "졸업자_계",

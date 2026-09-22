@@ -201,7 +201,7 @@ test("모바일에서 질문·학교 선택 후 정보 패널을 다시 열어�
 test("알 수 없는 질문은 목록, 다른 주제 지표는 기본 지표로 돌아간다", async ({
   page,
 }) => {
-  await page.goto("/?view=issues&issue=reading");
+  await page.goto("/?view=issues&issue=not-a-question");
   await openPanel(page);
   await expect(
     page.getByRole("heading", { name: "우리 지역 교육, 어디부터 살펴볼까요?" }),
@@ -213,4 +213,37 @@ test("알 수 없는 질문은 목록, 다른 주제 지표는 기본 지표로 
   await expect(
     page.getByRole("button", { name: "일반학교 특수학급 수", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
+});
+
+for (const [id, title, count] of [
+  ["basic-learning", "14개 지역 기초학력지원센터는 어디에 있는가?", "14곳"],
+  ["reading", "학교와 지역의 독서 자원은 어떻게 분포하는가?", "18곳"],
+  ["care", "학교와 지역의 돌봄 자원은 어디에 있는가?", "수록 7곳 · 지역 확인 6곳"],
+  ["wellbeing", "학생이 이용할 수 있는 상담·지원기관은 어디인가?", "16곳"],
+  ["career", "진로진학 상담을 신청할 수 있는 지역은 어디인가?", "14개 지역"],
+  ["ai-education", "AI 중점학교는 어디에 분포하는가?", "81개교"],
+] as const) {
+  test(`${id} 공식 자원·시군 지도를 연다`, async ({ page }) => {
+    await page.goto(`/?view=issues&issue=${id}`);
+    await openPanel(page);
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+    await expect(page.getByRole("region", { name: "교육 자원 목록" })).toBeVisible();
+    await expect(page.getByText(count, { exact: false }).first()).toBeVisible();
+    await expect(page.getByRole("region", { name: "교육문제 시군 비교" })).toBeVisible();
+  });
+}
+
+test("지역아동센터 수록 범위와 지도 점을 구분해 표시한다", async ({ page }) => {
+  await page.goto("/?view=issues&issue=care&issueMetric=care-centers");
+  await openPanel(page);
+  await ready(page);
+  await expect(page.getByText("전북 수록 154곳 · 7개 시군 자료", { exact: true }).first()).toBeVisible();
+  const points = await page.evaluate(() => {
+    const layer = window.__jbmap!.deck.props.layers?.flat().find(
+      (value) => value && typeof value === "object" && "id" in value && value.id === "issue-resources",
+    );
+    return layer && "props" in layer ? (layer.props.data as unknown[]).length : -1;
+  });
+  expect(points).toBe(154);
+  await expect(page.getByRole("region", { name: "교육문제 시군 비교" })).toContainText("자료 없음");
 });

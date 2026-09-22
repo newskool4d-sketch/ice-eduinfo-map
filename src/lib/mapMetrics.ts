@@ -91,6 +91,7 @@ export function buildMapMetric(
       ? [31, 164, 201, 255]
       : [221, 112, 38, 255];
   const color = (school: School): MetricColor => {
+    if (issue?.metric === "ai-focus-schools") return [43, 120, 190, 255];
     if (issue?.metric === "school-size") {
       const n = school.students;
       return n === null ? MISSING_COLOR : n === 0 ? ZERO_COLOR : n <= 60 ? [39, 137, 154, 255] : n >= 1000 ? [135, 76, 171, 255] : [101, 142, 184, 255];

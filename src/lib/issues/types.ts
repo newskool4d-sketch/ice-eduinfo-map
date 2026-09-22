@@ -7,6 +7,8 @@ export interface IssueSource {
   url: string;
   referenceDate?: string;
   checkedAt?: string;
+  scope?: string;
+  coveredRegions?: string[];
 }
 export interface SchoolIssueFacts {
   kediCode: string;
@@ -15,6 +17,8 @@ export interface SchoolIssueFacts {
   entrants: number | null;
   specialClasses: number | null;
   specialStudents: number | null;
+  librarianTeachers?: number | null;
+  counselorTeachers?: number | null;
 }
 export type IssueLevel = "elem" | "mid" | "high";
 export interface SpecialTrend {
@@ -32,6 +36,24 @@ export interface EducationIssuesFile {
   sources: IssueSource[];
   designations: Record<RegionCode, Designation | null>;
   schools: Record<string, SchoolIssueFacts>;
+  resourceSources?: Record<string, IssueSource & { scope: string }>;
+  resources?: IssueResource[];
+}
+export interface IssueResource {
+  issue: string;
+  metric?: string;
+  name: string;
+  /** Null when the official list does not identify a unique district. */
+  regionCode: RegionCode | null;
+  address: string | null;
+  phone: string | null;
+  schoolId: string | null;
+  detail: string | null;
+  capacity?: number | null;
+  enrolled?: number | null;
+  lat?: number | null;
+  lng?: number | null;
+  referenceDate?: string | null;
 }
 export interface EducationIssue {
   id: string;

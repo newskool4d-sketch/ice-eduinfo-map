@@ -36,6 +36,8 @@ export interface SchoolRow {
   students: number | null;
   classes: number | null;
   teachers: number | null;
+  librarianTeachers?: number | null;
+  counselorTeachers?: number | null;
   staff: number | null;
   entrants: number | null;
   graduates: number | null;
@@ -132,6 +134,8 @@ export function readSchoolSheet(buffer: Buffer, year: number): ReadSchoolSheetRe
     students: resolve(labels.students),
     classes: resolve(labels.classes),
     teachers: resolve(labels.teachers),
+    librarianTeachers: resolve(labels.librarianTeachers),
+    counselorTeachers: resolve(labels.counselorTeachers),
     staff: resolve(labels.staff),
     entrants: resolve(labels.entrants),
     graduates: resolve(labels.graduates),
@@ -223,6 +227,8 @@ export function readSchoolSheet(buffer: Buffer, year: number): ReadSchoolSheetRe
       students: numeric(col.students, "students"),
       classes: numeric(col.classes, "classes"),
       teachers: numeric(col.teachers, "teachers"),
+      librarianTeachers: numeric(col.librarianTeachers, "librarianTeachers"),
+      counselorTeachers: numeric(col.counselorTeachers, "counselorTeachers"),
       staff: numeric(col.staff, "staff"),
       entrants: numeric(col.entrants, "entrants"),
       graduates: numeric(col.graduates, "graduates"),

@@ -1,4 +1,5 @@
 import { PROVINCE_CODE, REGION_CODES } from "../geo/regions";
+import { PUBLISHED_ISSUES } from "./registry";
 import type { SchoolsFile } from "../schools/types";
 import type { EducationIssuesFile } from "./types";
 
@@ -63,9 +64,13 @@ export function assertIssueData(
       facts.entrants,
       facts.specialClasses,
       facts.specialStudents,
+      facts.librarianTeachers,
+      facts.counselorTeachers,
     ]) {
-      if (n !== null && (!Number.isInteger(n) || n < 0)) return fail();
+      if (n !== undefined && n !== null && (!Number.isInteger(n) || n < 0)) return fail();
     }
+    if (PUBLISHED_ISSUES.some((issue) => issue.metrics.includes("librarian-schools")) && facts.librarianTeachers === undefined) return fail();
+    if (PUBLISHED_ISSUES.some((issue) => issue.metrics.includes("counselor-schools")) && facts.counselorTeachers === undefined) return fail();
   }
   if (data.specialTrends !== undefined) {
     if (!Array.isArray(data.specialTrends)) return fail();
@@ -82,6 +87,41 @@ export function assertIssueData(
     for (const year of new Set(data.specialTrends.map(r => r.year)))
       for (const code of [PROVINCE_CODE, ...REGION_CODES])
         if (!keys.has(`${code}:${year}`)) return fail();
+  }
+
+  const resourceIssues = PUBLISHED_ISSUES.filter((issue) =>
+    ["basic-learning", "reading", "care", "wellbeing", "career", "ai-education"].includes(issue.id),
+  );
+  if (resourceIssues.length) {
+    if (!data.resourceSources || !Array.isArray(data.resources)) return fail();
+    for (const issue of resourceIssues) {
+      const source = data.resourceSources[issue.id];
+      if (!source || !source.name || !/^https:\/\//.test(source.url) ||
+        !(source.referenceDate || source.checkedAt) || !source.scope ||
+        !data.resources.some((resource) => resource.issue === issue.id)) return fail();
+      for (const metric of issue.metrics) {
+        const metricSource = data.resourceSources[metric] ?? source;
+        if (!metricSource || !metricSource.scope ||
+          (metricSource.coveredRegions &&
+            (!Array.isArray(metricSource.coveredRegions) || metricSource.coveredRegions.some((code) => !REGION_CODES.includes(code))))) return fail();
+      }
+    }
+    const schoolIds = new Set(schools.schools.map((school) => school.id));
+    const names = new Set<string>();
+    for (const resource of data.resources) {
+      if (!resource || !data.resourceSources[resource.issue] || !resource.name ||
+        (resource.regionCode !== null && !REGION_CODES.includes(resource.regionCode)) ||
+        (resource.schoolId !== null && !schoolIds.has(resource.schoolId))) return fail();
+      if (resource.metric && !PUBLISHED_ISSUES.find((issue) => issue.id === resource.issue)?.metrics.includes(resource.metric)) return fail();
+      if ([resource.capacity, resource.enrolled].some((n) => n !== undefined && n !== null && (!Number.isInteger(n) || n < 0))) return fail();
+      if ((resource.lat != null || resource.lng != null) &&
+        (resource.lat == null || resource.lng == null || !Number.isFinite(resource.lat) || !Number.isFinite(resource.lng))) return fail();
+      const key = `${resource.issue}:${resource.metric ?? "default"}:${resource.regionCode}:${resource.name}:${resource.address}`;
+      if (names.has(key)) return fail();
+      names.add(key);
+      if (resource.issue === "ai-education" &&
+        (!resource.schoolId || schools.schools.find((school) => school.id === resource.schoolId)?.regionCode !== resource.regionCode)) return fail();
+    }
   }
 
 }

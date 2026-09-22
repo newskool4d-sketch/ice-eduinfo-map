@@ -40,6 +40,8 @@ const HEADER = [
   "수준별교실", // 22
   "기타교실", // 23
   "교지면적", // 24
+  "교원수_정규_사서_계", // 25
+  "교원수_정규_상담_계", // 26
 ];
 
 type RawRow = (string | number | null)[];
@@ -69,6 +71,8 @@ const DATA_ROW_DEFAULTS = {
   수준별교실: 0,
   기타교실: 1,
   교지면적: 10000,
+  교원수_정규_사서_계: 0,
+  교원수_정규_상담_계: 0,
 };
 
 function makeWorkbookBuffer(): Buffer {

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import type { DataBundle } from "@/lib/data/types";
 import type { EducationIssuesFile, IssueMapModel } from "@/lib/issues/types";
-import { regionName, type RegionCode } from "@/lib/geo/regions";
-import { formatIssueValue, issueValue } from "@/lib/issues/model";
+import { PROVINCE_CODE, regionName, type RegionCode } from "@/lib/geo/regions";
+import { formatIssueValue, isResourceMetric, issueValue } from "@/lib/issues/model";
 import { METRIC_LABELS } from "@/lib/issues/registry";
 
 const number = (n: number | null) => n === null ? "자료 없음" : n.toLocaleString("ko-KR");
@@ -35,6 +35,25 @@ export function IssueDetails({ bundle, data, model, region }: {
   bundle: DataBundle; data: EducationIssuesFile; model: IssueMapModel; region: RegionCode | null;
 }) {
   const [allAssets, setAllAssets] = useState(false);
+  if (isResourceMetric(model.metric)) {
+    const rows = (data.resources ?? []).filter((resource) =>
+      resource.issue === model.issue.id &&
+      (resource.metric ?? (resource.issue === "care" ? "care-pilots" : model.metric)) === model.metric &&
+      (!region || resource.regionCode === region));
+    return <section aria-label="교육 자원 목록" className="space-y-2 rounded-xl bg-paper p-3">
+      <h3 className="text-sm font-semibold">공식 명단에서 확인한 자원</h3>
+      <p className="text-xs text-ink-muted">{model.note}</p>
+      {!rows.length && <p className="text-sm">수록된 자원이 없습니다. 해당 지역에 자원이 전혀 없다는 뜻은 아닙니다.</p>}
+      <ul className="max-h-72 space-y-2 overflow-y-auto">{rows.map((resource, index) => <li key={`${resource.issue}:${resource.metric}:${resource.regionCode}:${resource.name}:${index}`} className="rounded-lg border border-line bg-surface p-2 text-xs">
+        <p className="font-semibold">{resource.name}</p>
+        <p className="text-ink-muted">{resource.regionCode ? regionName(resource.regionCode) : "지역 미확인"}{resource.detail ? ` · ${resource.detail}` : ""}</p>
+        {resource.address && <p>{resource.address}</p>}
+        {resource.phone && <p>연락처 {resource.phone}</p>}
+        {resource.capacity !== undefined && <p>정원 {resource.capacity ?? "자료 없음"}명 · 현원 {resource.enrolled ?? "자료 없음"}명</p>}
+        {resource.referenceDate && <p className="text-ink-muted">기관 자료 기준 {resource.referenceDate}</p>}
+      </li>)}</ul>
+    </section>;
+  }
   if (model.issue.id === "school-size") {
     const schools = model.schools.filter(s => !region || s.regionCode === region);
     const groups = [
@@ -65,7 +84,7 @@ export function IssueDetails({ bundle, data, model, region }: {
     </section>;
   }
   if (model.issue.id !== "special-education") return null;
-  const trends = data.specialTrends?.filter(r => r.regionCode === (region ?? "52000")).sort((a,b) => a.year - b.year);
+  const trends = data.specialTrends?.filter(r => r.regionCode === (region ?? PROVINCE_CODE)).sort((a,b) => a.year - b.year);
   if (!trends?.length) return <p className="text-xs text-ink-muted">연도별 분리 자료가 없어 최신 현황만 표시합니다.</p>;
   return <section aria-label="특수교육 분리 추이" className="space-y-2">
     <h3 className="text-sm font-semibold">특수교육 학생·학급 수 변화</h3>

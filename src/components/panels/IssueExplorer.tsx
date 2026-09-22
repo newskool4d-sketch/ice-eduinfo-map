@@ -6,10 +6,10 @@ import { ACTIVE_PROFILE } from "@/lib/profiles";
 import {
   buildIssueModel,
   formatIssueValue,
+  isResourceMetric,
   issueValue,
 } from "@/lib/issues/model";
 import {
-  EDUCATION_ISSUES,
   METRIC_LABELS,
   POLICY_SOURCE,
   PUBLISHED_ISSUES,
@@ -27,7 +27,11 @@ const button =
   "min-h-11 rounded-lg border border-line px-3 py-2 text-xs hover:bg-paper";
 export function IssueLegend({ model }: { model: IssueMapModel }) {
   const unit =
-    model.metric === "small-share"
+    ["librarian-schools", "counselor-schools"].includes(model.metric)
+      ? "개교"
+      : isResourceMetric(model.metric)
+      ? model.metric === "ai-focus-schools" ? "개교" : model.metric === "career-regions" ? "지역" : "곳"
+      : model.metric === "small-share"
       ? "%"
       : model.metric === "special-classes"
         ? "학급"
@@ -127,22 +131,13 @@ export default function IssueExplorer({
             <span className="mt-3 block text-xs text-ink-muted">
               정책 연계 · {issue.policy}
             </span>
-            <span className="mt-1 block text-xs text-ink-muted">
-              {issue.id === "closed-assets" ? `폐교재산 ${bundle.closedSchools.referenceDate}` : `교육통계 ${data.statsReferenceDate}`}
-              {issue.id === "regional-sustainability"
-                ? ` · 지정 현황 확인 ${data.sources[0].checkedAt}`
-                : ""}
-            </span>
+            <span className="mt-1 block text-xs text-ink-muted">{buildIssueModel(bundle, data, issue, issue.metrics[0], query.issueLevel).date}</span>
             <span className="mt-2 block text-sm font-semibold">{buildIssueModel(bundle, data, issue, issue.metrics[0], query.issueLevel).provinceText}</span>
             <span className="mt-3 block text-xs font-semibold text-accent-text">
               지도에서 살펴보기 →
             </span>
           </button>
         ))}
-        <details className="rounded-xl border border-line p-3 text-xs">
-          <summary className="min-h-10 cursor-pointer font-semibold">확장 예정 질문</summary>
-          {EDUCATION_ISSUES.filter(i => i.status === "planned").map(i => <div key={i.id} className="space-y-1 border-t border-line py-3"><p className="font-semibold">{i.question}</p><p className="text-ink-muted">필요한 자료: {i.dataNeeded}</p></div>)}
-        </details>
         <p className="text-xs leading-relaxed text-ink-muted">
           질문과 지표의 연결은 이 앱의 탐색 설계입니다. 수치만으로 지역의
           위험이나 정책의 성과를 평가하지 않습니다.
@@ -228,7 +223,7 @@ export default function IssueExplorer({
       <IssueDetails bundle={bundle} data={data} model={model} region={region} />
       <section aria-label="교육문제 시군 비교">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-semibold">14개 시군 비교</h3>
+          <h3 className="text-sm font-semibold">{model.regions.length}개 시군 비교</h3>
           {region && (
             <button
               className="min-h-9 text-xs underline"
@@ -330,7 +325,7 @@ export default function IssueExplorer({
             </p>
           </div>
         ) : null}
-        {region && definition.id !== "closed-assets" && (
+        {region && !isResourceMetric(model.metric) && definition.id !== "closed-assets" && (
           <button className={button} onClick={() => onSearch(region)}>
             이 지역 학교 검색 →
           </button>
@@ -343,7 +338,7 @@ export default function IssueExplorer({
           onStatistics={onStatistics}
         />
       )}
-      {definition.id !== "closed-assets" && <section
+      {definition.id !== "closed-assets" && !isResourceMetric(model.metric) && <section
         aria-label="교육문제 관련 학교"
         className="border-t border-line pt-4"
       >
