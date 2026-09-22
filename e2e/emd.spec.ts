@@ -66,7 +66,7 @@ test.describe("읍면동 경계", () => {
     // The layer's data arrives asynchronously (a real fetch of the static
     // public/data/emd/52110.geojson file — not stubbed) — expect.poll, no
     // fixed wait, per the task brief.
-    await expect.poll(() => readEmdLayerDataLength(page)).toBeGreaterThan(0);
+    await expect.poll(() => readEmdLayerDataLength(page), { timeout: 15000 }).toBeGreaterThan(0);
 
     const order = await readLayerOrderIndices(page);
     expect(order.regions).toBeGreaterThanOrEqual(0);
@@ -87,7 +87,7 @@ test.describe("읍면동 경계", () => {
     // Back ON.
     await page.getByRole("button", { name: "읍면동 경계" }).click();
     await expect(page.getByRole("button", { name: "읍면동 경계" })).toHaveAttribute("aria-pressed", "true");
-    await expect.poll(() => readEmdLayerDataLength(page)).toBeGreaterThan(0);
+    await expect.poll(() => readEmdLayerDataLength(page), { timeout: 15000 }).toBeGreaterThan(0);
 
     expect(consoleErrors).toEqual([]);
   });

@@ -9,7 +9,7 @@ export const OVERVIEW_BEARING = 0;
 
 export const VIEW_LIMITS = {
   minZoom: 7.5,
-  maxZoom: 12,
+  maxZoom: 14,
   minPitch: 0,
   maxPitch: 72,
 } as const;
@@ -258,7 +258,7 @@ export function fitRegion(bbox: Bbox, size: Size, opts?: FitRegionOptions): Regi
     bearing: OVERVIEW_BEARING,
     padding: 80,
     minZoom: VIEW_LIMITS.minZoom,
-    maxZoom: 11,
+    maxZoom: 12,
   });
   return {
     longitude,

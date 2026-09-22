@@ -1,4 +1,5 @@
 import { PathLayer } from "@deck.gl/layers";
+import { terrainExtension } from "@/components/map/layers/terrainLayer";
 import type { Feature, FeatureCollection, MultiPolygon, Polygon, Position } from "geojson";
 
 /** `[lng, lat, elevation]` path point, as consumed by PathLayer's default (identity) coordinate format — same shape as regionLayers.ts's own Point3. */
@@ -62,6 +63,7 @@ function flattenEmdRingsCached(fc: FeatureCollection): EmdPathDatum[] {
 }
 
 export interface EmdBoundaryLayerOptions {
+  terrainEnabled?: boolean;
   /**
    * The SELECTED 시군's own bar height (m) — a single number, unlike
    * regionLayers.ts's makeRegionTopRingsLayer (which draws a ring for all 14
@@ -107,6 +109,7 @@ export function makeEmdBoundaryLayer(fc: FeatureCollection, opts: EmdBoundaryLay
     // as ...` escape hatch.
     shadowEnabled: false,
     pickable: false,
+    extensions: opts.terrainEnabled ? [terrainExtension] : [],
     updateTriggers: {
       getPath: [opts.triggerKey, opts.elevation],
     },

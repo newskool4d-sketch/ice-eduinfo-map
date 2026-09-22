@@ -2,6 +2,8 @@
 
 전북 14개 시군의 교육통계(학교수·학생수·교원수 등)를 위성지도 위에 학교 위치 점과 시군별 통계로 보여주는 Next.js 대시보드입니다.
 
+위성 모드에서는 실제 지형 높낮이를 적용한 입체 지형이 기본으로 켜집니다. 지도 상단의 `입체 지형` 버튼으로 평면 위성지도와 전환할 수 있습니다. 확대 상한은 14이며 학교 위치 점과 이름은 화면 픽셀 크기를 유지합니다. 지형 고도는 Mapzen Terrain Tiles(AWS Open Data)의 Terrarium 타일을 서버에서 캐시해 제공하고, 위성 사진은 기존 브이월드 타일을 지형 표면에 입힙니다. 브이월드 키가 없거나 일반 지도/끄기 모드에서는 평면 지도로 표시됩니다.
+
 ## 요구 버전
 
 | 항목 | 버전 |
@@ -73,6 +75,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 - **전북특별자치도교육청 폐교재산 현황** (공공데이터포털) — 폐교 지표(폐교 수/미활용 폐교 수/최근 10년 폐교 수)와 RegionPanel의 폐교 목록의 원천. 원천 파일의 게시(갱신)일이 데이터 기준일과 다른 경우 Footer에 "기준일 …(게시 …)" 형식으로 둘 다 표기합니다.
 - **통계청 SGIS 기반 행정동 경계** (vuski/admdongkor, `HangJeongDong_ver20260701.geojson`) — 시군 경계·라벨 위치의 원천. [vuski/admdongkor](https://github.com/vuski/admdongkor) 저장소는 **CC BY 4.0** 라이선스로 배포되며, 이 프로젝트는 그 경계 데이터를 단순화·가공해 `public/data/regions.geojson`/`neighbors.geojson`(`npm run data:regions`)과, 선택한 시군의 하위 읍면동 경계선용 `public/data/emd/<시군코드>.geojson` 14개(`npm run data:emd`)로 다시 배포합니다 — 출처 표기(CC BY 4.0이 요구하는 저작자 표시)는 화면 하단 Footer와 이 문서에 명시합니다.
 - **배경지도: 국토교통부 브이월드(VWorld) 오픈API** (`Satellite` 위성 · `Base` 일반 WMTS 타일) — 지도 화면 우측 상단 "배경 지도" 컨트롤(끄기 · 위성 · 일반)에서 위성/일반을 고르면 표시되는 배경 타일의 원천. 브이월드 오픈API 이용약관에 따라 출처를 표기합니다(지도 오버레이 안의 "배경지도 © 국토교통부 브이월드(VWorld)" 문구). 브라우저에서 브이월드 WMTS 엔드포인트를 직접 호출하며(CORS `access-control-allow-origin: *` 확인됨), 별도의 서버 프록시는 두지 않습니다.
+- **입체 지형: Mapzen Terrain Tiles** ([AWS Open Data](https://registry.opendata.aws/terrain-tiles/)) — Terrarium 고도 타일에 브이월드 위성 사진을 입힙니다. 한국 지역의 고도 자료에는 SRTM/GMTED 자료가 포함되며, 지도 오버레이에 `지형 Mapzen · SRTM/GMTED 자료 USGS` 출처를 표시합니다. 고도 타일은 CORS 제약 때문에 `/api/terrain/`을 통해 서버에서 캐시해 전달합니다.
 
 `xlsx` 패키지(devDependency)는 KESS `.xlsx` 원본을 읽는 데이터 파이프라인 전용(`scripts/pipeline/parse-kess.ts` 등)이며, 브라우저로 번들되지 않습니다 — 알려진 보안 권고(advisory)가 있으나 런타임 노출 범위 밖이라 별도 조치 없이 유지합니다.
 

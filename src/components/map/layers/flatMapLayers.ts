@@ -5,12 +5,14 @@ import type { Feature, MultiPolygon, Polygon } from "geojson";
 import type { RegionsFeatureCollection } from "@/lib/data/types";
 import type { PositionedSchool } from "./schoolLayers";
 import { SCHOOL_LEVEL_COLORS } from "@/lib/schoolVisuals";
+import { terrainExtension } from "./terrainLayer";
 
 /** Transparent picking surface and thin boundaries over the satellite imagery. */
 export function makeFlatRegionsLayer(
   regions: RegionsFeatureCollection,
   selectedCode: string | null,
   onClick: (code: string) => void,
+  terrainEnabled = false,
 ) {
   return new GeoJsonLayer({
     id: "regions",
@@ -25,6 +27,7 @@ export function makeFlatRegionsLayer(
     lineWidthUnits: "pixels",
     pickable: true,
     autoHighlight: false,
+    extensions: terrainEnabled ? [terrainExtension] : [],
     updateTriggers: { getLineColor: [selectedCode], getLineWidth: [selectedCode] },
     onClick: (info: PickingInfo<Feature<Polygon | MultiPolygon>>) => {
       const code = info.object?.properties?.code;
@@ -38,11 +41,13 @@ export function makeFlatSchoolsLayer(
   schools: PositionedSchool[],
   highlightedId: string | null,
   onClick: (id: string) => void,
+  terrainEnabled = false,
 ) {
   return new ScatterplotLayer<PositionedSchool>({
     id: "schools",
     data: schools,
     pickable: true,
+    extensions: terrainEnabled ? [terrainExtension] : [],
     radiusUnits: "pixels",
     getRadius: 5,
     radiusMinPixels: 5,

@@ -163,10 +163,10 @@ describe("fitRegion", () => {
     expectAllContained(top, viewState, SIZE, 80);
   });
 
-  it("does not exceed maxZoom 11, even for a tiny bbox with a tall maxElevation", () => {
+  it("does not exceed maxZoom 12, even for a tiny bbox with a tall maxElevation", () => {
     const tinyBbox: [number, number, number, number] = [127.1, 35.8, 127.1001, 35.8001];
     const viewState = fitRegion(tinyBbox, SIZE, { maxElevation: ELEVATION_MAX });
-    expect(viewState.zoom).toBeLessThanOrEqual(11);
+    expect(viewState.zoom).toBeLessThanOrEqual(12);
   });
 });
 

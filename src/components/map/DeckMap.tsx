@@ -33,6 +33,7 @@ import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipTe
 import { regionRankList, selectionAnnouncement } from "@/lib/selection";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { makeFlatRegionsLayer, makeFlatSchoolsLayer } from "@/components/map/layers/flatMapLayers";
+import { makeTerrainLayer, makeTerrainWashLayer } from "@/components/map/layers/terrainLayer";
 
 // Task 2 fix round 1 — give deck.gl's post-processing render buffers a depth
 // attachment (see deckDepthPatch.ts); module scope so the prototype is
@@ -482,6 +483,7 @@ export default function DeckMap({
   // attribution string) — with no key, the control never renders and both
   // layers are always `null`, regardless of what's in localStorage.
   const [basemapMode, setBasemapMode] = useState<BasemapMode>(() => readBasemapPref());
+  const [terrainEnabled, setTerrainEnabled] = useState(true);
   const handleBasemapChange = useCallback((mode: BasemapMode) => {
     writeBasemapPref(mode);
     setBasemapMode(mode);
@@ -552,6 +554,15 @@ export default function DeckMap({
         onChange: handleBasemapChange,
         title: "브이월드 배경 타일: 끄기 / 위성 / 일반",
       });
+      if (basemapMode === "satellite") {
+        items.push({
+          id: "terrain",
+          label: "입체 지형",
+          pressed: terrainEnabled,
+          onToggle: () => setTerrainEnabled((enabled) => !enabled),
+          title: "실제 지형 높낮이를 위성지도에 적용",
+        });
+      }
     }
     // Task E — 읍면동 경계: always rendered (unlike "배경 지도", never gated
     // on an external key), positioned last per the task brief ("발표
@@ -564,7 +575,7 @@ export default function DeckMap({
       title: "선택한 시군의 읍면동 경계선",
     });
     return items;
-  }, [presentation, basemapMode, handleBasemapChange, emdEnabled, handleEmdToggle]);
+  }, [presentation, basemapMode, handleBasemapChange, terrainEnabled, emdEnabled, handleEmdToggle]);
 
   // I-1 — single source of truth for "is the basemap actually visually on,"
   // computed once and reused everywhere that used to gate on
@@ -579,6 +590,11 @@ export default function DeckMap({
   // to mask them against; the opaque unmasked variant is what a no-basemap
   // scene needs.
   const basemapOn = !!VWORLD_KEY && basemapMode !== "off";
+  const terrainOn = !!VWORLD_KEY && basemapMode === "satellite" && terrainEnabled;
+  const terrainLayer = useMemo(
+    () => (VWORLD_KEY && terrainOn ? makeTerrainLayer(VWORLD_KEY) : null),
+    [terrainOn],
+  );
 
   // Task C / Task 3 — the VWorld basemap TileLayer (Satellite jpeg or Base
   // png per `basemapMode`), or `null` when there's no key or the mode is
@@ -613,15 +629,18 @@ export default function DeckMap({
     const layerList: LayersList = [
       basemapLayer,
       basemapWashLayer,
-      makeFlatRegionsLayer(bundle.regions, selectedCode, handleRegionClick),
+      terrainLayer,
+      terrainOn ? makeTerrainWashLayer() : null,
+      makeFlatRegionsLayer(bundle.regions, selectedCode, handleRegionClick, terrainOn),
       emdEnabled && selectedCode && emdFc
         ? makeEmdBoundaryLayer(emdFc, {
             elevation: 1,
+            terrainEnabled: terrainOn,
             triggerKey: indicatorId,
             transitionDuration,
           })
         : null,
-      makeFlatSchoolsLayer(positionedSchools, highlightedSchoolId, handleSchoolClick),
+      makeFlatSchoolsLayer(positionedSchools, highlightedSchoolId, handleSchoolClick, terrainOn),
     ];
     if (fontReady) {
       // Task D, fix round 1 — school-labels is pushed BEFORE region-labels
@@ -674,7 +693,7 @@ export default function DeckMap({
     }
     return layerList;
   }, [
-    basemapLayer, basemapWashLayer, bundle.regions, selectedCode, handleRegionClick,
+    basemapLayer, basemapWashLayer, terrainLayer, terrainOn, bundle.regions, selectedCode, handleRegionClick,
     emdEnabled, emdFc, indicatorId, positionedSchools, positionedRegionSchools,
     highlightedSchoolId, handleSchoolClick, fontReady, schoolLabelsVisible,
     fontFamily, characterSet, labels, labelTextOf, priorityOf, reduceMotion,
@@ -792,7 +811,7 @@ export default function DeckMap({
       />
       <MapOverlay
         items={overlayItems}
-        attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
+        attribution={basemapOn ? `${BASEMAP_ATTRIBUTION}${terrainOn ? " · 지형 Mapzen · SRTM/GMTED 자료 USGS" : ""}` : undefined}
       />
       {contextLost && (
         <div
