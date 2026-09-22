@@ -35,6 +35,7 @@ import type {
   PickingInfo,
   MapViewState,
   ViewStateChangeParameters,
+  Viewport,
 } from "@deck.gl/core";
 import { LightGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
@@ -186,7 +187,7 @@ export interface DeckMapProps {
   /** The currently-highlighted school (map point click / RegionPanel row click), or null. Task 4B — owned by Dashboard (not the URL), mirrored by RegionPanel's row highlight. */
   highlightedSchoolId: string | null;
   /** Called with a school id to highlight it, or null to clear. DeckMap itself handles the "click the same point again -> clear" toggle before calling this. */
-  onHighlightSchool: (id: string | null) => void;
+  onHighlightSchool: (id: string | null, origin?: "map") => void;
 }
 
 export default function DeckMap({
@@ -535,9 +536,23 @@ export default function DeckMap({
   const schoolLabelsVisible =
     showSchoolNames && (zoom >= SCHOOL_LABEL_MIN_ZOOM || !!highlightedSchoolId);
   const handleSchoolClick = useCallback(
-    (id: string) => onHighlightSchool(id),
+    (id: string) => onHighlightSchool(id, "map"),
     [onHighlightSchool],
   );
+
+  const nearbySchoolId = useCallback((x: number, y: number, viewport?: Viewport) => {
+    if (!viewport) return null;
+    const radius = mobile ? 14 : 9;
+    let closest: { id: string; distance: number } | null = null;
+    for (const school of positionedSchools) {
+      const [schoolX, schoolY] = viewport.project([school.lng, school.lat]);
+      const distance = Math.hypot(schoolX - x, schoolY - y);
+      if (distance <= radius && (!closest || distance < closest.distance)) {
+        closest = { id: school.id, distance };
+      }
+    }
+    return closest?.id ?? null;
+  }, [mobile, positionedSchools]);
 
   const visibleLabels = useMemo(() => {
     if (!labelViewport || !fontReady)
@@ -638,12 +653,23 @@ export default function DeckMap({
   // selection change; onSelect -> the URL -> useCamera's effect drives the
   // camera instead, exactly like a RegionList click would.
   const handleRegionClick = useCallback(
-    (code: string) => {
+    (code: string, info?: PickingInfo) => {
       // Defensive: makeRegionsLayer's onClick is typed generically (plain
       // string, from GeoJSON feature properties) — every feature in
       // bundle.regions is in fact one of the 14 시군, but this narrows the
       // type rather than assuming it.
       if (!isRegionCode(code)) return;
+      // A small school dot sits above the pickable region polygon. When a
+      // tap lands a few pixels outside the dot, deck.gl reports the polygon
+      // and reselecting that region flies the camera back to its overview.
+      // Give the visible school point a forgiving hit area first.
+      if (info && (zoom >= 13 || schoolChart !== "auto")) {
+        const schoolId = nearbySchoolId(info.x, info.y, info.viewport);
+        if (schoolId) {
+          handleSchoolClick(schoolId);
+          return;
+        }
+      }
       recordE2eEvent({
         type: "region-click",
         code,
@@ -656,7 +682,7 @@ export default function DeckMap({
         onSelect(code);
       }
     },
-    [selectedCode, onSelect, reselect],
+    [selectedCode, onSelect, reselect, zoom, schoolChart, nearbySchoolId, handleSchoolClick],
   );
 
   // Mirrored into a ref (same reasoning/pattern as fontReadyRef above) so
@@ -693,11 +719,15 @@ export default function DeckMap({
         picked: info.picked,
         t: performance.now(),
       });
-      if (!info.picked && selectedCode !== null) {
-        onSelect(null);
+      if (!info.picked) {
+        const schoolId = (zoom >= 13 || schoolChart !== "auto")
+          ? nearbySchoolId(info.x, info.y, info.viewport)
+          : null;
+        if (schoolId) handleSchoolClick(schoolId);
+        else if (selectedCode !== null) onSelect(null);
       }
     },
-    [selectedCode, onSelect],
+    [selectedCode, onSelect, nearbySchoolId, handleSchoolClick, zoom, schoolChart],
   );
 
   // Task 6, "현재 코드 상태" — ←/→/Enter cycling + document-level
@@ -1123,6 +1153,24 @@ export default function DeckMap({
       // 사용자 요구(2026-09-21): 지도 위 우클릭은 아무 조작도 아니므로(회전 제거)
       // 브라우저 컨텍스트 메뉴가 뜨지 않게 한다.
       onContextMenu={(event) => event.preventDefault()}
+      onClickCapture={(event) => {
+        if (!(event.target instanceof HTMLCanvasElement) || event.target.id !== "deckgl-overlay") return;
+        // At the province overview, school dots are densely packed. Keep the
+        // region surface clickable there and reserve the forgiving radius for
+        // a region close-up or an explicit dots/columns view.
+        if (zoom < 13 && schoolChart === "auto") return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const hit = deckRef.current?.deck?.pickObject({
+          x: event.clientX - bounds.left,
+          y: event.clientY - bounds.top,
+          radius: mobile ? 14 : 9,
+          layerIds: ["schools", "school-columns", "schools-special"],
+        });
+        const schoolId = (hit?.object as { id?: string } | undefined)?.id;
+        if (!schoolId) return;
+        handleSchoolClick(schoolId);
+        event.stopPropagation();
+      }}
       // CI Linux fix — useFontGate's OWN gate: the font itself finished
       // loading. Decoupled from data-map-ready (deck.gl's first render
       // frame, unrelated to fonts). NOT what e2e waits on before touching

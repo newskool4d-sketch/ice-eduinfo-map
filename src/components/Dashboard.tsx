@@ -171,6 +171,14 @@ function DashboardInner({
   }, [highlightedSchoolId, selectedSchool, setHighlightedSchoolId]);
 
   useEffect(() => {
+    if (!selectedSchool || tab === "statistics" || collapsed) return;
+    if (window.matchMedia("(max-width: 1023px)").matches && !panelOpen) return;
+    panelRef.current
+      ?.querySelector('[aria-label="선택한 학교"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, [selectedSchool, tab, collapsed, panelOpen]);
+
+  useEffect(() => {
     if (!panelOpen) return;
     const previous =
       panelReturnFocusRef.current ??
@@ -203,7 +211,7 @@ function DashboardInner({
     return () => compact.removeEventListener("change", resize);
   }, []);
 
-  const selectSchool = (id: string | null) => {
+  const selectSchool = (id: string | null, origin?: "map") => {
     if (issueModel && id) {
       const school = mapSchools.find(s => s.id === id);
       if (school && regionCode && school.regionCode !== regionCode) setRegion(school.regionCode as RegionCode);
@@ -211,12 +219,11 @@ function DashboardInner({
     setHighlightedSchoolId(id);
     if (id) setCollapsed(false);
     setSchoolFocusNonce((n) => n + 1);
-    if (id)
-      requestAnimationFrame(() =>
-        panelRef.current
-          ?.querySelector('[aria-label="선택한 학교"]')
-          ?.scrollIntoView({ block: "nearest" }),
-      );
+    if (id && origin === "map") {
+      if (tab === "statistics") setTab("schools");
+      setPanelOpen(window.matchMedia("(max-width: 1023px)").matches);
+      return;
+    }
     if (
       id &&
       bundle.schools.schools.find((s) => s.id === id && hasCoordinates(s))

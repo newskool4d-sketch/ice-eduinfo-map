@@ -11,7 +11,7 @@ import { SCHOOL_LEVEL_COLORS } from "@/lib/schoolVisuals";
 export function makeFlatRegionsLayer(
   regions: RegionsFeatureCollection,
   selectedCode: string | null,
-  onClick: (code: string) => void,
+  onClick: (code: string, info?: PickingInfo<Feature<Polygon | MultiPolygon>>) => void,
   issueModel?: IssueMapModel | null,
 ) {
   return new GeoJsonLayer<NonNullable<RegionsFeatureCollection["features"][number]["properties"]>>({
@@ -31,7 +31,7 @@ export function makeFlatRegionsLayer(
     updateTriggers: { getFillColor: [issueModel], getLineColor: [selectedCode], getLineWidth: [selectedCode] },
     onClick: (info: PickingInfo<Feature<Polygon | MultiPolygon>>) => {
       const code = info.object?.properties?.code;
-      if (code) onClick(code);
+      if (code) onClick(code, info);
     },
   });
 }
