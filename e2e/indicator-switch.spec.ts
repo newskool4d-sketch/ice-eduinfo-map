@@ -1,4 +1,4 @@
-import { docShot, expect, test } from "./fixtures";
+import { openPanel, docShot, expect, test } from "./fixtures";
 
 test("switching the indicator updates the legend, with no console errors", async ({ page }) => {
   const consoleErrors: string[] = [];
@@ -12,6 +12,7 @@ test("switching the indicator updates the legend, with no console errors", async
   });
 
   await page.goto("/");
+  await openPanel(page);
     await page.getByRole("tab", { name: "시군 통계" }).click();
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
@@ -24,8 +25,8 @@ test("switching the indicator updates the legend, with no console errors", async
 
   // Task 3: the radios now live behind TopBar's IndicatorMenu popover
   // (button + dialog), not inline in the header — open it first.
-  await page.getByRole("button", { name: /^조건별 맵/ }).click();
-  await expect(page.getByRole("dialog", { name: "조건별 맵 선택" })).toBeVisible();
+  await page.getByRole("button", { name: /^전체 지표/ }).click();
+  await expect(page.getByRole("dialog", { name: "전체 지표 선택" })).toBeVisible();
   await page.getByRole("radio", { name: "학급당 학생수" }).click();
   await expect(legendLabel).toHaveText("학급당 학생수");
 

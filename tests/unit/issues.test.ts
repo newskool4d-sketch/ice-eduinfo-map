@@ -25,9 +25,9 @@ const regional = () => issueById("regional-sustainability")!;
 const special = () => issueById("special-education")!;
 
 describe("policy-linked education issues", () => {
-  it("registers eight sourced themes, publishing only the two supported themes", () => {
-    expect(EDUCATION_ISSUES).toHaveLength(8);
-    expect(PUBLISHED_ISSUES).toHaveLength(2);
+  it("registers ten sourced themes, publishing four supported themes", () => {
+    expect(EDUCATION_ISSUES).toHaveLength(10);
+    expect(PUBLISHED_ISSUES).toHaveLength(4);
     expect(issueById("reading")).toBeNull();
     expect(EDUCATION_ISSUES.every((i) => i.policyPage && i.policyTask)).toBe(
       true,
@@ -144,7 +144,7 @@ describe("policy-linked education issues", () => {
   it("resolves unsupported metric URLs to the issue default and keeps legacy URLs", () => {
     expect(
       buildIssueModel(bundle, data, regional(), "special-classes").metric,
-    ).toBe("designation");
+    ).toBe("decline-small");
     const load = createLoader(mapQueryParsers);
     expect(load("?indicator=students_total&region=52720").view).toBe("schools");
     const q = load(
@@ -153,5 +153,49 @@ describe("policy-linked education issues", () => {
     expect(q.issue).toBe("regional-sustainability");
     expect(q.region).toBe("52720");
     expect(load("?view=issues&issue=reading").issue).toBeNull();
+  });
+});
+
+describe("expanded issue evidence", () => {
+  it("compares school sizes within a level without branches or invented capacity labels", () => {
+    const model = buildIssueModel(bundle, data, issueById("school-size")!, null);
+    const jeonju = model.schools.filter(s => s.regionCode === "52110");
+    expect(jeonju).toHaveLength(75);
+    expect(jeonju.filter(s => s.students !== null && s.students <= 60)).toHaveLength(6);
+    expect(jeonju.filter(s => s.students !== null && s.students >= 1000)).toHaveLength(6);
+    expect(model.schools.every(s => s.level === "elem" && !s.branch)).toBe(true);
+    const middle = buildIssueModel(bundle, data, issueById("school-size")!, null, "mid");
+    expect(middle.schools.every(s => s.level === "mid")).toBe(true);
+    expect(issueValue(bundle, data, "school-size", "52110", "mid")).toBe(41);
+  });
+  it("combines regional change and small-school locations without assigning regional rates to schools", () => {
+    const model = buildIssueModel(bundle, data, regional(), "decline-small");
+    expect(model.regionOverlay).toBe(true);
+    expect(model.schools).toHaveLength(310);
+    expect(model.regions.find(r => r.code === "52110")?.value).toBe(studentChange(bundle, "52110"));
+  });
+  it("counts only recorded unused assets and leaves empty-region percentages undefined", () => {
+    expect(issueValue(bundle, data, "unused-count", "52000")).toBe(24);
+    expect(issueValue(bundle, data, "unused-share", "52000")).toBeCloseTo(24 / 59 * 100);
+    expect(issueValue(bundle, data, "unused-count", "52720")).toBe(0);
+    expect(issueValue(bundle, data, "unused-share", "52720")).toBeNull();
+    const model = buildIssueModel(bundle, data, issueById("closed-assets")!, "unused-share");
+    expect(model.schools).toHaveLength(0);
+    expect(model.date).toContain("2026-07-16");
+    expect(model.regions.find(r => r.code === "52720")?.text).toBe("해당 없음");
+  });
+  it("preserves separate special-education populations over time and permits legacy snapshots", () => {
+    const current = data.specialTrends!.find(r => r.year === 2026 && r.regionCode === "52000")!;
+    expect(current).toMatchObject({ regularStudents: 2483, regularClasses: 559, specialStudents: 1321, specialClasses: 241 });
+    expect(data.specialTrends!.find(r => r.year === 2022 && r.regionCode === "52000")?.regularStudents).toBe(1864);
+    const copy = structuredClone(data);
+    delete copy.specialTrends;
+    expect(() => assertIssueData(copy, bundle.schools)).not.toThrow();
+    copy.specialTrends = [current, current];
+    expect(() => assertIssueData(copy, bundle.schools)).toThrow();
+  });
+  it("parses comparison, school level and zero-entry highlighting in shared URLs", () => {
+    const load = createLoader(mapQueryParsers);
+    expect(load("?issue=school-size&issueLevel=high&region=52110&compareRegion=52130&zeroEntrants=on")).toMatchObject({ issue: "school-size", issueLevel: "high", region: "52110", compareRegion: "52130", zeroEntrants: "on" });
   });
 });

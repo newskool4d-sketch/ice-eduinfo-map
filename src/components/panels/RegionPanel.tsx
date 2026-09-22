@@ -5,6 +5,7 @@ import { useState } from "react";
 import Sparkline from "@/components/ui/Sparkline";
 import type { DataBundle } from "@/lib/data/types";
 import { REGION_CODES, regionName } from "@/lib/geo/regions";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 import { GROUP_LABELS, GROUP_ORDER } from "@/lib/indicators/groups";
 import { indicatorById, INDICATORS } from "@/lib/indicators/registry";
 import type { IndicatorGroup, SchoolLevel } from "@/lib/indicators/types";
@@ -85,9 +86,9 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
   const regionRank = rank(map).get(regionCode) ?? null;
   // Task 5, Section D (fix round 2): count-kind 52000 rows are a province-
   // wide TOTAL (Σ), not an average, so a subtracted "전북 총계 대비
-  // −95,514명" misreports the number — count-kind now shows "전북 대비 비중"
+  // −95,514명" misreports the number — count-kind now shows "${ACTIVE_PROFILE.province.shortName} 대비 비중"
   // (시군값/52000값×100, 0-100%) instead. ratio-kind keeps the original
-  // subtraction ("전북 평균 대비 ±x"), which IS a true Σ/Σ average.
+  // subtraction ("${ACTIVE_PROFILE.province.shortName} 평균 대비 ±x"), which IS a true Σ/Σ average.
   const share = def.kind === "count" ? shareOfProvince(map, regionCode) : null;
   const delta = def.kind === "ratio" ? vsProvince(map, regionCode) : null;
   // Same warning-tone rule as KpiTiles: an INCREASE is only ever flagged when
@@ -180,11 +181,11 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         >
           {def.kind === "count"
             ? share === null
-              ? "전북 대비 비중 자료 없음"
-              : `전북 대비 비중 ${formatShare(share)}`
+              ? `${ACTIVE_PROFILE.province.shortName} 대비 비중 자료 없음`
+              : `${ACTIVE_PROFILE.province.shortName} 대비 비중 ${formatShare(share)}`
             : delta === null
-              ? "전북 평균 대비 자료 없음"
-              : `전북 평균 대비 ${formatDelta(def, delta)}`}
+              ? `${ACTIVE_PROFILE.province.shortName} 평균 대비 자료 없음`
+              : `${ACTIVE_PROFILE.province.shortName} 평균 대비 ${formatDelta(def, delta)}`}
         </p>
         <p data-testid="region-panel-description" className="mt-2 text-[10px] leading-snug text-ink-muted">
           {def.description}

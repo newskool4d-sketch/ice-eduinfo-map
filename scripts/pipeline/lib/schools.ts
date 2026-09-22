@@ -18,6 +18,7 @@ import {
   SMALL_SCHOOL_MAX_STUDENTS,
   type SchoolStatus,
 } from "../sources";
+import { ACTIVE_PROFILE } from "../../../src/lib/profiles";
 
 // ---------------------------------------------------------------------------
 // Location CSV parsing
@@ -56,14 +57,16 @@ const REGION_NAME_TO_CODE = new Map(REGION_TABLE.map((r) => [r.name, r.code]));
 
 /** `전북특별자치도 무주군 무주읍 ...` -> `52730` (the token right after the 시도 prefix). Matches both the current `전북특별자치도` spelling and the legacy `전라북도` one — see the brief: "전라북도교육청 표기는 0행이지만 필터는 둘 다 허용". Returns null when the address doesn't start with a 전북 시도 prefix or the following token isn't one of the 14 시군 names. */
 export function regionCodeFromAddress(address: string): string | null {
-  const match = /^(?:전북특별자치도|전라북도)\s+(\S+)/.exec(address.trim());
-  if (!match) return null;
-  return REGION_NAME_TO_CODE.get(match[1]) ?? null;
+  const prefix = ACTIVE_PROFILE.schoolData.addressPrefixes.find((value) => address.trim().startsWith(value));
+  if (!prefix) return null;
+  const rest = address.trim().slice(prefix.length).trim();
+  const name = rest.split(/\s+/, 1)[0];
+  return REGION_NAME_TO_CODE.get(name) ?? null;
 }
-
 /** True for a `시도교육청코드`/`시도교육청명` pair that identifies a 전북 row — accepts both the current code (8321000) and either 시도교육청명 spelling, per the brief's note that both must be tolerated even though the real 2026 file only ever uses `전북특별자치도교육청`. */
 function isJeonbukRow(sidoCode: string, sidoName: string): boolean {
-  return sidoCode === "8321000" || sidoName.includes("전북") || sidoName.includes("전라북도");
+  return ACTIVE_PROFILE.schoolData.educationOfficeCodes.includes(sidoCode) ||
+    ACTIVE_PROFILE.schoolData.kessSidoNames.some((name) => sidoName.includes(name));
 }
 
 const LOCATION_CSV_COLUMNS = [

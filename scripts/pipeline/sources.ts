@@ -8,6 +8,7 @@
  * (see the 검증 section of task-1B-report.md for the full derivation).
  */
 import type { SchoolLevel } from "../../src/lib/indicators/types";
+import { ACTIVE_PROFILE } from "../../src/lib/profiles";
 
 // ---------------------------------------------------------------------------
 // Download source
@@ -40,31 +41,12 @@ export const KESS_SHEET_NAME = "학교별 주요통계";
 // 시군 (region) table
 // ---------------------------------------------------------------------------
 
-export interface RegionEntry {
-  code: string;
-  name: string;
-}
+export type RegionEntry = { code: string; name: string };
 
-/** 전북 14 시군. `행정구` column values match these names exactly (whitespace-stripped). */
-export const REGION_TABLE: RegionEntry[] = [
-  { code: "52110", name: "전주시" },
-  { code: "52130", name: "군산시" },
-  { code: "52140", name: "익산시" },
-  { code: "52180", name: "정읍시" },
-  { code: "52190", name: "남원시" },
-  { code: "52210", name: "김제시" },
-  { code: "52710", name: "완주군" },
-  { code: "52720", name: "진안군" },
-  { code: "52730", name: "무주군" },
-  { code: "52740", name: "장수군" },
-  { code: "52750", name: "임실군" },
-  { code: "52770", name: "순창군" },
-  { code: "52790", name: "고창군" },
-  { code: "52800", name: "부안군" },
-];
+export const REGION_TABLE: RegionEntry[] = [...ACTIVE_PROFILE.regions];
 
-/** Code used for the province-wide (전북 전체) aggregate row. */
-export const PROVINCE_CODE = "52000";
+/** Code used for the province-wide aggregate row. */
+export const PROVINCE_CODE = ACTIVE_PROFILE.province.aggregateCode;
 
 const normalizeRegionName = (s: string): string => s.replace(/\s+/g, "");
 
@@ -425,7 +407,7 @@ export const HEADER_MAP: Record<number, HeaderLabels> = {
  * function unchanged. build-closed-schools.ts scans data/raw/ for a file
  * matching this prefix rather than hardcoding the full filename.
  */
-export const CLOSED_SCHOOLS_CSV_PREFIX = "전북특별자치도교육청_폐교재산 현황_";
+export const CLOSED_SCHOOLS_CSV_PREFIX = ACTIVE_PROFILE.files.closedSchoolsCsvPrefix ?? "__no-closed-school-source-configured__";
 
 /**
  * Known 활용현황구분명 values (fix round 1/5, finding 2). The real

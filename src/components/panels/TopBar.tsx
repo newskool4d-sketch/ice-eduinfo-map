@@ -1,4 +1,5 @@
 import type { DataBundle } from "@/lib/data/types";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 
 import MapTopicMenu from "./MapTopicMenu";
 import KpiTiles, { KPI_INDICATOR_IDS } from "./KpiTiles";
@@ -13,6 +14,7 @@ export interface TopBarProps {
    * TopBar need without forcing a Dashboard.tsx change to add it back.
    */
   indicatorId: string;
+  onExploreIssues?: () => void;
   /** null while DataProvider is loading/erroring — IndicatorMenu and KpiTiles show skeletons in that case. */
   bundle: DataBundle | null;
 }
@@ -29,7 +31,7 @@ function SkeletonBar({ className }: { className: string }) {
  * in DOM order in the same stacking context and would otherwise paint over
  * an unstacked header).
  */
-export default function TopBar({ bundle }: TopBarProps) {
+export default function TopBar({ bundle, onExploreIssues }: TopBarProps) {
   // Task 5 fix round 1 (coordinator ruling): this caption sits directly
   // beside KpiTiles' 4 fixed KESS-sourced tiles, so it must show THEIR OWN
   // reference date — never the currently-selected MAP indicator's (that
@@ -47,16 +49,16 @@ export default function TopBar({ bundle }: TopBarProps) {
   const kpiFile = bundle?.indicators[KPI_INDICATOR_IDS[0]];
 
   return (
-    <header className="relative z-40 flex h-14 shrink-0 items-center gap-4 border-b border-line bg-paper px-4">
-      <span className="shrink-0 text-base font-semibold text-ink">전북교육지도</span>
+    <header className="relative z-40 flex h-14 shrink-0 items-center gap-2 sm:gap-4 border-b border-line bg-paper px-4">
+      <span className="shrink-0 text-base font-semibold text-ink">{ACTIVE_PROFILE.province.shortName}교육지도</span>
 
       {bundle ? (
-        <MapTopicMenu series={bundle.series} />
+        <MapTopicMenu series={bundle.series} onExploreIssues={onExploreIssues} />
       ) : (
         <SkeletonBar className="h-7 w-56" />
       )}
 
-      <div className="ml-auto hidden min-w-0 shrink-0 lg:flex items-center gap-4">
+      <div className="ml-auto hidden min-w-0 shrink-0 2xl:flex items-center gap-4">
         {bundle ? (
           <KpiTiles indicators={bundle.indicators} series={bundle.series} manifest={bundle.manifest} />
         ) : (

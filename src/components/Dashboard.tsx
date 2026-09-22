@@ -3,18 +3,17 @@
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import IssueExplorer, { IssueLegend } from "@/components/panels/IssueExplorer";
+import IssueExplorer from "@/components/panels/IssueExplorer";
 import { useIssueData } from "@/lib/issues/useIssueData";
 import { issueById } from "@/lib/issues/registry";
 import { buildIssueModel } from "@/lib/issues/model";
-import SchoolExplorer, {
-  SchoolLegend,
-} from "@/components/panels/SchoolExplorer";
+import SchoolExplorer from "@/components/panels/SchoolExplorer";
 import { filterSchools, type SchoolFilters } from "@/lib/schools/filter";
 import { hasCoordinates } from "@/components/map/layers/schoolLayers";
 import MapShell from "@/components/map/MapShell";
 import Footer from "@/components/panels/Footer";
-import Legend from "@/components/panels/Legend";
+import { chartValueText } from "@/lib/schools/chart";
+import { buildMapMetric } from "@/lib/mapMetrics";
 import RegionList from "@/components/panels/RegionList";
 import RegionPanel from "@/components/panels/RegionPanel";
 import TopBar from "@/components/panels/TopBar";
@@ -22,8 +21,6 @@ import { DataProvider, useData, useRetry } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
 import type { RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
-import { makeColorScale, paletteFor } from "@/lib/colors";
-import { displayLabel, regionValues, valueMap } from "@/lib/stats";
 import { MAP_VIEWS, useMapQuery } from "@/lib/state/urlState";
 
 function CenteredMessage({ children }: { children: ReactNode }) {
@@ -64,79 +61,113 @@ function DashboardInner({
   indicatorId,
   regionCode,
   setRegion,
+  exploreRequest,
 }: {
   bundle: DataBundle;
   indicatorId: string;
   regionCode: RegionCode | null;
   setRegion: (code: RegionCode | null) => void;
+  exploreRequest: number;
 }) {
   const def = indicatorById(indicatorId);
   if (!def) throw new Error(`Dashboard: unknown indicatorId "${indicatorId}"`);
-  const file = bundle.indicators[indicatorId];
+  const {
+    view: tab,
+    setView: setTab,
+    issueId,
+    issueMetric,
+    setIssue,
+    setIssueMetric,
+    issueLevel, compareRegion, zeroEntrants,
+  } = useMapQuery();
+  const searchScope = issueId ?? "indicators";
+  const [search, setSearch] = useState({
+    scope: searchScope,
+    name: "",
+    level: "all" as SchoolFilters["level"],
+  });
+  const name = search.scope === searchScope ? search.name : "";
+  const level = search.scope === searchScope ? search.level : "all";
+  const setName = (next: string) =>
+    setSearch({ scope: searchScope, name: next, level });
+  const setLevel = (next: SchoolFilters["level"]) =>
+    setSearch((previous) => ({
+      scope: searchScope,
+      name: previous.scope === searchScope ? previous.name : "",
+      level: next,
+    }));
 
-  const map = useMemo(() => valueMap(file), [file]);
-  // Only `ticks` is needed here — Dashboard renders Legend, not the 3D
-  // layers, so `colorOf` itself (also returned by makeColorScale) isn't
-  // consumed here; DeckMap independently derives its own copy of the full
-  // color scale from the same pure function over the same bundle+indicatorId
-  // inputs (see "상태 위치" in the brief — no scale objects are prop-drilled
-  // between Dashboard and DeckMap).
-  const { ticks, colorBuckets } = useMemo(
-    () => makeColorScale(def, map),
-    [def, map],
-  );
-  const palette = useMemo(() => paletteFor(def.polarity), [def.polarity]);
-  const hasNull = useMemo(
-    () => regionValues(map).some((r) => r.value === null),
-    [map],
-  );
-  // fix round, review finding #4 — the Legend's "(특수학교는 위치 자료 없음)"
-  // caveat must only show for a region that actually HAS such a school; a
-  // school's own regionCode never equals `regionCode` when it's null, so
-  // this is safely false without a selected region too.
-  const hasSchoolsWithoutLocation = useMemo(
-    () =>
-      bundle.schools.schools.some(
-        (s) => s.regionCode === regionCode && s.lat === null,
+  const { state: issueState, retry: retryIssues } = useIssueData(
+    !!issueId ||
+      tab === "issues" ||
+      ["special_classes", "special_students", "zero_entrant_schools"].includes(
+        indicatorId,
       ),
-    [bundle.schools, regionCode],
+    bundle.schools,
   );
-  // The registry's static label with students_change_5y's "5년" replaced by
-  // the real series year span (추가 요구 #5) — Legend's `def` prop is
-  // otherwise passed straight from the registry, so this is the one field we
-  // override before handing it to Legend.
-  const legendDef = useMemo(
-    () => ({ ...def, label: displayLabel(def, bundle.series) }),
-    [def, bundle.series],
-  );
-
-  const [name, setName] = useState("");
-  const [level, setLevel] = useState<SchoolFilters["level"]>("all");
-  const { view: tab, setView: setTab, issueId, issueMetric, setIssue, setIssueMetric } = useMapQuery();
-  const { state: issueState, retry: retryIssues } = useIssueData(tab === "issues" || ["special_classes", "special_students", "zero_entrant_schools"].includes(indicatorId), bundle.schools);
   const issueModel = useMemo(() => {
     const definition = issueById(issueId);
-    return tab === "issues" && definition && issueState.status === "ready"
-      ? buildIssueModel(bundle, issueState.data, definition, issueMetric)
+    return definition && issueState.status === "ready"
+      ? buildIssueModel(bundle, issueState.data, definition, issueMetric, issueLevel)
       : null;
-  }, [tab, issueId, issueMetric, issueState, bundle]);
+  }, [issueId, issueMetric, issueState, bundle, issueLevel]);
+  const mapMetric = useMemo(
+    () =>
+      buildMapMetric(
+        bundle,
+        indicatorId,
+        issueModel,
+        issueState.status === "ready" ? issueState.data : null,
+      ),
+    [bundle, indicatorId, issueModel, issueState],
+  );
+  const needsFacts =
+    !!issueId ||
+    ["special_classes", "special_students", "zero_entrant_schools"].includes(
+      indicatorId,
+    );
+  const metricPending = needsFacts && issueState.status !== "ready";
   const [panelOpen, setPanelOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [highlightedSchoolId, setHighlightedSchoolId] = useQueryState("school", parseAsString.withOptions({ history: "push", shallow: true }));
+  const [highlightedSchoolId, setHighlightedSchoolId] = useQueryState(
+    "school",
+    parseAsString.withOptions({ history: "push", shallow: true }),
+  );
+  const [collapsed, setCollapsed] = useState(
+    !regionCode && tab === "schools" && !highlightedSchoolId,
+  );
+  const [handledExplore, setHandledExplore] = useState(0);
+  if (handledExplore !== exploreRequest) {
+    setHandledExplore(exploreRequest);
+    setCollapsed(false);
+    setPanelOpen(typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches);
+  }
   const [schoolFocusNonce, setSchoolFocusNonce] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
   const panelButtonRef = useRef<HTMLButtonElement>(null);
   const panelReturnFocusRef = useRef<HTMLElement | null>(null);
   const filteredSchools = useMemo(
-    () => tab === "issues"
-      ? (issueModel?.schools ?? bundle.schools.schools).filter((school) => !regionCode || school.regionCode === regionCode)
-      : filterSchools(bundle.schools.schools, { name, level, regionCode }),
-    [bundle.schools, name, level, regionCode, tab, issueModel],
+    () =>
+      filterSchools(issueModel?.schools ?? bundle.schools.schools, {
+        name,
+        level,
+        regionCode,
+      }),
+    [bundle.schools, name, level, regionCode, issueModel],
   );
+  const mapSchools = useMemo(() => {
+    if (!issueModel) return filteredSchools;
+    const base = [...issueModel.schools];
+    if (issueModel.issue.id === "special-education") {
+      const ids = new Set(base.map(s => s.id));
+      base.push(...bundle.schools.schools.filter(s => s.level === "special" && !ids.has(s.id)));
+    }
+    return filterSchools(base, { name, level, regionCode: null });
+  }, [issueModel, filteredSchools, bundle, name, level]);
   const selectedSchool =
-    filteredSchools.find((s) => s.id === highlightedSchoolId) ?? null;
+    mapSchools.find((s) => s.id === highlightedSchoolId) ?? null;
   useEffect(() => {
-    if (highlightedSchoolId && !selectedSchool) void setHighlightedSchoolId(null, { history: "replace" });
+    if (highlightedSchoolId && !selectedSchool)
+      void setHighlightedSchoolId(null, { history: "replace" });
   }, [highlightedSchoolId, selectedSchool, setHighlightedSchoolId]);
 
   useEffect(() => {
@@ -173,10 +204,19 @@ function DashboardInner({
   }, []);
 
   const selectSchool = (id: string | null) => {
+    if (issueModel && id) {
+      const school = mapSchools.find(s => s.id === id);
+      if (school && regionCode && school.regionCode !== regionCode) setRegion(school.regionCode as RegionCode);
+    }
     setHighlightedSchoolId(id);
     if (id) setCollapsed(false);
     setSchoolFocusNonce((n) => n + 1);
-    if (id) requestAnimationFrame(() => panelRef.current?.querySelector('[aria-label="선택한 학교"]')?.scrollIntoView({ block: "nearest" }));
+    if (id)
+      requestAnimationFrame(() =>
+        panelRef.current
+          ?.querySelector('[aria-label="선택한 학교"]')
+          ?.scrollIntoView({ block: "nearest" }),
+      );
     if (
       id &&
       bundle.schools.schools.find((s) => s.id === id && hasCoordinates(s))
@@ -202,7 +242,7 @@ function DashboardInner({
         aria-live="polite"
         className="sr-only"
         data-testid="indicator-announcement"
-      >{`지표 변경: ${legendDef.label}`}</span>
+      >{`지표 변경: ${mapMetric.title}`}</span>
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {panelOpen && (
           <button
@@ -264,16 +304,29 @@ function DashboardInner({
                       )
                     ) {
                       event.preventDefault();
-                      const next = event.key === "Home" ? MAP_VIEWS[0]
-                        : event.key === "End" ? MAP_VIEWS[MAP_VIEWS.length - 1]
-                        : MAP_VIEWS[(index + (event.key === "ArrowRight" ? 1 : MAP_VIEWS.length - 1)) % MAP_VIEWS.length];
+                      const next =
+                        event.key === "Home"
+                          ? MAP_VIEWS[0]
+                          : event.key === "End"
+                            ? MAP_VIEWS[MAP_VIEWS.length - 1]
+                            : MAP_VIEWS[
+                                (index +
+                                  (event.key === "ArrowRight"
+                                    ? 1
+                                    : MAP_VIEWS.length - 1)) %
+                                  MAP_VIEWS.length
+                              ];
                       setTab(next);
                       document.getElementById(`tab-${next}`)?.focus();
                     }
                   }}
                   className={`min-h-11 rounded-lg px-3 text-sm ${tab === value ? "bg-accent-soft font-semibold text-accent-text" : "text-ink-muted hover:bg-paper"}`}
                 >
-                  {value === "schools" ? "학교 탐색" : value === "issues" ? "교육문제" : "시군 통계"}
+                  {value === "schools"
+                    ? "학교 탐색"
+                    : value === "issues"
+                      ? "교육문제"
+                      : "시군 통계"}
                 </button>
               ))}
             </div>
@@ -297,6 +350,7 @@ function DashboardInner({
           >
             {tab === "schools" ? (
               <SchoolExplorer
+                metric={mapMetric}
                 schools={filteredSchools}
                 filters={{ name, level, regionCode }}
                 onFilters={changeFilters}
@@ -306,18 +360,83 @@ function DashboardInner({
                 onStatistics={showStatistics}
               />
             ) : tab === "issues" ? (
-              issueState.status === "ready" ? <IssueExplorer
-                bundle={bundle} data={issueState.data} model={issueModel} issueId={issueId}
-                region={regionCode} schools={filteredSchools} selectedSchool={selectedSchool}
-                onIssue={(id) => { setHighlightedSchoolId(null); setIssue(id); }}
-                onMetric={(metric) => { setHighlightedSchoolId(null); setIssueMetric(metric); }}
-                onRegion={setRegion} onSchool={selectSchool} onStatistics={showStatistics}
-                onSearch={(code) => { setName(""); setLevel("all"); setRegion(code); setTab("schools"); }}
-              /> : issueState.status === "error" ? <div role="alert" className="space-y-3 text-sm"><p>{issueState.message}</p><button className="min-h-11 rounded border border-line px-3" onClick={retryIssues}>다시 시도</button></div>
-              : <p role="status" className="py-8 text-sm text-ink-muted">교육문제 자료 불러오는 중…</p>
+              issueState.status === "ready" ? (
+                <IssueExplorer
+                  bundle={bundle}
+                  data={issueState.data}
+                  model={issueModel}
+                  issueId={issueId}
+                  region={regionCode}
+                  schools={filteredSchools}
+                  selectedSchool={selectedSchool}
+                  onIssue={(id) => {
+                    setHighlightedSchoolId(null);
+                    setIssue(id);
+                  }}
+                  onMetric={(metric) => {
+                    setHighlightedSchoolId(null);
+                    setIssueMetric(metric);
+                  }}
+                  onRegion={setRegion}
+                  onSchool={selectSchool}
+                  onStatistics={showStatistics}
+                  onSearch={(code) => {
+                    setName("");
+                    setLevel("all");
+                    setRegion(code);
+                    setTab("schools");
+                  }}
+                />
+              ) : issueState.status === "error" ? (
+                <div role="alert" className="space-y-3 text-sm">
+                  <p>{issueState.message}</p>
+                  <button
+                    className="min-h-11 rounded border border-line px-3"
+                    onClick={retryIssues}
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              ) : (
+                <p role="status" className="py-8 text-sm text-ink-muted">
+                  교육문제 자료 불러오는 중…
+                </p>
+              )
             ) : (
               <>
-                {regionCode ? (
+                {issueModel ? (
+                  <section
+                    aria-label="선택 지표 시군 비교"
+                    className="space-y-3"
+                  >
+                    <h2 className="font-semibold">{issueModel.title}</h2>
+                    <p className="text-xs text-ink-muted">
+                      {issueModel.date} · 시군 전체 집계
+                    </p>
+                    <p className="text-sm">{issueModel.provinceText}</p>
+                    <ul className="space-y-1">
+                      {issueModel.regions.map((row) => (
+                        <li key={row.code}>
+                          <button
+                            className="flex min-h-11 w-full items-center justify-between rounded border border-line p-3 text-sm aria-pressed:bg-accent-soft"
+                            aria-pressed={regionCode === row.code}
+                            onClick={() => setRegion(row.code)}
+                          >
+                            <span>
+                              {
+                                bundle.regions.features.find(
+                                  (f) => f.properties.code === row.code,
+                                )?.properties.name
+                              }
+                            </span>
+                            <span>{row.text}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-ink-muted">{issueModel.note}</p>
+                  </section>
+                ) : regionCode ? (
                   <RegionPanel
                     bundle={bundle}
                     highlightedSchoolId={highlightedSchoolId}
@@ -327,17 +446,6 @@ function DashboardInner({
                 ) : (
                   <RegionList bundle={bundle} />
                 )}
-                <div className="mt-4 border-t border-line pt-4">
-                  <Legend
-                    def={legendDef}
-                    ticks={ticks}
-                    palette={palette}
-                    hasNull={hasNull}
-                    referenceDate={file.referenceDate}
-                    hasSchoolsWithoutLocation={hasSchoolsWithoutLocation}
-                    colorBuckets={colorBuckets}
-                  />
-                </div>
                 <footer
                   role="contentinfo"
                   aria-label="데이터 출처"
@@ -351,18 +459,46 @@ function DashboardInner({
         </aside>
         <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <MapShell
+            mapMetric={mapMetric}
             indicatorId={indicatorId}
             selectedCode={regionCode}
-            onSelect={setRegion}
+            onSelect={(code) => {
+              setRegion(code);
+              if (code) {
+                setCollapsed(false);
+              }
+            }}
             highlightedSchoolId={highlightedSchoolId}
             onHighlightSchool={selectSchool}
-            schools={filteredSchools}
+            schools={mapSchools}
+            compareCode={compareRegion}
+            emphasizeZero={zeroEntrants}
             schoolFocusNonce={schoolFocusNonce}
             issueModel={issueModel}
             schoolFacts={issueState.status === "ready" ? issueState.data : null}
-            statisticsVisible={tab === "statistics"}
+            statisticsVisible={
+              tab === "statistics" || mapMetric.kind === "region" || !!mapMetric.regionOverlay
+            }
             interactionBlocked={panelOpen}
           />
+          {issueModel && !selectedSchool && <div className="pointer-events-none absolute left-3 right-3 top-16 z-10 max-w-sm rounded-xl border border-line bg-surface/95 p-3 shadow-sm lg:hidden"><p className="text-xs font-semibold">{issueModel.issue.title}</p><p className="mt-1 text-xs">{regionCode ? `${bundle.regions.features.find(f => f.properties.code === regionCode)?.properties.name} · ${issueModel.regions.find(r => r.code === regionCode)?.text}` : issueModel.provinceText}</p></div>}
+          {metricPending && (
+            <div
+              role="status"
+              className="absolute inset-0 z-20 flex items-center justify-center bg-surface/90 p-6 text-sm"
+            >
+              {issueState.status === "error" ? (
+                <div>
+                  <p>선택 지표 자료를 불러오지 못했습니다.</p>
+                  <button className="min-h-11 underline" onClick={retryIssues}>
+                    다시 시도
+                  </button>
+                </div>
+              ) : (
+                "선택한 교육지표 자료를 불러오는 중…"
+              )}
+            </div>
+          )}
           <button
             ref={panelButtonRef}
             type="button"
@@ -383,20 +519,29 @@ function DashboardInner({
                 panelReturnFocusRef.current = event.currentTarget;
                 setPanelOpen(window.matchMedia("(max-width: 1023px)").matches);
                 if (tab !== "issues") setTab("schools");
-                requestAnimationFrame(() => panelRef.current?.querySelector('[aria-label="선택한 학교"]')?.scrollIntoView({ block: "nearest" }));
+                requestAnimationFrame(() =>
+                  panelRef.current
+                    ?.querySelector('[aria-label="선택한 학교"]')
+                    ?.scrollIntoView({ block: "nearest" }),
+                );
               }}
-              className={`${panelOpen ? "hidden" : ""} absolute bottom-20 left-16 right-3 z-10 rounded-xl border border-accent/30 bg-surface p-3 text-left text-sm shadow-lg lg:hidden`}
+              className={`${panelOpen ? "hidden" : ""} absolute bottom-4 left-16 right-3 z-10 rounded-xl border border-accent/30 bg-surface p-3 text-left text-sm shadow-lg lg:hidden`}
             >
               <span className="font-semibold">{selectedSchool.name}</span>
               <span className="ml-2 text-xs text-ink-muted">
                 학교 정보 보기
               </span>
+              {mapMetric.kind !== "region" && (
+                <span className="block text-xs text-ink-muted">
+                  {mapMetric.title} ·{" "}
+                  {chartValueText(
+                    mapMetric.value(selectedSchool),
+                    mapMetric.unit,
+                  )}
+                </span>
+              )}
             </button>
           )}
-          <div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-lg border border-line bg-surface/95 px-3 py-2 text-ink-muted shadow-sm">
-            {issueModel && <div className="mb-2 border-b border-line pb-2"><IssueLegend model={issueModel} /></div>}
-            <SchoolLegend />
-          </div>
         </main>
       </div>
     </div>
@@ -410,11 +555,12 @@ function DashboardBody() {
   // and TopBar (rendered regardless of load status) always has it.
   const { indicatorId, regionCode, setRegion } = useMapQuery();
   const state = useData();
+  const [exploreRequest, setExploreRequest] = useState(0);
   const bundle = state.status === "ready" ? state.bundle : null;
 
   return (
     <div className="grid h-full grid-rows-[56px_1fr] bg-paper text-ink">
-      <TopBar indicatorId={indicatorId} bundle={bundle} />
+      <TopBar indicatorId={indicatorId} bundle={bundle} onExploreIssues={() => setExploreRequest(n => n + 1)} />
       {state.status === "loading" && (
         <CenteredMessage>데이터 불러오는 중…</CenteredMessage>
       )}
@@ -422,6 +568,7 @@ function DashboardBody() {
       {state.status === "ready" && (
         <DashboardInner
           bundle={state.bundle}
+          exploreRequest={exploreRequest}
           indicatorId={indicatorId}
           regionCode={regionCode}
           setRegion={setRegion}

@@ -206,8 +206,8 @@ export const INDICATORS: IndicatorDef[] = [
     format: formatInt,
     source: KESS_SOURCE,
     aggregate: { kind: "sum", field: "specialClasses" },
-    description: "특수학급 수입니다. 통합교육을 위한 특수학급 설치 현황을 보여줍니다.",
-    caveat: "특수학급 기준. 통합교육 대상자 총원은 미포함.",
+    description: "일반학교 특수학급과 특수학교 학급을 포함한 수입니다. 일반학교 현황은 교육문제의 특수교육에서 별도로 확인합니다.",
+    caveat: "특수학교 포함. 일반학급 배치 대상자 등을 포함한 특수교육 대상자 총원과 다릅니다.",
   },
   {
     id: "special_students",
@@ -219,8 +219,8 @@ export const INDICATORS: IndicatorDef[] = [
     format: formatInt,
     source: KESS_SOURCE,
     aggregate: { kind: "sum", field: "specialStudents" },
-    description: "특수학급에 소속된 학생수입니다.",
-    caveat: "특수학급 기준. 통합교육 대상자 총원은 미포함.",
+    description: "일반학교 특수학급 학생과 특수학교 학생을 포함한 수입니다. 교육문제의 특수교육에서는 두 범위를 분리합니다.",
+    caveat: "특수학교 포함. 일반학급 배치 대상자 등을 포함한 특수교육 대상자 총원과 다릅니다.",
   },
   {
     id: "students_change_5y",

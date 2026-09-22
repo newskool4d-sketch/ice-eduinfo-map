@@ -1,8 +1,11 @@
 "use client";
 
+import type { MapMetricSpec } from "@/lib/mapMetrics";
+import { chartValueText } from "@/lib/schools/chart";
 import type { School } from "@/lib/schools/types";
 import type { SchoolFilters } from "@/lib/schools/filter";
 import { REGION_CODES, regionName, type RegionCode } from "@/lib/geo/regions";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 import {
   SCHOOL_LEVEL_COLORS,
   SCHOOL_LEVEL_LABELS,
@@ -83,7 +86,12 @@ export function SchoolDetail({
       {school.locationSource && (
         <div className="mt-3 text-xs text-ink-muted">
           <p>{school.locationSource.address}</p>
-          <a href={school.locationSource.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+          <a
+            href={school.locationSource.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-4"
+          >
             학교 공식 위치 안내
           </a>
           <span> · 확인 {school.locationSource.verifiedAt}</span>
@@ -106,6 +114,7 @@ export function SchoolDetail({
 }
 
 export default function SchoolExplorer({
+  metric,
   schools,
   filters,
   onFilters,
@@ -114,6 +123,7 @@ export default function SchoolExplorer({
   selectedSchool,
   onStatistics,
 }: {
+  metric?: MapMetricSpec;
   schools: School[];
   filters: SchoolFilters;
   onFilters: (filters: SchoolFilters) => void;
@@ -127,6 +137,22 @@ export default function SchoolExplorer({
   ).length;
   return (
     <div className="space-y-4">
+      {metric && (
+        <div className="rounded-lg bg-paper p-3 text-xs">
+          <p className="font-semibold">{metric.title}</p>
+          <p className="mt-1 text-ink-muted">
+            {metric.kind === "region"
+              ? "시군 전체 집계 · 학교 검색은 아래 목록에 적용됩니다."
+              : "지도와 같은 학교별 지표를 표시합니다."}
+          </p>
+          {selectedSchool && metric.kind !== "region" && (
+            <p className="mt-2">
+              선택 학교:{" "}
+              {chartValueText(metric.value(selectedSchool), metric.unit)}
+            </p>
+          )}
+        </div>
+      )}
       <button
         type="button"
         className="sr-only focus:not-sr-only focus:block focus:rounded focus:p-2"
@@ -156,7 +182,7 @@ export default function SchoolExplorer({
             }
             className="mt-1.5 h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm"
           >
-            <option value="">전북 전체</option>
+            <option value="">{ACTIVE_PROFILE.province.shortName} 전체</option>
             {REGION_CODES.map((code) => (
               <option key={code} value={code}>
                 {regionName(code)}
@@ -224,7 +250,7 @@ export default function SchoolExplorer({
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{
-                      backgroundColor: `rgb(${SCHOOL_LEVEL_COLORS[school.level].join(",")})`,
+                      backgroundColor: `rgb(${(metric ? metric.color(school).slice(0, 3) : SCHOOL_LEVEL_COLORS[school.level]).join(",")})`,
                     }}
                   />
                   <span className="text-sm font-medium">{school.name}</span>
@@ -239,6 +265,12 @@ export default function SchoolExplorer({
                       ? "학생수 자료 없음"
                       : `학생 ${school.students.toLocaleString("ko-KR")}명`}
                   </span>
+                  {metric && metric.kind !== "region" && (
+                    <span>
+                      {metric.title}:{" "}
+                      {chartValueText(metric.value(school), metric.unit)}
+                    </span>
+                  )}
                   {school.branch && <span>분교장</span>}
                   {school.small && (
                     <span className="text-accent-text">소규모</span>

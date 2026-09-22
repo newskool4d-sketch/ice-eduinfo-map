@@ -1,5 +1,7 @@
 "use client";
 
+import { ACTIVE_PROFILE } from "@/lib/profiles";
+
 import {
   useCallback,
   useEffect,
@@ -10,12 +12,29 @@ import {
   type CSSProperties,
 } from "react";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
-import { schoolChartMetric, chartMaximum, chartHeight, chartValueText } from "@/lib/schools/chart";
+import {
+  schoolChartMetric,
+  chartMaximum,
+  chartHeight,
+  chartValueText,
+} from "@/lib/schools/chart";
 import { makeSchoolChartLayer } from "./layers/schoolChartLayer";
+import {
+  makeDensityLayer,
+  makeSpecialSchoolLayer,
+  supportsDensity,
+} from "./layers/metricLayers";
+import MetricLegend from "@/components/panels/MetricLegend";
+import { buildMapMetric, type MapMetricSpec } from "@/lib/mapMetrics";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView, WebMercatorViewport } from "@deck.gl/core";
-import type { LayersList, PickingInfo, MapViewState, ViewStateChangeParameters } from "@deck.gl/core";
+import type {
+  LayersList,
+  PickingInfo,
+  MapViewState,
+  ViewStateChangeParameters,
+} from "@deck.gl/core";
 import { LightGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
@@ -33,7 +52,10 @@ import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
 import { makeBuildingLayer } from "./layers/buildingLayer";
 import { buildingsActive, scenePitch } from "./scene";
 import { useScene } from "./useScene";
-import { makeBasemapWashLayer, makeBasemapLayer } from "@/components/map/layers/basemapLayer";
+import {
+  makeBasemapWashLayer,
+  makeBasemapLayer,
+} from "@/components/map/layers/basemapLayer";
 import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import {
@@ -67,7 +89,7 @@ import {
 } from "@/components/map/layers/flatMapLayers";
 
 /** School names appear at neighbourhood scale, independently of region selection. */
-const SCHOOL_LABEL_MIN_ZOOM = 11;
+const SCHOOL_LABEL_MIN_ZOOM = 15;
 /** onViewStateChange 스로틀 간격(ms). */
 const ZOOM_THROTTLE_MS = 100;
 
@@ -146,6 +168,9 @@ const WIDGET_THEME_STYLE: CSSProperties = {
 } as CSSProperties;
 
 export interface DeckMapProps {
+  mapMetric?: MapMetricSpec;
+  compareCode?: RegionCode | null;
+  emphasizeZero?: boolean;
   issueModel?: IssueMapModel | null;
   schoolFacts?: EducationIssuesFile | null;
   schools?: School[];
@@ -175,31 +200,49 @@ export default function DeckMap({
   interactionBlocked = false,
   issueModel = null,
   schoolFacts = null,
+  mapMetric,
+  compareCode = null,
+  emphasizeZero = false,
 }: DeckMapProps) {
   const bundle = useBundle();
-  const [schoolChart, setSchoolChart] = useQueryState("schoolChart", parseAsStringLiteral(["columns", "dots"] as const).withDefault("columns").withOptions({ history: "push", shallow: true }));
+  const [schoolChart, setSchoolChart] = useQueryState(
+    "schoolChart",
+    parseAsStringLiteral(["auto", "columns", "dots"] as const)
+      .withDefault("auto")
+      .withOptions({ history: "push", shallow: true }),
+  );
   const { scene, setScene, enabled: buildingsEnabled } = useScene();
-  const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 767px)").matches);
+  const [mobile, setMobile] = useState(
+    () => window.matchMedia("(max-width: 767px)").matches,
+  );
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
     const update = () => setMobile(media.matches);
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
-  const [buildingErrors, setBuildingErrors] = useState<Set<string>>(() => new Set());
-  const [buildingFetchedAt, setBuildingFetchedAt] = useState<string | null>(null);
+  const [buildingErrors, setBuildingErrors] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [buildingFetchedAt, setBuildingFetchedAt] = useState<string | null>(
+    null,
+  );
   const [buildingRetry, setBuildingRetry] = useState(0);
-  const onBuildingStatus = useCallback((id: string, error: boolean, fetchedAt?: string) => {
-    queueMicrotask(() => {
-      setBuildingErrors((old) => {
-        if (old.has(id) === error) return old;
-        const next = new Set(old);
-        if (error) next.add(id); else next.delete(id);
-        return next;
+  const onBuildingStatus = useCallback(
+    (id: string, error: boolean, fetchedAt?: string) => {
+      queueMicrotask(() => {
+        setBuildingErrors((old) => {
+          if (old.has(id) === error) return old;
+          const next = new Set(old);
+          if (error) next.add(id);
+          else next.delete(id);
+          return next;
+        });
+        if (fetchedAt) setBuildingFetchedAt(fetchedAt);
       });
-      if (fetchedAt) setBuildingFetchedAt(fetchedAt);
-    });
-  }, []);
+    },
+    [],
+  );
   const [showSchoolNames, setShowSchoolNames] = useState(true);
   const selectedSchool =
     bundle.schools.schools.find((s) => s.id === highlightedSchoolId) ?? null;
@@ -209,7 +252,12 @@ export default function DeckMap({
   const lastLabelViewportKey = useRef("");
   const lastLabelUpdateTime = useRef(0);
   const labelUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (labelUpdateTimer.current) clearTimeout(labelUpdateTimer.current); }, []);
+  useEffect(
+    () => () => {
+      if (labelUpdateTimer.current) clearTimeout(labelUpdateTimer.current);
+    },
+    [],
+  );
   const [labelViewport, setLabelViewport] =
     useState<WebMercatorViewport | null>(null);
   const labelsReadyRef = useRef(false);
@@ -231,7 +279,8 @@ export default function DeckMap({
     reduceMotion,
     selectedSchool,
     schoolFocusNonce,
-    scene, mobile,
+    scene,
+    mobile,
   );
 
   // Task 6, Section A.2 — WebGL context loss: deck.gl's own internal
@@ -244,6 +293,7 @@ export default function DeckMap({
   // `log.error(error.message)`; supplying our own REPLACES that default, so
   // the non-context branch below calls console.error itself to not lose
   // that reporting.
+  const [heatmapSupported, setHeatmapSupported] = useState(false);
   const [contextLost, setContextLost] = useState(false);
   const handleDeckError = useCallback((error: Error) => {
     if (error.message.toLowerCase().includes("context")) {
@@ -253,7 +303,12 @@ export default function DeckMap({
     }
   }, []);
 
-  const mapCharset = useMemo(() => bundle.charset + (issueModel ? issueModel.regions.map((row) => row.text).join("") : ""), [bundle.charset, issueModel]);
+  const mapCharset = useMemo(
+    () =>
+      bundle.charset +
+      (issueModel ? issueModel.regions.map((row) => row.text).join("") : ""),
+    [bundle.charset, issueModel],
+  );
   const { fontReady, fontFamily } = useFontGate(mapCharset);
   // Mirrored into a ref so handleAfterRender (a stable, []-deps callback —
   // see its own comment) can read the LATEST fontReady without itself
@@ -292,8 +347,12 @@ export default function DeckMap({
   const [zoom, setZoom] = useState<number>(VIEW_LIMITS.minZoom);
   const lastZoomUpdateRef = useRef(0);
   const handleViewStateChange = useCallback(
-    <T extends MapViewState,>({ viewState }: ViewStateChangeParameters<T>) => {
-      viewState = { ...viewState, bearing: 0, pitch: scenePitch(scene, Number(viewState.zoom), mobile) };
+    <T extends MapViewState>({ viewState }: ViewStateChangeParameters<T>) => {
+      viewState = {
+        ...viewState,
+        bearing: 0,
+        pitch: scenePitch(scene, Number(viewState.zoom), mobile),
+      };
       rememberViewState(viewState);
       const now = Date.now();
       if (now - lastZoomUpdateRef.current < ZOOM_THROTTLE_MS) return viewState;
@@ -331,7 +390,13 @@ export default function DeckMap({
 
   // Rank order for keyboard ←/→ cycling ("현재 순위 순") and, indirectly (via
   // the same pure function), RegionList's render order.
-  const orderedCodes = useMemo(() => issueModel ? issueModel.regions.map((row) => row.code) : regionRankList(map), [map, issueModel]);
+  const orderedCodes = useMemo(
+    () =>
+      issueModel
+        ? issueModel.regions.map((row) => row.code)
+        : regionRankList(map),
+    [map, issueModel],
+  );
 
   // Task B — region-label collision priority (makeRegionLabelLayer's
   // getCollisionPriority/priorityOf — CollisionFilterExtension): reversed
@@ -355,7 +420,8 @@ export default function DeckMap({
 
   const announcement = useMemo(() => {
     if (!selectedCode) return "선택 해제됨, 전체 보기";
-    if (issueModel) return `${nameOf(selectedCode)} · ${issueModel.title} · ${issueModel.regions.find((row) => row.code === selectedCode)?.text ?? "자료 없음"}`;
+    if (issueModel)
+      return `${nameOf(selectedCode)} · ${issueModel.title} · ${issueModel.regions.find((row) => row.code === selectedCode)?.text ?? "자료 없음"}`;
     const value = map.get(selectedCode);
     const r = rank(map).get(selectedCode) ?? null;
     const valueText =
@@ -374,7 +440,8 @@ export default function DeckMap({
   const labelTextOf = useCallback(
     (code: string): string => {
       const name = nameOf(code);
-      if (issueModel) return `${name}\n${issueModel.regions.find((row) => row.code === code)?.text ?? "자료 없음"}`;
+      if (issueModel)
+        return `${name}\n${issueModel.regions.find((row) => row.code === code)?.text ?? "자료 없음"}`;
       if (!statisticsVisible) return name;
       const value = map.get(code);
       if (value === null || value === undefined) return `${name}\n자료 없음`;
@@ -389,7 +456,16 @@ export default function DeckMap({
   // dependency. makeLinesOf computes rank(map) once per def/label/map
   // change (not per hover) and returns the (code) => string[] tooltip fn.
   const linesOf = useMemo(
-    () => issueModel ? (code: string) => [nameOf(code), issueModel.title, issueModel.regions.find((row) => row.code === code)?.text ?? "자료 없음", issueModel.date] : makeLinesOf({ def, label, map }),
+    () =>
+      issueModel
+        ? (code: string) => [
+            nameOf(code),
+            issueModel.title,
+            issueModel.regions.find((row) => row.code === code)?.text ??
+              "자료 없음",
+            issueModel.date,
+          ]
+        : makeLinesOf({ def, label, map }),
     [def, label, map, issueModel],
   );
 
@@ -423,11 +499,40 @@ export default function DeckMap({
     () => (schools ?? bundle.schools.schools).filter(hasCoordinates),
     [schools, bundle.schools],
   );
-  const chartMetric = useMemo(() => schoolChartMetric(indicatorId, issueModel?.metric, schoolFacts), [indicatorId, issueModel, schoolFacts]);
-  const chartMax = useMemo(() => chartMetric ? chartMaximum(bundle.schools.schools, chartMetric) : 0, [bundle.schools, chartMetric]);
-  const columnsVisible = scene === "city" && schoolChart === "columns" && chartMetric !== null;
-  const heightOfSchool = useCallback((school: School) => columnsVisible && chartMetric ? chartHeight(chartMetric.value(school), chartMax, zoom, chartMetric.heightMode) : 0, [columnsVisible, chartMetric, chartMax, zoom]);
-  const schoolLabelsVisible = showSchoolNames && zoom >= SCHOOL_LABEL_MIN_ZOOM;
+  const metricModel = useMemo(
+    () =>
+      mapMetric ?? buildMapMetric(bundle, indicatorId, issueModel, schoolFacts),
+    [mapMetric, bundle, indicatorId, issueModel, schoolFacts],
+  );
+  const densityVisible =
+    schoolChart === "auto" &&
+    metricModel.kind === "density" &&
+    zoom < 13 &&
+    heatmapSupported;
+  const chartMetric = useMemo(
+    () => schoolChartMetric(indicatorId, issueModel?.metric, schoolFacts),
+    [indicatorId, issueModel, schoolFacts],
+  );
+  const chartMax = useMemo(
+    () => (chartMetric ? chartMaximum(bundle.schools.schools, chartMetric) : 0),
+    [bundle.schools, chartMetric],
+  );
+  const columnsVisible =
+    scene === "city" && schoolChart === "columns" && chartMetric !== null;
+  const heightOfSchool = useCallback(
+    (school: School) =>
+      columnsVisible && chartMetric
+        ? chartHeight(
+            chartMetric.value(school),
+            chartMax,
+            zoom,
+            chartMetric.heightMode,
+          )
+        : 0,
+    [columnsVisible, chartMetric, chartMax, zoom],
+  );
+  const schoolLabelsVisible =
+    showSchoolNames && (zoom >= SCHOOL_LABEL_MIN_ZOOM || !!highlightedSchoolId);
   const handleSchoolClick = useCallback(
     (id: string) => onHighlightSchool(id),
     [onHighlightSchool],
@@ -447,7 +552,9 @@ export default function DeckMap({
       priority: value.code === selectedCode ? 900 : 800,
     }));
     if (schoolLabelsVisible)
-      for (const value of positionedSchools)
+      for (const value of positionedSchools.filter(
+        (s) => zoom >= SCHOOL_LABEL_MIN_ZOOM || s.id === highlightedSchoolId,
+      ))
         candidates.push({
           value: { kind: "school", value },
           position: [value.lng, value.lat, heightOfSchool(value)],
@@ -482,18 +589,28 @@ export default function DeckMap({
     selectedCode,
     highlightedSchoolId,
     schoolLabelsVisible,
+    zoom,
     heightOfSchool,
   ]);
 
   const getRegionTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
   const getSchoolTooltip = useMemo(
-    () => makeSchoolTooltip((school) => [...schoolTooltipLines(school), ...(chartMetric ? [`원통 · ${chartMetric.label}: ${chartValueText(chartMetric.value(school), chartMetric.unit)}`] : [])]),
+    () =>
+      makeSchoolTooltip((school) => [
+        ...schoolTooltipLines(school),
+        ...(chartMetric
+          ? [
+              `${chartMetric.label}: ${chartValueText(chartMetric.value(school), chartMetric.unit)}`,
+            ]
+          : []),
+      ]),
     [chartMetric],
   );
   // School dots have plain School objects; boundaries have GeoJSON properties.
   const getTooltip = useCallback(
     (info: Parameters<typeof getRegionTooltip>[0]) =>
-      (info.layer?.id === "schools" || info.layer?.id === "school-columns")
+      info.layer?.id?.startsWith("schools") ||
+      info.layer?.id === "school-columns"
         ? getSchoolTooltip(info)
         : getRegionTooltip(info),
     [getRegionTooltip, getSchoolTooltip],
@@ -635,13 +752,31 @@ export default function DeckMap({
 
   const overlayItems = useMemo<MapOverlayItem[]>(() => {
     const items: MapOverlayItem[] = [];
-    if (buildingsEnabled) items.push({ kind: "segmented", id: "scene", label: "지도 표현", value: scene,
-      options: [{ value: "city", label: "입체 현황판" }, { value: "flat", label: "평면" }],
-      onChange: (value) => setScene(value as "city" | "flat"),
-    });
-    items.push({ kind: "segmented", id: "school-chart", label: "학교 표현", value: schoolChart,
-      options: [{ value: "columns", label: "원통" }, { value: "dots", label: "점" }],
-      onChange: value => { void setSchoolChart(value as "columns" | "dots"); },
+    if (buildingsEnabled)
+      items.push({
+        kind: "segmented",
+        id: "scene",
+        label: "지도 표현",
+        value: scene,
+        options: [
+          { value: "city", label: "입체 현황판" },
+          { value: "flat", label: "평면" },
+        ],
+        onChange: (value) => setScene(value as "city" | "flat"),
+      });
+    items.push({
+      kind: "segmented",
+      id: "school-chart",
+      label: "학교 표현",
+      value: schoolChart,
+      options: [
+        { value: "auto", label: "자동" },
+        { value: "columns", label: "원통" },
+        { value: "dots", label: "점" },
+      ],
+      onChange: (value) => {
+        void setSchoolChart(value as "auto" | "columns" | "dots");
+      },
     });
     items.push({
       id: "school-names",
@@ -656,7 +791,16 @@ export default function DeckMap({
       onToggle: handleEmdToggle,
     });
     return items;
-  }, [showSchoolNames, emdEnabled, handleEmdToggle, scene, setScene, buildingsEnabled, schoolChart, setSchoolChart]);
+  }, [
+    showSchoolNames,
+    emdEnabled,
+    handleEmdToggle,
+    scene,
+    setScene,
+    buildingsEnabled,
+    schoolChart,
+    setSchoolChart,
+  ]);
 
   const basemapOn = !!VWORLD_KEY;
   const basemapLayer = useMemo(
@@ -669,10 +813,20 @@ export default function DeckMap({
   // zero-console-error assertions) — null the rest of the time.
   const emdFc = useEmdBoundaries(selectedCode, emdEnabled);
 
-  const buildingsVisible = buildingsEnabled && buildingsActive(scene, zoom, mobile);
-  const buildingLayer = useMemo(() => buildingsVisible ? makeBuildingLayer({
-    mobile, issueActive: !!issueModel, retry: buildingRetry, onStatus: onBuildingStatus,
-  }) : null, [buildingsVisible, mobile, issueModel, buildingRetry, onBuildingStatus]);
+  const buildingsVisible =
+    buildingsEnabled && buildingsActive(scene, zoom, mobile);
+  const buildingLayer = useMemo(
+    () =>
+      buildingsVisible
+        ? makeBuildingLayer({
+            mobile,
+            issueActive: !!issueModel,
+            retry: buildingRetry,
+            onStatus: onBuildingStatus,
+          })
+        : null,
+    [buildingsVisible, mobile, issueModel, buildingRetry, onBuildingStatus],
+  );
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = 0;
     const layerList: LayersList = [
@@ -683,12 +837,38 @@ export default function DeckMap({
         selectedCode,
         handleRegionClick,
         issueModel,
-      ),
+      ).clone({
+        getFillColor: (f) =>
+          (metricModel.kind === "region" || metricModel.regionOverlay)
+            ? metricModel.regionColor(f.properties.code)
+            : [255, 255, 255, 0],
+        getLineColor: (f) => f.properties.code === selectedCode ? [28,35,49,255] : f.properties.code === compareCode ? [153,66,182,255] : [85,100,118,110],
+        getLineWidth: (f) => f.properties.code === selectedCode || f.properties.code === compareCode ? 3 : 1,
+        updateTriggers: {
+          getFillColor: [metricModel],
+          getLineColor: [selectedCode, compareCode],
+          getLineWidth: [selectedCode, compareCode],
+        },
+      }),
+      densityVisible
+        ? makeDensityLayer(positionedSchools, metricModel, mobile)
+        : null,
       buildingLayer,
-      buildingLayer ? makeFlatRegionsLayer(bundle.regions, selectedCode, handleRegionClick).clone({
-        id: "region-boundaries", filled: false, pickable: false,
-        parameters: { depthCompare: "always", depthWriteEnabled: false },
-      }) : null,
+      buildingLayer
+        ? makeFlatRegionsLayer(
+            bundle.regions,
+            selectedCode,
+            handleRegionClick,
+          ).clone({
+            id: "region-boundaries",
+            filled: false,
+            getLineColor: (f) => f.properties.code === selectedCode ? [28,35,49,255] : f.properties.code === compareCode ? [153,66,182,255] : [85,100,118,110],
+            getLineWidth: (f) => f.properties.code === selectedCode || f.properties.code === compareCode ? 3 : 1,
+            updateTriggers: { getLineColor: [selectedCode, compareCode], getLineWidth: [selectedCode, compareCode] },
+            pickable: false,
+            parameters: { depthCompare: "always", depthWriteEnabled: false },
+          })
+        : null,
       emdEnabled && selectedCode && emdFc
         ? makeEmdBoundaryLayer(emdFc, {
             elevation: 1,
@@ -696,12 +876,62 @@ export default function DeckMap({
             transitionDuration,
           })
         : null,
-      columnsVisible ? makeSchoolChartLayer(positionedSchools, heightOfSchool, highlightedSchoolId, handleSchoolClick) : null,
+      columnsVisible
+        ? makeSchoolChartLayer(
+            positionedSchools,
+            heightOfSchool,
+            highlightedSchoolId,
+            handleSchoolClick,
+          ).clone({
+            getFillColor: metricModel.color,
+            updateTriggers: {
+              getElevation: [heightOfSchool],
+              getFillColor: [metricModel],
+            },
+          })
+        : null,
       makeFlatSchoolsLayer(
-        positionedSchools,
+        metricModel.specialEducation
+          ? positionedSchools.filter((s) => s.level !== "special")
+          : positionedSchools,
         highlightedSchoolId,
         handleSchoolClick,
-      ),
+      ).clone({
+        getFillColor: (s) => {
+          const c = metricModel.color(s);
+          return issueModel && selectedCode && s.regionCode !== selectedCode && s.regionCode !== compareCode ? [c[0],c[1],c[2],65] : c;
+        },
+        getLineColor: (s) => s.id === highlightedSchoolId ? [28,35,49,255] : emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0 ? [222,110,39,255] : [255,255,255,255],
+        getLineWidth: (s) => s.id === highlightedSchoolId || (emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0) ? 3 : 1.5,
+        getRadius:
+          schoolChart === "auto" &&
+          !densityVisible &&
+          (metricModel.kind === "density" || metricModel.proportional)
+            ? (s) =>
+                Math.max(
+                  5,
+                  18 *
+                    Math.sqrt(
+                      (metricModel.value(s) ?? 0) /
+                        Math.max(1, metricModel.maximum),
+                    ),
+                )
+            : 5,
+        radiusMaxPixels: 18,
+        updateTriggers: {
+          getFillColor: [metricModel, selectedCode, compareCode, issueModel],
+          getRadius: [metricModel, schoolChart, densityVisible],
+          getLineColor: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts],
+          getLineWidth: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts],
+        },
+      }),
+      metricModel.specialEducation
+        ? makeSpecialSchoolLayer(
+            positionedSchools,
+            metricModel,
+            handleSchoolClick,
+          )
+        : null,
     ];
     if (fontReady) {
       // Screen-space placement above resolves collisions before either text layer draws.
@@ -718,7 +948,11 @@ export default function DeckMap({
           triggerKey: indicatorId,
           transitionDuration,
         }).clone({
-          getPosition: (school) => [school.lng, school.lat, heightOfSchool(school)],
+          getPosition: (school) => [
+            school.lng,
+            school.lat,
+            heightOfSchool(school),
+          ],
           updateTriggers: { getPosition: [heightOfSchool] },
         }),
         makeRegionLabelLayer(visibleLabels.regions, {
@@ -737,6 +971,11 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
+    metricModel,
+    compareCode, emphasizeZero, schoolFacts,
+    densityVisible,
+    mobile,
+    schoolChart,
     columnsVisible,
     heightOfSchool,
     buildingLayer,
@@ -785,8 +1024,7 @@ export default function DeckMap({
   const handleAfterRender = useCallback(() => {
     if (!containerRef.current) return;
     const viewport = deckRef.current?.deck?.getViewports()[0] as
-      | WebMercatorViewport
-      | undefined;
+      WebMercatorViewport | undefined;
     if (viewport) {
       const key = [
         viewport.width,
@@ -796,7 +1034,10 @@ export default function DeckMap({
         viewport.zoom,
         viewport.pitch,
       ].join(",");
-      if (key !== lastLabelViewportKey.current && performance.now() - lastLabelUpdateTime.current >= 100) {
+      if (
+        key !== lastLabelViewportKey.current &&
+        performance.now() - lastLabelUpdateTime.current >= 100
+      ) {
         lastLabelUpdateTime.current = performance.now();
         if (labelUpdateTimer.current) clearTimeout(labelUpdateTimer.current);
         labelUpdateTimer.current = null;
@@ -805,7 +1046,10 @@ export default function DeckMap({
           setLabelViewport(viewport);
           setZoom(viewport.zoom);
         });
-      } else if (key !== lastLabelViewportKey.current && !labelUpdateTimer.current) {
+      } else if (
+        key !== lastLabelViewportKey.current &&
+        !labelUpdateTimer.current
+      ) {
         labelUpdateTimer.current = setTimeout(() => {
           labelUpdateTimer.current = null;
           deckRef.current?.deck?.redraw("label placement update");
@@ -851,7 +1095,7 @@ export default function DeckMap({
       className="relative h-full w-full bg-paper outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
       style={WIDGET_THEME_STYLE}
       tabIndex={0}
-      aria-label="전북 학교 위치 지도"
+      aria-label={`${ACTIVE_PROFILE.province.shortName} 학교 위치 지도`}
       onKeyDown={handleWrapperKeyDown}
       // 사용자 요구(2026-09-21): 지도 위 우클릭은 아무 조작도 아니므로(회전 제거)
       // 브라우저 컨텍스트 메뉴가 뜨지 않게 한다.
@@ -877,42 +1121,104 @@ export default function DeckMap({
           onAfterRender={handleAfterRender}
           onClick={handleDeckClick}
           onViewStateChange={handleViewStateChange}
+          onDeviceInitialized={(device) =>
+            setHeatmapSupported(supportsDensity(device))
+          }
           onError={handleDeckError}
           // Task A — DPR cap: `useDevicePixels` is an ABSOLUTE multiplier when
           // given a number (NOT relative to the device's own DPR) — passing
           // devicePixelRatio straight through supersamples on an already-high-DPR
           // screen. `Math.min(..., 1.5)` caps render resolution without ever
           // exceeding the device's native pixel ratio.
-          useDevicePixels={Math.min(window.devicePixelRatio || 1, mobile ? 1 : 1.5)}
+          useDevicePixels={Math.min(
+            window.devicePixelRatio || 1,
+            mobile ? 1 : 1.5,
+          )}
         />
       )}
+      <MetricLegend
+        metric={metricModel}
+        density={densityVisible}
+        schoolSelected={!!highlightedSchoolId}
+        densityUnavailable={
+          schoolChart === "auto" &&
+          metricModel.kind === "density" &&
+          zoom < 13 &&
+          !heatmapSupported
+        }
+      >
+        {schoolChart === "columns" && (
+          <div
+            data-testid="school-chart-legend"
+            className="max-w-full rounded border border-line bg-surface/95 px-3 py-2 text-xs text-ink-muted"
+          >
+            {scene === "flat" ? (
+              "원통 높이는 입체 현황판에서 표시됩니다"
+            ) : chartMetric ? (
+              <>
+                <p className="font-semibold text-ink">
+                  원통 높이 · {chartMetric.label}
+                </p>
+                {chartMetric.heightMode === "school-count" ? (
+                  <>
+                    <p>원통 1개 = 학교 1교 · 낮은 동일 높이</p>
+                    <p>집계 제외·자료 없음은 점으로 표시</p>
+                  </>
+                ) : (
+                  <>
+                    <p>
+                      0 → {chartValueText(chartMax, chartMetric.unit)} · {ACTIVE_PROFILE.province.shortName}
+                      전체 학교 기준
+                    </p>
+                    <p>높이는 값에 정비례 · 0·자료 없음은 점으로 표시</p>
+                  </>
+                )}
+              </>
+            ) : (
+              <p>이 지표는 학교별 높이 자료가 없어 점으로 표시합니다</p>
+            )}
+          </div>
+        )}
+      </MetricLegend>
       <MapOverlay
+        collapsible
         items={overlayItems}
         attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
       >
-      {schoolChart === "columns" && (
-        <div data-testid="school-chart-legend" className="max-w-full rounded border border-line bg-surface/95 px-3 py-2 text-xs text-ink-muted">
-          {scene === "flat" ? "원통 높이는 입체 현황판에서 표시됩니다" : chartMetric ? <>
-            <p className="font-semibold text-ink">원통 높이 · {chartMetric.label}</p>
-            {chartMetric.heightMode === "school-count" ? <>
-              <p>원통 1개 = 학교 1교 · 낮은 동일 높이</p>
-              <p>집계 제외·자료 없음은 점으로 표시</p>
-            </> : <>
-              <p>0 → {chartValueText(chartMax, chartMetric.unit)} · 전북 전체 학교 기준</p>
-              <p>높이는 값에 정비례 · 0·자료 없음은 점으로 표시</p>
-            </>}
-          </> : <p>이 지표는 학교별 높이 자료가 없어 점으로 표시합니다</p>}
-        </div>
-      )}
-      {scene === "city" && (
-        <div className="max-w-full rounded border border-line bg-surface/90 px-2 py-1 text-[10px] text-ink-muted" role="status">
-          {!buildingsVisible ? <p>건물은 더 확대하면 표시됩니다</p> : <>
-            <p>건물 © 국토교통부·브이월드 · 일부 높이는 층수로 추정</p>
-            {buildingFetchedAt && <p>건물 조회: {new Date(buildingFetchedAt).toLocaleString("ko-KR")}</p>}
-            {buildingErrors.size > 0 && <p>일부 건물 정보를 불러오지 못했습니다 <button className="pointer-events-auto underline" onClick={() => { setBuildingErrors(new Set()); setBuildingRetry((n) => n + 1); }}>재시도</button></p>}
-          </>}
-        </div>
-      )}
+        {scene === "city" && (
+          <div
+            className="max-w-full rounded border border-line bg-surface/90 px-2 py-1 text-[10px] text-ink-muted"
+            role="status"
+          >
+            {!buildingsVisible ? (
+              <p>건물은 더 확대하면 표시됩니다</p>
+            ) : (
+              <>
+                <p>건물 © 국토교통부·브이월드 · 일부 높이는 층수로 추정</p>
+                {buildingFetchedAt && (
+                  <p>
+                    건물 조회:{" "}
+                    {new Date(buildingFetchedAt).toLocaleString("ko-KR")}
+                  </p>
+                )}
+                {buildingErrors.size > 0 && (
+                  <p>
+                    일부 건물 정보를 불러오지 못했습니다{" "}
+                    <button
+                      className="pointer-events-auto underline"
+                      onClick={() => {
+                        setBuildingErrors(new Set());
+                        setBuildingRetry((n) => n + 1);
+                      }}
+                    >
+                      재시도
+                    </button>
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </MapOverlay>
       {contextLost && (
         <div
@@ -922,7 +1228,12 @@ export default function DeckMap({
           <p>그래픽 컨텍스트가 끊겼습니다</p>
           <button
             type="button"
-            onClick={() => { setScene("flat"); const url = new URL(window.location.href); url.searchParams.set("scene", "flat"); window.location.assign(url); }}
+            onClick={() => {
+              setScene("flat");
+              const url = new URL(window.location.href);
+              url.searchParams.set("scene", "flat");
+              window.location.assign(url);
+            }}
             className="rounded bg-ink/5 px-3 py-1.5 hover:bg-ink/15"
           >
             평면으로 다시 열기

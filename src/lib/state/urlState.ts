@@ -42,14 +42,23 @@ export const mapQueryParsers = {
   view: parseAsStringLiteral(MAP_VIEWS).withDefault("schools"),
   issue: parseAsStringLiteral(ISSUE_IDS),
   issueMetric: parseAsStringLiteral(ISSUE_METRICS),
+  compareRegion: regionParser,
+  issueLevel: parseAsStringLiteral(["elem", "mid", "high"] as const).withDefault("elem"),
+  zeroEntrants: parseAsStringLiteral(["on", "off"] as const).withDefault("off"),
 };
 
 export interface MapQuery {
   view: MapPanelView;
+  compareRegion: RegionCode | null;
+  issueLevel: "elem" | "mid" | "high";
+  zeroEntrants: boolean;
+  setCompareRegion: (code: RegionCode | null) => void;
+  setIssueLevel: (level: "elem" | "mid" | "high") => void;
+  setZeroEntrants: (enabled: boolean) => void;
   issueId: string | null;
   issueMetric: string | null;
   setView: (view: MapPanelView) => void;
-  setIssue: (id: string | null) => void;
+  setIssue: (id: string | null, metric?: string) => void;
   setIssueMetric: (metric: string) => void;
   indicatorId: string;
   regionCode: RegionCode | null;
@@ -74,7 +83,7 @@ export interface MapQuery {
  * drilling of the setters is needed.
  */
 export function useMapQuery(): MapQuery {
-  const [{ indicator, region, view, issue, issueMetric }, setQuery] = useQueryStates(mapQueryParsers, {
+  const [{ indicator, region, view, issue, issueMetric, compareRegion, issueLevel, zeroEntrants }, setQuery] = useQueryStates(mapQueryParsers, {
     history: "replace",
     shallow: true,
   });
@@ -82,14 +91,20 @@ export function useMapQuery(): MapQuery {
   const definition = issueById(issue);
   return {
     view,
+    compareRegion: region && compareRegion !== region ? compareRegion : null,
+    issueLevel,
+    zeroEntrants: zeroEntrants === "on",
+    setCompareRegion(code) { void setQuery({ compareRegion: code === region ? null : code }); },
+    setIssueLevel(level) { void setQuery({ issueLevel: level }); },
+    setZeroEntrants(enabled) { void setQuery({ zeroEntrants: enabled ? "on" : "off" }); },
     issueId: definition?.id ?? null,
     issueMetric: definition ? resolveIssueMetric(definition, issueMetric) : null,
     setView(next) {
-      void setQuery({ view: next, issue: null, issueMetric: null }, { history: "push" });
+      void setQuery({ view: next }, { history: "push" });
     },
-    setIssue(id) {
+    setIssue(id, metric) {
       const next = issueById(id);
-      void setQuery({ view: "issues", issue: next?.id ?? null, issueMetric: next?.metrics[0] ?? null }, { history: "push" });
+      void setQuery({ view: "issues", issue: next?.id ?? null, issueMetric: next ? resolveIssueMetric(next, metric ?? null) : null }, { history: "push" });
     },
     setIssueMetric(metric) {
       if (definition) void setQuery({ issueMetric: resolveIssueMetric(definition, metric) });
@@ -97,7 +112,7 @@ export function useMapQuery(): MapQuery {
     indicatorId: indicator,
     regionCode: region,
     setIndicator(id) {
-      void setQuery({ indicator: id });
+      void setQuery({ indicator: id, issue: null, issueMetric: null, compareRegion: null });
     },
     setRegion(code) {
       // History semantics (fix round 1, review finding #2): only a
@@ -111,7 +126,7 @@ export function useMapQuery(): MapQuery {
       // destructure above, so this always compares against the selection
       // being replaced, not a stale snapshot.
       const history = code === null || region === null ? "push" : "replace";
-      void setQuery({ region: code }, { history });
+      void setQuery({ region: code, ...(!code || code === compareRegion ? { compareRegion: null } : {}) }, { history });
     },
   };
 }

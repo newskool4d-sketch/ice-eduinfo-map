@@ -1,13 +1,15 @@
 "use client";
 
 import type { DataBundle } from "@/lib/data/types";
-import { regionName, type RegionCode } from "@/lib/geo/regions";
+import { PROVINCE_CODE, regionName, type RegionCode } from "@/lib/geo/regions";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 import {
   buildIssueModel,
   formatIssueValue,
   issueValue,
 } from "@/lib/issues/model";
 import {
+  EDUCATION_ISSUES,
   METRIC_LABELS,
   POLICY_SOURCE,
   PUBLISHED_ISSUES,
@@ -17,6 +19,8 @@ import type { EducationIssuesFile, IssueMapModel } from "@/lib/issues/types";
 import type { School } from "@/lib/schools/types";
 import { SCHOOL_LEVEL_LABELS } from "@/lib/schoolVisuals";
 import Sparkline from "@/components/ui/Sparkline";
+import { useMapQuery } from "@/lib/state/urlState";
+import { IssueComparison, IssueDetails } from "./IssueDetails";
 import { SchoolDetail } from "./SchoolExplorer";
 
 const button =
@@ -88,6 +92,7 @@ export default function IssueExplorer({
   onSearch: (code: RegionCode) => void;
   onStatistics: (code: RegionCode) => void;
 }) {
+  const query = useMapQuery();
   const definition = issueById(issueId);
   if (!definition || !model)
     return (
@@ -123,16 +128,21 @@ export default function IssueExplorer({
               정책 연계 · {issue.policy}
             </span>
             <span className="mt-1 block text-xs text-ink-muted">
-              교육통계 {data.statsReferenceDate}
-              {index === 0
+              {issue.id === "closed-assets" ? `폐교재산 ${bundle.closedSchools.referenceDate}` : `교육통계 ${data.statsReferenceDate}`}
+              {issue.id === "regional-sustainability"
                 ? ` · 지정 현황 확인 ${data.sources[0].checkedAt}`
                 : ""}
             </span>
+            <span className="mt-2 block text-sm font-semibold">{buildIssueModel(bundle, data, issue, issue.metrics[0], query.issueLevel).provinceText}</span>
             <span className="mt-3 block text-xs font-semibold text-accent-text">
               지도에서 살펴보기 →
             </span>
           </button>
         ))}
+        <details className="rounded-xl border border-line p-3 text-xs">
+          <summary className="min-h-10 cursor-pointer font-semibold">확장 예정 질문</summary>
+          {EDUCATION_ISSUES.filter(i => i.status === "planned").map(i => <div key={i.id} className="space-y-1 border-t border-line py-3"><p className="font-semibold">{i.question}</p><p className="text-ink-muted">필요한 자료: {i.dataNeeded}</p></div>)}
+        </details>
         <p className="text-xs leading-relaxed text-ink-muted">
           질문과 지표의 연결은 이 앱의 탐색 설계입니다. 수치만으로 지역의
           위험이나 정책의 성과를 평가하지 않습니다.
@@ -148,7 +158,7 @@ export default function IssueExplorer({
       </div>
     );
   const current = region ? model.regions.find((r) => r.code === region) : null;
-  const scope = region ?? "52000";
+  const scope = region ?? PROVINCE_CODE;
   const scopeSchools = bundle.schools.schools.filter(
     (s) => !region || s.regionCode === region,
   );
@@ -157,7 +167,7 @@ export default function IssueExplorer({
       .filter((r) => r.regionCode === scope)
       .sort((a, b) => a.year - b.year) ?? [];
   const relatedModels = definition.metrics.map((metric) =>
-    buildIssueModel(bundle, data, definition, metric),
+    buildIssueModel(bundle, data, definition, metric, query.issueLevel),
   );
   const located = schools.filter(
     (s) => s.lat !== null && s.lng !== null,
@@ -179,6 +189,11 @@ export default function IssueExplorer({
           {definition.question}
         </h2>
       </div>
+      {definition.id === "school-size" && <label className="block text-xs font-semibold">학교급
+        <select aria-label="규모 비교 학교급" className="ml-3 min-h-11 rounded border border-line bg-surface px-3" value={query.issueLevel} onChange={e => query.setIssueLevel(e.target.value as "elem" | "mid" | "high")}>
+          <option value="elem">초등학교</option><option value="mid">중학교</option><option value="high">고등학교</option>
+        </select>
+      </label>}
       <fieldset>
         <legend className="mb-2 text-xs font-medium">지도에 표시할 지표</legend>
         <div className="flex flex-wrap gap-1.5">
@@ -206,7 +221,11 @@ export default function IssueExplorer({
         </p>
         <p className="mt-2 text-xs text-ink-muted">{model.date}</p>
       </div>
+      <div className="rounded-xl bg-accent-soft p-3 text-sm leading-relaxed"><strong>지도 읽는 법</strong><p className="mt-1">{model.readingGuide}</p></div>
+      {model.metric === "decline-small" && <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={query.zeroEntrants} onChange={e => query.setZeroEntrants(e.target.checked)} />신입생 0명 학교 강조</label>}
       <p className="text-xs leading-relaxed text-ink-muted">{model.note}</p>
+      <IssueComparison bundle={bundle} data={data} model={model} region={region} compare={query.compareRegion} onCompare={query.setCompareRegion} />
+      <IssueDetails bundle={bundle} data={data} model={model} region={region} />
       <section aria-label="교육문제 시군 비교">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-sm font-semibold">14개 시군 비교</h3>
@@ -247,7 +266,7 @@ export default function IssueExplorer({
         aria-label="교육문제 지역 상세"
       >
         <h3 className="font-semibold">
-          {region ? regionName(region) : "전북 전체"} 함께 살펴보기
+          {region ? regionName(region) : `${ACTIVE_PROFILE.province.shortName} 전체`} 함께 살펴보기
         </h3>
         <dl className="space-y-2 text-xs">
           {relatedModels.map((related) => (
@@ -258,7 +277,7 @@ export default function IssueExplorer({
                   ? related.provinceText
                   : formatIssueValue(
                       related.metric,
-                      issueValue(bundle, data, related.metric, scope),
+                      issueValue(bundle, data, related.metric, scope, query.issueLevel),
                     )}
               </dd>
             </div>
@@ -293,7 +312,7 @@ export default function IssueExplorer({
               ))}
             </dl>
           </>
-        ) : (
+        ) : definition.id === "special-education" ? (
           <div className="rounded-lg bg-paper p-3 text-xs leading-relaxed">
             <p className="font-semibold">특수학교 별도 현황</p>
             <p className="mt-1">
@@ -307,12 +326,11 @@ export default function IssueExplorer({
                 : `${special.reduce((sum, s) => sum + (s.classes ?? 0), 0)}학급`}
             </p>
             <p className="mt-1 text-ink-muted">
-              일반학교 특수학급과 구분한 수치입니다. 특수학교는 현재 위치 자료가
-              없어 목록과 시군별 집계로 확인합니다.
+              일반학교 특수학급과 구분한 수치입니다. 특수학교는 지도에서 별도 기호로 표시합니다.
             </p>
           </div>
-        )}
-        {region && (
+        ) : null}
+        {region && definition.id !== "closed-assets" && (
           <button className={button} onClick={() => onSearch(region)}>
             이 지역 학교 검색 →
           </button>
@@ -325,7 +343,7 @@ export default function IssueExplorer({
           onStatistics={onStatistics}
         />
       )}
-      <section
+      {definition.id !== "closed-assets" && <section
         aria-label="교육문제 관련 학교"
         className="border-t border-line pt-4"
       >
@@ -382,7 +400,8 @@ export default function IssueExplorer({
             );
           })}
         </ul>
-      </section>
+      </section>}
+      {definition.nextQuestion && <section className="rounded-xl bg-paper p-3 text-xs leading-relaxed"><h3 className="font-semibold">다음에 확인할 질문</h3><p className="mt-2">{definition.nextQuestion}</p></section>}
       <details className="border-t border-line pt-3 text-xs leading-relaxed">
         <summary className="min-h-10 cursor-pointer font-semibold">
           정책 근거 · 지표 정의 · 출처
@@ -405,7 +424,7 @@ export default function IssueExplorer({
             평가가 아닙니다.
           </p>
           <p>{model.note}</p>
-          {data.sources.map((source) => (
+          {model.sources.map((source) => (
             <p key={source.url}>
               <a
                 className="underline"

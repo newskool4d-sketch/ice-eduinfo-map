@@ -23,12 +23,13 @@ import {
   type School,
 } from "./lib/schools";
 import { KESS_STATS_SOURCE, LOCATION_CSV_PREFIX, LOCATION_SOURCE, referenceDateFromFilename } from "./sources";
+import { ACTIVE_PROFILE } from "../../src/lib/profiles";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const RAW_DIR = path.join(ROOT, "data/raw");
 const INTERIM_DIR = path.join(ROOT, "data/interim");
 const PUBLIC_DATA_DIR = path.join(ROOT, "public/data");
-const ALIASES_PATH = path.join(ROOT, "data/manual/school-aliases.json");
+const ALIASES_PATH = path.join(ROOT, ACTIVE_PROFILE.files.manualDir, "school-aliases.json");
 const KESS_INTERIM_PATH = path.join(INTERIM_DIR, "kess-2026.json");
 
 /** Scans data/raw/ for a file matching `LOCATION_CSV_PREFIX*.csv` — per the 날짜기준 규칙, the pipeline never hardcodes the date suffix, and fails loudly (naming the exact expected pattern) when no such file exists. */
@@ -122,7 +123,7 @@ async function main(): Promise<void> {
   const locationMissingReason = `특수학교는 위치 표준데이터(${locationReferenceDate})에 없음`;
 
   const supplementalLocations = JSON.parse(
-    readFileSync(path.join(ROOT, "data/manual/special-school-locations.json"), "utf8"),
+    readFileSync(path.join(ROOT, ACTIVE_PROFILE.files.manualDir, "special-school-locations.json"), "utf8"),
   ) as VerifiedSchoolLocation[];
   const schools: School[] = supplementSchoolLocations(
     [

@@ -32,7 +32,7 @@ const TILE_SOURCE: Record<
   { layer: string; ext: string; desaturate: number }
 > = {
   satellite: { layer: "Satellite", ext: "jpeg", desaturate: 0 },
-  base: { layer: "Base", ext: "png", desaturate: 0.8 },
+  base: { layer: "Base", ext: "png", desaturate: 1 },
 };
 
 /**
@@ -152,7 +152,7 @@ export function makeBasemapLayer(key: string, tiles: BasemapTiles) {
  * wash to read as a bright printed map; the already-light `Base` map only
  * needs a touch so its remaining color doesn't compete with the blocks.
  */
-const WASH_ALPHA: Record<BasemapTiles, number> = { satellite: 110, base: 60 };
+const WASH_ALPHA: Record<BasemapTiles, number> = { satellite: 110, base: 100 };
 
 /** One datum: a single closed ring (deck.gl `Position[]`, i.e. `[lng, lat]` tuples). */
 type WashDatum = { polygon: [number, number][] };

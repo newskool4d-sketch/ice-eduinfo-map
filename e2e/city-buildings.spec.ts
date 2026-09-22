@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { openPanel, openMapSettings, test, expect } from "./fixtures";
 import type { WebMercatorViewport } from "@deck.gl/core";
 import type { Page } from "@playwright/test";
 
@@ -23,6 +23,8 @@ test("city tiles are gated, reused, non-pickable and recover from failures", asy
     }],metadata:{complete:true,fetchedAt:"2026-09-22T00:00:00Z",source:"test"}}});
   });
   await page.goto("/?scene=city");
+  await openPanel(page);
+  await openMapSettings(page);
   await expect(page.locator("#school-map")).toHaveAttribute("data-map-ready","true");
   await expect(page.getByText("건물은 더 확대하면 표시됩니다")).toBeVisible();
   expect(requests).toBe(0);
@@ -62,7 +64,7 @@ test("city tiles are gated, reused, non-pickable and recover from failures", asy
   await expect.poll(() => page.evaluate(() => {
     const deck = window.__jbmap!.deck as unknown as {layerManager:{getLayers:()=>{id:string,props:{getFillColor?:number[]}}[]}};
     const volumes = deck.layerManager.getLayers().filter(l=>l.id.endsWith("-volume"));
-    return volumes.length > 0 && volumes.every(l=>l.props.getFillColor?.[3]===64);
+    return volumes.length > 0 && volumes.every(l=>l.props.getFillColor?.[3]===38);
   })).toBe(true);
   expect(requests).toBe(loaded);
   fail=true;
@@ -85,6 +87,7 @@ test("mobile gates at 16, caps pitch, and remembers explicit flat mode", async (
   let requests=0;
   await page.route("**/api/buildings/**",(route)=>{ requests++; return route.fulfill({json:{type:"FeatureCollection",features:[],metadata:{complete:true,fetchedAt:"2026-09-22T00:00:00Z"}}}); });
   await page.goto("/?scene=city");
+  await openMapSettings(page);
   await expect(page.locator("#school-map")).toHaveAttribute("data-map-ready","true");
   await move(page,15.9);
   await page.waitForTimeout(300);
@@ -98,7 +101,9 @@ test("mobile gates at 16, caps pitch, and remembers explicit flat mode", async (
   await page.getByRole("radio",{name:"평면",exact:true}).click();
   await expect(page).toHaveURL(/scene=flat/);
   await page.reload();
+  await openMapSettings(page);
   await expect(page.getByRole("radio",{name:"평면",exact:true})).toHaveAttribute("aria-checked","true");
   await page.goto("/");
+  await openMapSettings(page);
   await expect(page.getByRole("radio",{name:"평면",exact:true})).toHaveAttribute("aria-checked","true");
 });

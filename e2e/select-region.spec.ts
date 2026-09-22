@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { docShot, expect, test } from "./fixtures";
+import { openPanel, docShot, expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 async function waitForMapReady(page: Page) {
@@ -66,6 +66,7 @@ test.describe("시군 선택", () => {
     page.on("pageerror", (error) => consoleErrors.push(error.message));
 
     await page.goto("/");
+  await openPanel(page);
     await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
 
@@ -120,6 +121,7 @@ test.describe("시군 선택", () => {
     // selection) — a single Back undoes the whole cycle at once, landing on
     // "nothing selected," not one arrow-step back.
     await page.goto("/");
+  await openPanel(page);
     await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
 
@@ -145,6 +147,7 @@ test.describe("시군 선택", () => {
 
   test("캔버스에서 전주시를 직접 클릭해도 선택된다", async ({ page }) => {
     await page.goto("/");
+  await openPanel(page);
     await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
 
@@ -272,13 +275,14 @@ test.describe("시군 선택", () => {
   // ONLY the menu — the region selection (and its URL param) must survive.
   test("지표 메뉴가 열린 상태에서 Esc → 메뉴만 닫히고 시군 선택(URL의 region)은 유지된다", async ({ page }) => {
     await page.goto("/?region=52110");
+  await openPanel(page);
     await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
 
-    await page.getByRole("button", { name: /^조건별 맵/ }).click();
-    const dialog = page.getByRole("dialog", { name: "조건별 맵 선택" });
+    await page.getByRole("button", { name: /^전체 지표/ }).click();
+    const dialog = page.getByRole("dialog", { name: "전체 지표 선택" });
     await expect(dialog).toBeVisible();
 
     await page.keyboard.press("Escape");

@@ -27,7 +27,7 @@ test("폐교 지표: /?indicator=closed_schools 진입 → 범례 라벨 → 시
   // Legend's own plain "기준일 {date}" span — exact match, since the
   // Footer's 폐교재산 source line also contains "기준일 2026-07-16" as a
   // substring (with "(게시 2026-07-20)" appended).
-  await expect(page.getByText("기준일 2026-07-16", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("metric-legend").getByText("기준 2026-07-16", { exact: true })).toBeVisible();
 
   await expect(page.getByRole("heading", { name: "군산시" })).toBeVisible();
 

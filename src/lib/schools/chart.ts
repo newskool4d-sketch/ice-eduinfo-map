@@ -13,6 +13,8 @@ const ratio = (a: number | null, b: number | null) => a !== null && b !== null &
 /** Only genuine per-school values can be extruded; regional rates are never assigned to schools. */
 export function schoolChartMetric(indicator: string, issueMetric?: string, facts?: EducationIssuesFile | null): SchoolChartMetric | null {
   if (issueMetric) {
+    if (issueMetric === "school-size") return { label: "학생수", unit: "명", value: s => s.students };
+    if (issueMetric === "decline-small") return { label: "작은학교 학생수", unit: "명", value: s => s.students };
     if (issueMetric === "special-schools") return { label: "특수학교 수", unit: "교", heightMode: "school-count", value: s => s.level === "special" && !s.branch ? 1 : 0 };
     if (issueMetric === "special-classes") indicator = "special_classes";
     else if (issueMetric === "special-students") indicator = "special_students";
@@ -28,8 +30,8 @@ export function schoolChartMetric(indicator: string, issueMetric?: string, facts
     case "schools_total": return { label: "학교수", unit: "교", heightMode: "school-count", value: s => s.branch ? 0 : 1 };
     case "small_schools": return { label: "소규모학교 수", unit: "교", heightMode: "school-count", value: s => s.branch ? 0 : s.students === null ? null : s.small ? 1 : 0 };
     case "zero_entrant_schools": return facts ? { label: "신입생 0명 학교수", unit: "교", heightMode: "school-count", value: s => s.branch ? 0 : facts.schools[s.id]?.entrants == null ? null : facts.schools[s.id].entrants === 0 ? 1 : 0 } : null;
-    case "special_classes": return facts ? { label: "일반학교 특수학급수", unit: "학급", value: s => s.level === "special" ? null : facts.schools[s.id]?.specialClasses ?? null } : null;
-    case "special_students": return facts ? { label: "일반학교 특수학급 학생수", unit: "명", value: s => s.level === "special" ? null : facts.schools[s.id]?.specialStudents ?? null } : null;
+    case "special_classes": return facts ? { label: issueMetric ? "일반학교 특수학급수" : "특수학급수 · 특수학교 포함", unit: "학급", value: s => issueMetric && s.level === "special" ? null : facts.schools[s.id]?.specialClasses ?? null } : null;
+    case "special_students": return facts ? { label: issueMetric ? "일반학교 특수학급 학생수" : "특수학급 학생수 · 특수학교 포함", unit: "명", value: s => issueMetric && s.level === "special" ? null : facts.schools[s.id]?.specialStudents ?? null } : null;
     default: return null;
   }
 }

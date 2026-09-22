@@ -10,6 +10,7 @@
  */
 import { formatDecimal, formatInt, formatPercent } from "./format";
 import { isRegionCode, REGION_CODES, regionName } from "./geo/regions";
+import { ACTIVE_PROFILE } from "./profiles";
 import { SCHOOL_LEVEL_LABELS } from "./schoolVisuals";
 import type { School } from "./schools/types";
 import { rank, shareOfProvince, vsProvince } from "./stats";
@@ -41,7 +42,7 @@ export function formatDelta(def: IndicatorDef, delta: number): string {
 }
 
 /**
- * "42.4%" — the count-kind "전북 대비 비중" figure (시군값 / 52000값 × 100,
+ * "42.4%" — the count-kind "${ACTIVE_PROFILE.province.shortName} 대비 비중" figure (시군값 / 52000값 × 100,
  * 소수 1자리). No sign, unlike formatDelta: a share is always >= 0, not a
  * directional difference (Task 5, Section D).
  */
@@ -59,7 +60,7 @@ export interface LinesOfParams {
 /**
  * Builds a `(code) => string[]` tooltip-line function for one indicator's
  * currently loaded value map: [name, "label: value 단위", "{N}개 시군 중
- * n위", "전북 평균 대비 ±x" (ratio-kind) 또는 "전북 대비 비중 x%" (count-kind)]
+ * n위", "${ACTIVE_PROFILE.province.shortName} 평균 대비 ±x" (ratio-kind) 또는 "${ACTIVE_PROFILE.province.shortName} 대비 비중 x%" (count-kind)]
  * — or just [name, "label: 자료 없음"] (2 lines) when the region has no data
  * for this indicator.
  *
@@ -79,20 +80,20 @@ export function makeLinesOf({ def, label, map }: LinesOfParams): (code: string) 
     const r = ranks.get(code);
     const rankLine = r !== undefined ? `${REGION_CODES.length}개 시군 중 ${r}위` : "순위 없음";
     // count-kind indicators' 52000 row is a province-wide *total* (Σ), not
-    // an average — "전북 평균 대비 −95,514명" reads as if 52000 were a mean,
-    // which misreports the number. count-kind instead shows "전북 대비 비중"
-    // (시군값 / 52000값 × 100): ratio-kind keeps the original "전북 평균 대비
+    // an average — "${ACTIVE_PROFILE.province.shortName} 평균 대비 −95,514명" reads as if 52000 were a mean,
+    // which misreports the number. count-kind instead shows "${ACTIVE_PROFILE.province.shortName} 대비 비중"
+    // (시군값 / 52000값 × 100): ratio-kind keeps the original "${ACTIVE_PROFILE.province.shortName} 평균 대비
     // ±x" subtraction, which IS a true Σ/Σ average (fix-round-2 ruling, Task
     // 5 Section D — see the orchestrator's screenshot review note).
     const deltaLine =
       def.kind === "count"
         ? (() => {
             const share = shareOfProvince(map, code);
-            return share === null ? "전북 대비 비중: 자료 없음" : `전북 대비 비중 ${formatShare(share)}`;
+            return share === null ? `${ACTIVE_PROFILE.province.shortName} 대비 비중: 자료 없음` : `${ACTIVE_PROFILE.province.shortName} 대비 비중 ${formatShare(share)}`;
           })()
         : (() => {
             const delta = vsProvince(map, code);
-            return delta === null ? "전북 평균 대비: 자료 없음" : `전북 평균 대비 ${formatDelta(def, delta)}`;
+            return delta === null ? `${ACTIVE_PROFILE.province.shortName} 평균 대비: 자료 없음` : `${ACTIVE_PROFILE.province.shortName} 평균 대비 ${formatDelta(def, delta)}`;
           })();
     return [name, valueLine, rankLine, deltaLine];
   };

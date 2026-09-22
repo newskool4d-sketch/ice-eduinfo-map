@@ -1,4 +1,4 @@
-import { expect, test, docShot } from "./fixtures";
+import { openPanel, openMapSettings, expect, test, docShot } from "./fixtures";
 import type { Page } from "@playwright/test";
 const count = (page: Page) =>
   page.evaluate(() => {
@@ -12,7 +12,9 @@ const count = (page: Page) =>
 test("검색·학교급·시군 필터가 목록과 지도에 함께 적용된다", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?schoolChart=dots");
+  await openPanel(page);
+  await openMapSettings(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   await expect(page.getByTestId("school-result-count")).toHaveText(
     "검색 결과 753개 · 지도 표시 가능 753개",
@@ -46,7 +48,9 @@ test("학교 선택은 지역 필터를 바꾸지 않고 확대하며 이름과 
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await page.goto("/");
+  await page.goto("/?schoolChart=dots");
+  await openPanel(page);
+  await openMapSettings(page);
   await page
     .getByRole("searchbox", { name: "학교명 검색" })
     .fill("전주초등학교");
@@ -114,7 +118,9 @@ test("학교 선택은 지역 필터를 바꾸지 않고 확대하며 이름과 
 });
 
 test("특수학교 11곳은 공식 좌표로 표시되고 선택 시 확대된다", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/?schoolChart=dots");
+  await openPanel(page);
+  await openMapSettings(page);
   await page
     .getByRole("group", { name: "학교급 필터" })
     .getByRole("button", { name: "특수", exact: true })
@@ -152,7 +158,9 @@ test("좌표가 없는 자료의 검색·상세 조회 대체 경로를 유지�
     }
     await route.fulfill({ json: data });
   });
-  await page.goto("/");
+  await page.goto("/?schoolChart=dots");
+  await openPanel(page);
+  await openMapSettings(page);
   await page.getByRole("group", { name: "학교급 필터" }).getByRole("button", { name: "특수", exact: true }).click();
   await expect(page.getByTestId("school-result-count")).toHaveText("검색 결과 11개 · 지도 표시 가능 0개");
   await page.locator('[data-testid^="school-row-"]').first().click();

@@ -91,3 +91,28 @@ describe("useMapQuery().setRegion history mode (fix round 1, review finding #2)"
     expect(histories).toEqual(["push", "replace", "push"]);
   });
 });
+
+function MetricHarness() {
+  const query = useMapQuery();
+  return <>
+    <span data-testid="active-issue">{query.issueId}:{query.issueMetric}</span>
+    <button onClick={() => query.setView("statistics")}>statistics</button>
+    <button onClick={() => query.setIndicator("teachers_total")}>teachers</button>
+    <button onClick={() => query.setIssue("special-education", "special-students")}>special-students</button>
+  </>;
+}
+
+it("panel changes preserve the selected issue; selecting an indicator clears it atomically", async () => {
+  const user = userEvent.setup();
+  const onUrlUpdate = vi.fn();
+  render(<MetricHarness />, {wrapper:withNuqsTestingAdapter({searchParams:"?issue=special-education&issueMetric=special-classes&view=issues",onUrlUpdate,hasMemory:true})});
+  await user.click(screen.getByText("statistics"));
+  expect(screen.getByTestId("active-issue")).toHaveTextContent("special-education:special-classes");
+  await user.click(screen.getByText("special-students"));
+  expect(screen.getByTestId("active-issue")).toHaveTextContent("special-education:special-students");
+  await user.click(screen.getByText("teachers"));
+  const params = onUrlUpdate.mock.calls.at(-1)?.[0].searchParams;
+  expect(params.get("indicator")).toBe("teachers_total");
+  expect(params.get("issue")).toBeNull();
+  expect(params.get("issueMetric")).toBeNull();
+});

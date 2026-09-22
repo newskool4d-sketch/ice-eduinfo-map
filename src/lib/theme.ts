@@ -4,11 +4,11 @@
  * import 하지 않고 스펙의 RGB 리터럴을 쓴다(레이어 테스트가 리터럴을 고정).
  */
 export const THEME = {
-  paper: "#f5f2eb",
+  paper: "#f6f7f8",
   surface: "#ffffff",
   ink: "#1c2331",
   inkMuted: "#5b6472",
-  line: "#e1dbd0",
+  line: "#dce2e7",
   accent: "#d9572b",
   accentSoft: "#fbe9df",
   positive: "#2f8f7a",

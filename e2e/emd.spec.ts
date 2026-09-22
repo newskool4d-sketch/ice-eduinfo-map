@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { openMapSettings, expect, test } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 // Flake mitigation: local 5-worker runs can hit CDP "session closed" on page.reload() here.
@@ -55,6 +55,7 @@ test.describe("읍면동 경계", () => {
     page.on("pageerror", (error) => consoleErrors.push(error.message));
 
     await page.goto("/?region=52110");
+  await openMapSettings(page);
     await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
@@ -81,6 +82,7 @@ test.describe("읍면동 경계", () => {
 
     // Persisted: a fresh page load still reads OFF back from localStorage.
     await page.reload();
+  await openMapSettings(page);
     await waitForMapReady(page);
     await expect(page.getByRole("button", { name: "읍면동 경계" })).toHaveAttribute("aria-pressed", "false");
     await expect.poll(() => readEmdLayerDataLength(page)).toBeNull();
@@ -100,7 +102,8 @@ test.describe("읍면동 경계", () => {
     });
     page.on("pageerror", (error) => consoleErrors.push(error.message));
 
-    await page.goto("/"); // no ?region= — nothing selected
+    await page.goto("/");
+  await openMapSettings(page); // no ?region= — nothing selected
     await waitForMapReady(page);
 
     await expect(page.getByRole("button", { name: "읍면동 경계" })).toHaveAttribute("aria-pressed", "true");

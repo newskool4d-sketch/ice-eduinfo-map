@@ -50,6 +50,7 @@ export interface MapOverlayProps {
    * segmented radiogroup, all without changing this shape.
    */
   items: MapOverlayItem[];
+  collapsible?: boolean;
   /**
    * Task C — an optional small caption rendered below the button row (the
    * VWorld basemap tile source attribution, shown only while the basemap is
@@ -76,35 +77,54 @@ export interface MapOverlayProps {
  * child, so in fallback mode (DeckMap not rendered at all) this is
  * automatically absent too — no separate fallback-mode check needed here.
  */
-export default function MapOverlay({ items, attribution, children }: MapOverlayProps) {
+export default function MapOverlay({
+  items,
+  attribution,
+  children,
+  collapsible = false,
+}: MapOverlayProps) {
   if (items.length === 0 && !attribution && !children) return null;
 
   return (
     <div className="pointer-events-none absolute right-3 top-16 lg:top-3 z-10 flex max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5">
-      {items.length > 0 && (
-        <div className="flex max-w-[250px] sm:max-w-[calc(100vw-24px)] flex-wrap justify-end gap-1.5">
-          {items.map((item) =>
-            item.kind === "segmented" ? (
-              <SegmentedRadioGroup key={item.id} item={item} />
-            ) : (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={item.pressed}
-                title={item.title}
-                onClick={item.onToggle}
-                className={`pointer-events-auto rounded min-h-11 px-2.5 py-1 text-xs backdrop-blur-sm transition-colors ${
-                  item.pressed
-                    ? "border border-accent/40 bg-accent-soft font-semibold text-ink shadow-sm"
-                    : "border border-line bg-surface/85 text-ink-muted shadow-sm hover:bg-surface"
-                }`}
-              >
-                {item.label}
-              </button>
-            ),
-          )}
-        </div>
-      )}
+      <details
+        open={collapsible ? undefined : true}
+        className="pointer-events-auto max-w-full"
+      >
+        <summary
+          className={
+            collapsible
+              ? "ml-auto w-fit cursor-pointer rounded-lg border border-line bg-surface/95 px-3 py-2.5 text-xs shadow-sm"
+              : "hidden"
+          }
+        >
+          지도 설정
+        </summary>
+        {items.length > 0 && (
+          <div className="flex max-w-[250px] sm:max-w-[calc(100vw-24px)] flex-wrap justify-end gap-1.5">
+            {items.map((item) =>
+              item.kind === "segmented" ? (
+                <SegmentedRadioGroup key={item.id} item={item} />
+              ) : (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={item.pressed}
+                  title={item.title}
+                  onClick={item.onToggle}
+                  className={`pointer-events-auto rounded min-h-11 px-2.5 py-1 text-xs backdrop-blur-sm transition-colors ${
+                    item.pressed
+                      ? "border border-accent/40 bg-accent-soft font-semibold text-ink shadow-sm"
+                      : "border border-line bg-surface/85 text-ink-muted shadow-sm hover:bg-surface"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ),
+            )}
+          </div>
+        )}
+      </details>
       {attribution && (
         <div
           data-testid="basemap-attribution"
@@ -140,7 +160,9 @@ export default function MapOverlay({ items, attribution, children }: MapOverlayP
  */
 function SegmentedRadioGroup({ item }: { item: MapOverlaySegmentedItem }) {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const checkedIndex = item.options.findIndex((opt) => opt.value === item.value);
+  const checkedIndex = item.options.findIndex(
+    (opt) => opt.value === item.value,
+  );
   const tabStopIndex = checkedIndex === -1 ? 0 : checkedIndex;
 
   const moveTo = (index: number) => {
@@ -157,7 +179,9 @@ function SegmentedRadioGroup({ item }: { item: MapOverlaySegmentedItem }) {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     // Move relative to the FOCUSED radio (WAI-ARIA), falling back to the
     // checked one when focus is not on a radio.
-    const focusedIndex = buttonRefs.current.indexOf(document.activeElement as HTMLButtonElement | null);
+    const focusedIndex = buttonRefs.current.indexOf(
+      document.activeElement as HTMLButtonElement | null,
+    );
     const fromIndex = focusedIndex >= 0 ? focusedIndex : tabStopIndex;
     let next: number;
     switch (event.key) {
@@ -204,7 +228,9 @@ function SegmentedRadioGroup({ item }: { item: MapOverlaySegmentedItem }) {
             tabIndex={index === tabStopIndex ? 0 : -1}
             onClick={() => item.onChange(opt.value)}
             className={`min-h-11 px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
-              checked ? "bg-accent-soft font-semibold text-ink" : "text-ink-muted hover:bg-surface"
+              checked
+                ? "bg-accent-soft font-semibold text-ink"
+                : "text-ink-muted hover:bg-surface"
             }`}
           >
             {opt.label}

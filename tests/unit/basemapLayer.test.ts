@@ -135,7 +135,7 @@ describe("makeBasemapLayer", () => {
         fakeTile as never,
       ) as BitmapLayer;
       expect(sat.props.desaturate).toBe(0);
-      expect(base.props.desaturate).toBe(0.8);
+      expect(base.props.desaturate).toBe(1);
     });
   });
 });
@@ -156,7 +156,7 @@ describe("makeBasemapWashLayer", () => {
   });
 
   it("uses a lighter wash for the base map", () => {
-    expect(makeBasemapWashLayer("base").props.getFillColor).toEqual([255, 255, 255, 60]);
+    expect(makeBasemapWashLayer("base").props.getFillColor).toEqual([255, 255, 255, 100]);
   });
 
   // Task 3 fix round 1 (review ruling) — the wash is ONE fixed oversized

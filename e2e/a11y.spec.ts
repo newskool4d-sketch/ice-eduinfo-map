@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { openPanel, openMapSettings, expect, test } from "./fixtures";
 import type { Locator, Page } from "@playwright/test";
 
 // Task 6, Section B. `npx @axe-core/cli` can't be installed (no new
@@ -25,6 +25,8 @@ async function tabUntilFocused(page: Page, locator: Locator, maxTabs: number): P
 test.describe("접근성", () => {
   test("랜드마크: banner/main/complementary/contentinfo 가 모두 존재한다", async ({ page }) => {
     await page.goto("/");
+  await openPanel(page);
+  await openMapSettings(page);
     await waitForMapReady(page);
 
     await expect(page.getByRole("banner")).toBeVisible();
@@ -44,25 +46,26 @@ test.describe("접근성", () => {
     await page.goto("/");
     await waitForMapReady(page);
 
-    // 1) 지표 메뉴 ("조건별 맵") 버튼 — a fresh page load starts with nothing
+    // 1) 지표 메뉴 ("전체 지표") 버튼 — a fresh page load starts with nothing
     // focused (document.activeElement === body), so tabbing from here
     // exercises the REAL top-of-page order, not a shortcut.
-    const menuButton = page.getByRole("button", { name: /^조건별 맵/ });
+    const menuButton = page.getByRole("button", { name: /^전체 지표/ });
     expect(await tabUntilFocused(page, menuButton, 10)).toBe(true);
 
     // 2) 라디오: opening the popover (Enter activates the focused native
     // <button>) auto-focuses its first radio (IndicatorMenu.tsx's own open
     // effect) — reachable with zero further Tabs.
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("dialog", { name: "조건별 맵 선택" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "전체 지표 선택" })).toBeVisible();
     const firstRadio = page.locator('#indicator-menu-popover input[type="radio"]').first();
     await expect(firstRadio).toBeFocused();
 
     // Close the popover (Escape — doesn't deselect the map, since nothing is
     // selected yet) so it doesn't obscure/duplicate-focus-trap what follows.
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog", { name: "조건별 맵 선택" })).not.toBeVisible();
+    await expect(page.getByRole("dialog", { name: "전체 지표 선택" })).not.toBeVisible();
 
+    await openPanel(page);
     await page.getByRole("tab", { name: "학교 탐색" }).focus();
     await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("tab", { name: "교육문제" })).toHaveAttribute("aria-selected", "true");
@@ -72,6 +75,7 @@ test.describe("접근성", () => {
     expect(await tabUntilFocused(page, firstRegionButton, 20)).toBe(true);
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await openMapSettings(page);
     await page.getByLabel("전북 학교 위치 지도").focus();
     const schoolNames = page.getByRole("button", { name: "학교명", exact: true });
     expect(await tabUntilFocused(page, schoolNames, 10)).toBe(true);
@@ -87,6 +91,8 @@ test.describe("접근성", () => {
     // brief's fallback clause ("대체 버튼... 위젯은 제거") doesn't apply; no
     // custom buttons were added.
     await page.goto("/");
+  await openPanel(page);
+  await openMapSettings(page);
     await waitForMapReady(page);
 
     await page.getByLabel("전북 학교 위치 지도").focus();
@@ -96,12 +102,14 @@ test.describe("접근성", () => {
 
   test("지표 전환 시 aria-live 낭독 텍스트가 갱신된다", async ({ page }) => {
     await page.goto("/");
+  await openPanel(page);
+  await openMapSettings(page);
     await waitForMapReady(page);
 
     const announcement = page.getByTestId("indicator-announcement");
     await expect(announcement).toHaveText("지표 변경: 학생수"); // DEFAULT_INDICATOR_ID
 
-    await page.getByRole("button", { name: /^조건별 맵/ }).click();
+    await page.getByRole("button", { name: /^전체 지표/ }).click();
     await page.getByRole("radio", { name: "학급당 학생수" }).click();
 
     await expect(announcement).toHaveText("지표 변경: 학급당 학생수");

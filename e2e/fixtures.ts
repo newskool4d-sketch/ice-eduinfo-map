@@ -48,3 +48,18 @@ export async function docShot(page: Page, name: string): Promise<void> {
   if (process.env.CI) return;
   await page.screenshot({ path: `test-results/${name}.png` });
 }
+
+/** Panels/settings now start collapsed to give the thematic map room. */
+export async function openPanel(page: Page) {
+  await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
+  const opener = page.getByRole("button", { name: "학교·통계", exact: true });
+  if (await opener.isVisible()) await opener.click();
+}
+export async function openMapSettings(page: Page) {
+  const summary = page.locator("summary").filter({ hasText: "지도 설정" });
+  await expect(summary).toBeVisible();
+  if (!(await summary.locator("..").getAttribute("open"))) {
+    // Boolean open attributes serialize as an empty string; use DOM presence.
+    if (!(await summary.locator("..").evaluate(el => el.hasAttribute("open")))) await summary.click();
+  }
+}

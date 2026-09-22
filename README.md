@@ -1,10 +1,26 @@
-# 전북교육지도
+# 지역 교육지도
 
-전북 학교를 평면 도로지도에서 검색하고, 14개 시군의 교육통계를 함께 살펴보는 Next.js 대시보드입니다.
+시도별 학교와 시군구 교육통계를 살펴보는 오픈소스 Next.js 대시보드입니다. 이 저장소는 **전북특별자치도** profile을 첫 예시로 포함합니다. 밝은 모형 도시를 배경으로 선택한 교육지표만 색으로 강조합니다.
 
-북쪽이 위인 평면 도로지도를 사용하며 최대 18단계까지 확대할 수 있습니다. 학교 점은 반경 5px, 학교 이름은 11px로 고정하며 줌 11부터 화면에 보이는 학교 이름을 겹치지 않게 표시합니다.
+기본 화면은 학생 분포입니다. 넓게 보면 학교별 학생수를 가중한 상대 집중도를, 줌 13부터는 학교별 크기와 색을 보여줍니다. 학급당·교원당 학생수는 고정 크기 점의 색으로, 지역 집계는 시군 면의 색으로 표시합니다. 배경지도는 무채색이며 가까이 확대하면 건물 윤곽을 약 18% 불투명도로 표시합니다. 학교 이름은 줌 15부터 나타나고 선택한 학교는 먼저 표시합니다.
 
-왼쪽 `학교 탐색`에서 학교명·시군·학교급을 조합해 검색합니다. 목록과 지도는 같은 필터를 사용하며 위치 없는 학교도 상세정보를 볼 수 있습니다. `시군 통계` 탭에는 기존 지표·순위·추이·폐교 목록과 데이터 출처가 있습니다. 1024px 미만에서는 지도를 유지하고 패널을 하단에서 열며, WebGL 사용 불가·지도 오류일 때만 표로 대체합니다.
+상단의 `학생 분포 · 교육여건 · 작은학교 · 특수교육 · 지역 변화`로 주제를 바꾸고 `전체 지표`에서 기존 18개 지표와 교육문제 7개 지표를 선택합니다. `학교·통계`에서 검색·학교 상세·시군 비교를 엽니다. 목록과 학교 지도는 같은 필터를 쓰며 패널을 바꿔도 선택 지표가 유지됩니다. 1024px 미만에서는 패널을 하단에서 열고, WebGL 사용 불가·지도 오류일 때는 표로 대체합니다.
+
+`지도 설정`에서 자동 표현(기본), 원통, 점을 선택할 수 있습니다. 기존 `schoolChart=columns|dots`, `scene=flat|city`, 지표·지역 URL을 유지합니다. 표현 원칙과 검증 방법은 [교육현황 지도 문서](docs/education-city/README.md)를 참고하세요.
+
+
+## 다른 지역에서 사용하기
+
+지역별 데이터만 준비해 같은 지도를 만들 수 있도록 지역 profile 구조를 사용합니다. 전북 profile의 시군 코드·경계 규칙·KESS 필터·수동 보정·교육정책 질문은 `src/lib/profiles/jeonbuk.ts`와 `src/lib/profiles/jeonbuk/`에 모여 있습니다.
+
+새 지역은 전북 profile을 복사해 설정하고 원천자료를 넣은 뒤 아래 명령을 실행합니다.
+
+```bash
+npm run data:build -- --profile=<지역ID>
+NEXT_PUBLIC_EDU_MAP_PROFILE=<지역ID> npm run dev
+```
+
+구체적인 입력 파일, 정책 질문 작성 기준, 데이터 재배포 원칙은 [지역 profile 안내](docs/REGION_PROFILE.md)를 참고하세요.
 
 ## 요구 버전
 
@@ -47,7 +63,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 1. Vercel 대시보드에서 "Add New Project" → 이 저장소(GitHub)를 import 합니다.
 2. 빌드 설정은 기본값을 그대로 씁니다 — Framework Preset이 자동으로 "Next.js"로 인식되고, Build Command(`next build` = `npm run build`)·Output Directory·Install Command(`npm ci`) 모두 손댈 필요가 없습니다. Node.js 버전은 Vercel이 `package.json`의 `engines.node`(프로젝트 설정에서도 지정 가능)를 기준으로 선택합니다 — `.nvmrc`는 로컬 `nvm use` 전용이며 Vercel은 이를 읽지 않습니다.
-3. 배경 도로지도를 표시하려면 `NEXT_PUBLIC_VWORLD_KEY`를 설정합니다. 키가 없어도 학교·경계·통계 기능은 동작합니다. 지표·경계·학교 데이터는 저장소의 `public/data/` 정적 파일을 사용합니다. 지도는 평면 도로지도 하나만 제공하며 이전 지도 모드 설정은 읽지 않습니다.
+3. 배경 도로지도를 표시하려면 `NEXT_PUBLIC_VWORLD_KEY`를 설정합니다. 키가 없어도 학교·경계·통계 기능은 동작합니다. 지표·경계·학교 데이터는 저장소의 `public/data/` 정적 파일을 사용합니다. 입체 현황판이 기본이며 지도 설정에서 평면 보기도 선택할 수 있습니다.
    - 발급: [브이월드 오픈API](https://www.vworld.kr/dev/v4dv_openapireferrer_s001.do)에서 무료로 키를 발급받고, 사용할 배포 도메인(예: `xxx.vercel.app`, 커스텀 도메인)을 인증키 관리에 등록합니다.
    - Vercel 프로젝트 설정 → Environment Variables 에 `NEXT_PUBLIC_VWORLD_KEY`를 추가합니다(Production/Preview 모두 필요하면 각각 등록). `vercel env add NEXT_PUBLIC_VWORLD_KEY production` 로도 등록할 수 있습니다.
    - 로컬 개발은 `.env.local`(`.gitignore`됨 — 커밋되지 않음)에 같은 키를 넣으면 됩니다.
@@ -72,25 +88,25 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 ## 데이터 출처 및 라이선스
 
 - **KESS 교육기본통계 학교별 데이터셋** (한국교육개발원 교육통계서비스) — 지표(학생수/학교수/교원수 등)의 원천. 기준일은 화면 하단 범례와 Footer에 표기됩니다.
-- **한국교육시설안전원 초중등학교위치 표준데이터** (data.go.kr) — 학교 점 위치(위도/경도). 시군 선택 시 지도 우측 패널과 화면 하단에 "위치 기준 YYYY-MM-DD" 로 기준일을 표기합니다. 전국 데이터셋 특성상 초·중·고등학교만 포함되어 있고 특수학교 위치는 제공되지 않습니다(자세한 내용은 `data/interim/schools-match-report.json` 참고). 이는 매칭 실패가 아니라 원천 데이터 자체의 구조적 공백이므로, 특수학교도 `public/data/schools.json` 에 좌표 없이(`lat`/`lng: null`, `locationMissingReason` 설명 포함) 실리며 매칭률·검증 대상에서는 제외됩니다 — 지도에는 점으로 그리지 않고, 우측 패널 학교 목록에는 "위치 없음" 배지로 표시됩니다.
+- **한국교육시설안전원 초중등학교위치 표준데이터** (data.go.kr) — 초·중·고 학교 위치의 기본 출처입니다. 특수학교 위치는 학교 공식 안내로 보완하며 상세 카드의 출처와 확인일을 표시합니다. 위치가 없는 레코드는 집계·목록에 남기되 지도에는 표시하지 않습니다.
 - **전북특별자치도교육청 폐교재산 현황** (공공데이터포털) — 폐교 지표(폐교 수/미활용 폐교 수/최근 10년 폐교 수)와 RegionPanel의 폐교 목록의 원천. 원천 파일의 게시(갱신)일이 데이터 기준일과 다른 경우 Footer에 "기준일 …(게시 …)" 형식으로 둘 다 표기합니다.
 - **통계청 SGIS 기반 행정동 경계** (vuski/admdongkor, `HangJeongDong_ver20260701.geojson`) — 시군 경계·라벨 위치의 원천. [vuski/admdongkor](https://github.com/vuski/admdongkor) 저장소는 **CC BY 4.0** 라이선스로 배포되며, 이 프로젝트는 그 경계 데이터를 단순화·가공해 `public/data/regions.geojson`/`neighbors.geojson`(`npm run data:regions`)과, 선택한 시군의 하위 읍면동 경계선용 `public/data/emd/<시군코드>.geojson` 14개(`npm run data:emd`)로 다시 배포합니다 — 출처 표기(CC BY 4.0이 요구하는 저작자 표시)는 화면 하단 Footer와 이 문서에 명시합니다.
 - **배경지도: 국토교통부 브이월드(VWorld) 오픈API** (`Base` 일반 WMTS 타일) — 브라우저에서 직접 호출하며 지도에 출처를 표시합니다.
 
 `xlsx` 패키지(devDependency)는 KESS `.xlsx` 원본을 읽는 데이터 파이프라인 전용(`scripts/pipeline/parse-kess.ts` 등)이며, 브라우저로 번들되지 않습니다 — 알려진 보안 권고(advisory)가 있으나 런타임 노출 범위 밖이라 별도 조치 없이 유지합니다.
 
-이 프로젝트 자체의 소스 코드 라이선스는 별도로 명시되어 있지 않습니다(저장소 소유자에게 문의).
+이 프로젝트의 소스 코드는 [MIT 라이선스](LICENSE)로 공개합니다. 원자료와 생성 데이터에는 각 출처의 이용 조건이 별도로 적용됩니다. 원천 파일은 저장소에 포함하지 않습니다.
 
 ## 1차 범위에서 제외된 항목
 
 - **다문화(이주배경) 학생 지표** — KESS 통계표(`[주제별] 이주배경(유형별) 학생수`)는 존재하지만, 공개 출처에서 시군 단위로 분해된 데이터를 확보하지 못해 1차 범위에서 제외했습니다.
 - **연도 슬라이더** — 특정 연도를 직접 골라보는 UI는 1차 범위에 포함되지 않았습니다. 연도별 추이는 시군 선택 시 RegionPanel의 스파크라인으로 확인할 수 있습니다.
-- **배경 타일 지도** — 브이월드 일반지도(`Base`, 원래 색상과 해상도)를 제공합니다. `NEXT_PUBLIC_VWORLD_KEY`가 필요합니다.
+- **배경 타일 지도** — 브이월드 일반지도(`Base`, 무채색 처리)를 제공합니다. `NEXT_PUBLIC_VWORLD_KEY`가 필요합니다.
 
 
 ## 교육문제 탐색
 
-`교육문제` 탭에서 질문을 선택하면 일반지도 위에 시군별 현황을 반투명 색으로 표시하고 관련 학교를 점과 목록으로 보여줍니다. 지도·비교 목록·범례는 동일한 모델을 사용합니다. `view=issues&issue=regional-sustainability&issueMetric=designation&region=52720`처럼 질문·지표·지역을 URL로 공유할 수 있습니다. 기존 `indicator`·`region` 링크도 유지됩니다.
+`교육문제` 탭에서 질문을 선택하면 지표의 집계 단위에 맞춰 학교별 색 또는 시군별 현황을 표시하고 관련 학교를 목록으로 보여줍니다. 지도·비교 목록·범례는 동일한 모델을 사용합니다. `view=issues&issue=regional-sustainability&issueMetric=designation&region=52720`처럼 질문·지표·지역을 URL로 공유할 수 있습니다. 기존 `indicator`·`region` 링크도 유지됩니다.
 
 첫 공개 질문은 다음 두 가지입니다.
 

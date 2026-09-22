@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { openPanel, expect, test } from "./fixtures";
 
 const question = "학생이 줄어드는 지역의 학교는 어떤 상황인가?";
 const special = "특수학급과 특수학교는 어디에 분포하는가?";
@@ -14,6 +14,7 @@ test("교육문제에서 지정 현황·관련 학교·URL을 함께 탐색하�
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
+  await openPanel(page);
   await ready(page);
   await expect(page.getByRole("tab", { name: "학교 탐색" })).toHaveAttribute(
     "aria-selected",
@@ -29,6 +30,7 @@ test("교육문제에서 지정 현황·관련 학교·URL을 함께 탐색하�
   await expect(
     page.getByRole("heading", { name: question, exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "인구감소지역 지정", exact: true }).click();
   await expect(
     page.getByText("인구감소지역 10곳 · 관심지역 1곳", { exact: true }).first(),
   ).toBeVisible();
@@ -47,6 +49,7 @@ test("교육문제에서 지정 현황·관련 학교·URL을 함께 탐색하�
   const count = await page.getByTestId("issue-school-count").innerText();
   expect(count).not.toContain("목록 0개");
   await page.reload();
+  await openPanel(page);
   await ready(page);
   await expect(
     page.getByRole("button", { name: "소규모학교 비율", exact: true }),
@@ -63,7 +66,7 @@ test("교육문제에서 지정 현황·관련 학교·URL을 함께 탐색하�
   await expect(
     page.getByRole("combobox", { name: "시군", exact: true }),
   ).toHaveValue("52720");
-  await expect(page).not.toHaveURL(/issue=/);
+  await expect(page).toHaveURL(/issue=regional-sustainability/);
   expect(errors).toEqual([]);
 });
 
@@ -73,12 +76,13 @@ test("특수학교는 지도·집계·목록에 포함하고 일반학교 특수
   await page.goto(
     "/?view=issues&issue=special-education&issueMetric=special-classes",
   );
+  await openPanel(page);
   await ready(page);
   await expect(
     page.getByRole("heading", { name: special, exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("전북 전체 559학급", { exact: true }),
+    page.getByText("전북 전체 559학급", { exact: true }).first(),
   ).toBeVisible();
   await page.getByRole("button", { name: "특수학교 수", exact: true }).click();
   await expect(page.getByTestId("issue-school-count")).toHaveText(
@@ -90,13 +94,58 @@ test("특수학교는 지도·집계·목록에 포함하고 일반학교 특수
     const layer = window
       .__jbmap!.deck.props.layers?.flat()
       .find(
-        (l) => l && typeof l === "object" && "id" in l && l.id === "schools",
+        (l) => l && typeof l === "object" && "id" in l && l.id === "schools-special",
       );
     return layer && "props" in layer
       ? (layer.props.data as unknown[]).length
       : -1;
   });
   expect(dots).toBe(11);
+});
+
+test("학교 규모·작은학교·폐교 주제는 각각의 지도 표현과 URL 상태를 제공한다", async ({
+  page,
+}) => {
+  await page.goto(
+    "/?view=issues&issue=school-size&issueLevel=elem&region=52110&compareRegion=52130",
+  );
+  await openPanel(page);
+  await ready(page);
+  await expect(
+    page.getByRole("heading", { name: "같은 지역의 학교 규모는 얼마나 다른가?" }),
+  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "학교 규모 구간" })).toContainText(
+    "1,000명 이상6개교",
+  );
+  await expect(page.getByRole("region", { name: "두 지역 비교" })).toContainText(
+    "지표전주시군산시",
+  );
+  await page.getByRole("combobox", { name: "규모 비교 학교급" }).selectOption("mid");
+  await expect(page).toHaveURL(/issueLevel=mid/);
+  await expect(page.getByRole("region", { name: "학교 규모 구간" })).toContainText(
+    "61~999명40개교",
+  );
+
+  await page.goto(
+    "/?view=issues&issue=regional-sustainability&issueMetric=decline-small&region=52720",
+  );
+  await openPanel(page);
+  await ready(page);
+  await page.getByRole("checkbox", { name: "신입생 0명 학교 강조" }).check();
+  await expect(page).toHaveURL(/zeroEntrants=on/);
+  await expect(page.getByTestId("metric-legend")).toContainText(
+    "시군 면: 학생 증감률 · 원: 작은학교",
+  );
+
+  await page.goto(
+    "/?view=issues&issue=closed-assets&issueMetric=unused-share&region=52130",
+  );
+  await openPanel(page);
+  await ready(page);
+  const assets = page.getByRole("region", { name: "폐교재산 목록" });
+  await expect(assets).toContainText("수록 14건 · 미활용 9건 · 64.3%");
+  await expect(assets).toContainText("선유도초 방축도분교장 · 미활용");
+  await expect(page.getByTestId("issue-school-count")).toHaveCount(0);
 });
 
 test("교육문제 자료 실패는 기존 검색에 영향을 주지 않고 재시도할 수 있다", async ({
@@ -108,6 +157,7 @@ test("교육문제 자료 실패는 기존 검색에 영향을 주지 않고 재
     else await route.continue();
   });
   await page.goto("/?view=issues");
+  await openPanel(page);
   await expect(
     page.getByRole("alert").filter({ hasText: "교육문제 자료" }),
   ).toContainText("교육문제 자료를 불러오지 못했습니다");
@@ -130,8 +180,8 @@ test("모바일에서 질문·학교 선택 후 정보 패널을 다시 열어�
   await page.goto(
     "/?view=issues&issue=regional-sustainability&issueMetric=small-share&region=52720",
   );
+  await openPanel(page);
   await ready(page);
-  await page.getByRole("button", { name: "학교·통계", exact: true }).click();
   await page.locator('button[data-testid^="issue-school-"]').first().click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("button", { name: /학교 정보 보기/ }).click();
@@ -152,12 +202,14 @@ test("알 수 없는 질문은 목록, 다른 주제 지표는 기본 지표로 
   page,
 }) => {
   await page.goto("/?view=issues&issue=reading");
+  await openPanel(page);
   await expect(
     page.getByRole("heading", { name: "우리 지역 교육, 어디부터 살펴볼까요?" }),
   ).toBeVisible();
   await page.goto(
     "/?view=issues&issue=special-education&issueMetric=designation",
   );
+  await openPanel(page);
   await expect(
     page.getByRole("button", { name: "일반학교 특수학급 수", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");

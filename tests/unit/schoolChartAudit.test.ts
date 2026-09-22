@@ -12,8 +12,8 @@ const counts = ["schools_total", "small_schools", "zero_entrant_schools"];
 const proportional = ["students_total", "classes_total", "teachers_total", "students_per_class", "students_per_teacher", "special_classes", "special_students"];
 const dots = ["site_area_per_student", "classrooms_per_school", "small_school_share", "rural_school_share", "students_change_5y", "closed_schools", "closed_schools_unused", "closed_schools_recent"];
 const issueCounts = ["zero-entrants", "special-schools"];
-const issueProportional = ["special-classes", "special-students"];
-const issueDots = ["designation", "student-change", "small-share"];
+const issueProportional = ["special-classes", "special-students", "school-size", "decline-small"];
+const issueDots = ["designation", "student-change", "small-share", "unused-count", "unused-share"];
 
 describe("all selectable school chart metrics", () => {
   it("requires an explicit rendering expectation for every registered indicator and issue metric", () => {

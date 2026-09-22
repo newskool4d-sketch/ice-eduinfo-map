@@ -1,7 +1,7 @@
 {
   "name": "jb-edu-map",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "engines": {
     "node": "22.x"
@@ -22,10 +22,11 @@
     "data:indicators": "tsx scripts/pipeline/build-indicators.ts",
     "data:charset": "tsx scripts/pipeline/build-charset.ts",
     "data:validate": "tsx scripts/pipeline/validate.ts",
-    "data:build": "npm run data:regions && npm run data:emd && npm run data:kess && npm run data:schools && npm run data:indicators && npm run data:issues && npm run data:charset && npm run data:validate",
+    "data:build": "tsx scripts/pipeline/build.ts",
     "data:issues": "tsx scripts/pipeline/build-education-issues.ts"
   },
   "dependencies": {
+    "@deck.gl/aggregation-layers": "9.4.0",
     "@deck.gl/core": "9.4.0",
     "@deck.gl/extensions": "9.4.0",
     "@deck.gl/geo-layers": "9.4.0",

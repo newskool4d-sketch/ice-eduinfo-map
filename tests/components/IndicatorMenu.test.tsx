@@ -6,7 +6,7 @@ import { withNuqsTestingAdapter } from "nuqs/adapters/testing";
 import IndicatorMenu from "@/components/panels/IndicatorMenu";
 import { DEFAULT_INDICATOR_ID, indicatorById } from "@/lib/indicators/registry";
 
-const MENU_BUTTON_NAME = /^조건별 맵/;
+const MENU_BUTTON_NAME = /^전체 지표/;
 
 describe("IndicatorMenu", () => {
   it("renders a closed menu button labeled with the current indicator", () => {
@@ -30,7 +30,7 @@ describe("IndicatorMenu", () => {
 
     await user.click(screen.getByRole("button", { name: MENU_BUTTON_NAME }));
 
-    const dialog = screen.getByRole("dialog", { name: "조건별 맵 선택" });
+    const dialog = screen.getByRole("dialog", { name: "전체 지표 선택" });
     expect(dialog).toBeInTheDocument();
     const button = screen.getByRole("button", { name: MENU_BUTTON_NAME });
     expect(button).toHaveAttribute("aria-expanded", "true");

@@ -16,6 +16,7 @@ import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson"
 import mapshaper from "mapshaper";
 
 import { isRegionCode, REGION_CODES, regionName } from "../../src/lib/geo/regions";
+import { ACTIVE_PROFILE } from "../../src/lib/profiles";
 import type { Bbox, RegionFeature } from "../../src/lib/geo/geo";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,7 +34,7 @@ const NEIGHBORS_OUTPUT_PATH = path.join(ROOT, "public/data/neighbors.geojson");
 // hand-tuned by screenshot comparison (see task-6-report.md). Optional —
 // missing entirely, or missing a given code, both just mean "[0, 0]" (see
 // transformRegions's own default).
-const LABEL_OFFSETS_PATH = path.join(ROOT, "data/manual/label-offsets.json");
+const LABEL_OFFSETS_PATH = path.join(ROOT, ACTIVE_PROFILE.files.manualDir, "label-offsets.json");
 
 const REGIONS_MAX_BYTES = 300 * 1024;
 const NEIGHBORS_MAX_BYTES = 200 * 1024;
@@ -43,12 +44,12 @@ const NEIGHBORS_MAX_BYTES = 200 * 1024;
 // 5-digit "전북 전체" aggregate row code used by the indicators pipeline.
 // Exported — build-emd.ts filters to the exact same sido, and must never
 // hardcode a second copy of "52".
-export const JB_SIDO = "52";
+export const JB_SIDO = ACTIVE_PROFILE.boundary.sidoCode;
 
 // Confirmed by inspecting the real source file's distinct `sido`/`sidonm`
 // pairs (see task-1A-report.md): the 2026-07-01 광주+전남 통합 entity is
 // sido '12' ("전남광주통합특별시"), sitting alongside 충남(44)/경북(47)/경남(48).
-const NEIGHBOR_SIDO_CODES = ["44", "12", "47", "48"];
+const NEIGHBOR_SIDO_CODES = ACTIVE_PROFILE.boundary.neighborSidoCodes;
 
 type RawRegionProps = {
   sgg_cd: string;
@@ -155,7 +156,11 @@ export const SGG_CD_FROM_SGG_CMD = '-each "sgg_cd = sgg"';
 // 읍면동-level output groups by this SAME merged code (see its own
 // transformEmd), so a 읍면동 feature from either gu lands in the one
 // `public/data/emd/52110.geojson`.
-export const MERGE_JEONJU_GU_CMD = `-each "sgg_cd = sgg_cd.slice(0,4) === '5211' ? '52110' : sgg_cd"`;
+const sggOverrideExpression = [
+  ...Object.entries(ACTIVE_PROFILE.boundary.sggCodeOverrides ?? {}).map(([from, to]) => `sgg_cd === '${from}' ? '${to}' : `),
+  ...Object.entries(ACTIVE_PROFILE.boundary.sggPrefixOverrides ?? {}).map(([prefix, to]) => `sgg_cd.slice(0, ${prefix.length}) === '${prefix}' ? '${to}' : `),
+].join("");
+export const MERGE_JEONJU_GU_CMD = `-each "sgg_cd = ${sggOverrideExpression}sgg_cd"`;
 
 /**
  * sido === '52' (전북) 필터 → sgg_cd(=sgg, 5211*는 52110으로 통합) 로 dissolve

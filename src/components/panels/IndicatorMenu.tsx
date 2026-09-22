@@ -7,6 +7,7 @@ import type { SeriesFile } from "@/lib/indicators/types";
 import { displayLabel } from "@/lib/stats";
 import { useMapQuery } from "@/lib/state/urlState";
 
+import { METRIC_LABELS, PUBLISHED_ISSUES } from "@/lib/issues/registry";
 import IndicatorPicker from "./IndicatorPicker";
 
 export interface IndicatorMenuProps {
@@ -28,7 +29,8 @@ export interface IndicatorMenuProps {
  * need to prop-drill indicatorId/setIndicator through it.
  */
 export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
-  const { indicatorId, setIndicator } = useMapQuery();
+  const { indicatorId, setIndicator, issueId, issueMetric, setIssue } =
+    useMapQuery();
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -54,7 +56,12 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   const suppressNextRadioKeyupRef = useRef(false);
 
   const def = indicatorById(indicatorId);
-  const label = def ? displayLabel(def, series) : indicatorId;
+  const label =
+    issueId && issueMetric
+      ? METRIC_LABELS[issueMetric]
+      : def
+        ? displayLabel(def, series)
+        : indicatorId;
 
   // Single effect, gated on `open`: the effect body runs the "just opened"
   // work (focus the first radio, attach ESC/outside-click listeners); its
@@ -78,7 +85,9 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     const popover = popoverRef.current;
     const button = buttonRef.current;
 
-    const firstRadio = popover?.querySelector<HTMLInputElement>('input[type="radio"]');
+    const firstRadio = popover?.querySelector<HTMLInputElement>(
+      'input[type="radio"]',
+    );
     // Task 6, Section B (keyboard operability bug found via e2e/a11y.spec.ts,
     // confirmed with a precise keydown/keyup trace): a native <button>
     // fires its click on Enter's KEYDOWN (not keyup, unlike Space) — so
@@ -123,7 +132,9 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     document.addEventListener("mousedown", onPointerDown, { capture: true });
     return () => {
       document.removeEventListener("keydown", onKeyDown, { capture: true });
-      document.removeEventListener("mousedown", onPointerDown, { capture: true });
+      document.removeEventListener("mousedown", onPointerDown, {
+        capture: true,
+      });
       suppressNextClickRef.current = false;
       // Clears any UNCONSUMED suppression (e.g. the menu closed via Escape/
       // outside-click before the expected stray radio keyup ever arrived) —
@@ -141,7 +152,9 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     setIndicator(id);
   }
 
-  function isRadioInput(target: EventTarget | null): target is HTMLInputElement {
+  function isRadioInput(
+    target: EventTarget | null,
+  ): target is HTMLInputElement {
     return target instanceof HTMLInputElement && target.type === "radio";
   }
 
@@ -192,7 +205,10 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   // dispatches a native click, but relying on keyup here rather than that
   // click keeps both keys on the same safe, race-free path.
   function handlePopoverKeyUp(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (isRadioInput(event.target) && (event.key === "Enter" || event.key === " ")) {
+    if (
+      isRadioInput(event.target) &&
+      (event.key === "Enter" || event.key === " ")
+    ) {
       // Task 6, Section B — see the lifecycle effect's comment: this exact
       // keyup can be the trailing artifact of the SAME Enter press that
       // just opened the menu, not a real commit gesture.
@@ -226,7 +242,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
         onClick={() => setOpen((v) => !v)}
         className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-sm text-ink hover:bg-ink/10"
       >
-        {`조건별 맵 · ${label} ▾`}
+        <span className="max-w-32 truncate sm:max-w-none">{`전체 지표 · ${label} ▾`}</span>
       </button>
 
       {open && (
@@ -234,13 +250,44 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           ref={popoverRef}
           id="indicator-menu-popover"
           role="dialog"
-          aria-label="조건별 맵 선택"
+          aria-label="전체 지표 선택"
           onClick={handlePopoverClick}
           onKeyDown={handlePopoverKeyDown}
           onKeyUp={handlePopoverKeyUp}
-          className="absolute left-0 top-full z-50 mt-2 max-h-[70vh] w-[640px] overflow-y-auto rounded-lg border border-line bg-surface p-3 shadow-xl"
+          className="fixed left-3 right-3 top-14 z-50 mt-2 max-h-[70vh] xl:absolute xl:left-auto xl:right-0 xl:top-full xl:w-[640px] overflow-y-auto rounded-lg border border-line bg-surface p-3 shadow-xl"
         >
-          <IndicatorPicker value={indicatorId} onChange={handleChange} series={series} />
+          <IndicatorPicker
+            value={issueId ? "" : indicatorId}
+            onChange={handleChange}
+            series={series}
+          />
+          <section
+            className="mt-3 border-t border-line pt-3"
+            aria-label="교육문제 지표"
+          >
+            {PUBLISHED_ISSUES.map((issue) => (
+              <fieldset key={issue.id} className="mb-3">
+                <legend className="text-sm font-semibold">{issue.title}</legend>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {issue.metrics.map((metric) => (
+                    <button
+                      key={metric}
+                      className="min-h-11 rounded border border-line px-3 text-xs aria-pressed:bg-accent-soft"
+                      aria-pressed={
+                        issueId === issue.id && issueMetric === metric
+                      }
+                      onClick={() => {
+                        setIssue(issue.id, metric);
+                        setOpen(false);
+                      }}
+                    >
+                      {METRIC_LABELS[metric]}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
+          </section>
         </div>
       )}
     </div>

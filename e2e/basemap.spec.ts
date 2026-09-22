@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { openPanel, openMapSettings, expect, test } from "./fixtures";
 
 test("과거 지도 설정을 무시하고 입체 현황판을 표시하며 지형을 요청하지 않는다", async ({ page }) => {
   await page.addInitScript(() => {
@@ -10,6 +10,8 @@ test("과거 지도 설정을 무시하고 입체 현황판을 표시하며 지�
     if (request.url().includes("/api/terrain/")) terrainRequests++;
   });
   await page.goto("/");
+  await openPanel(page);
+  await openMapSettings(page);
   for (let visit = 0; visit < 2; visit++) {
     await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
     await expect(page.getByRole("radiogroup", { name: "지도 모드" })).toHaveCount(0);
@@ -28,5 +30,7 @@ test("과거 지도 설정을 무시하고 입체 현황판을 표시하며 지�
     await page.goBack();
     await expect(page.getByRole("radio", { name: "입체 현황판" })).toHaveAttribute("aria-checked", "true");
     if (visit === 0) await page.reload();
+  await openPanel(page);
+  await openMapSettings(page);
   }
 });

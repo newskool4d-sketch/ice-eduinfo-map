@@ -19,6 +19,7 @@ import {
   regionCodeForName,
   type SchoolStatus,
 } from "../sources";
+import { ACTIVE_PROFILE } from "../../../src/lib/profiles";
 
 export interface SchoolRow {
   regionCode: string;
@@ -169,7 +170,7 @@ export function readSchoolSheet(buffer: Buffer, year: number): ReadSchoolSheetRe
     if (!row || row[col.sido] == null) continue; // trailing blank row
 
     const sido = String(row[col.sido]);
-    if (sido !== "전북") {
+    if (!ACTIVE_PROFILE.schoolData.kessSidoNames.includes(sido)) {
       bump("region:non-jb");
       continue;
     }

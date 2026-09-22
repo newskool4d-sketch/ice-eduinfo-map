@@ -1,5 +1,6 @@
 import type { DataBundle } from "../data/types";
-import { REGION_CODES, regionName, type RegionCode } from "../geo/regions";
+import { PROVINCE_CODE, REGION_CODES, regionName, type RegionCode } from "../geo/regions";
+import { ACTIVE_PROFILE } from "../profiles";
 import type { School } from "../schools/types";
 import { changeYearRange } from "../stats";
 import { METRIC_LABELS, resolveIssueMetric } from "./registry";
@@ -9,6 +10,7 @@ import type {
   EducationIssuesFile,
   IssueColor,
   IssueMapModel,
+  IssueLevel,
 } from "./types";
 
 export const DESIGNATION_LABELS: Record<Designation, string> = {
@@ -55,16 +57,23 @@ export function issueValue(
   data: EducationIssuesFile,
   metric: string,
   code: string,
+  level: IssueLevel = "elem",
 ): number | Designation | null {
   if (metric === "designation")
     return data.designations[code as RegionCode] ?? null;
-  if (metric === "student-change") return studentChange(bundle, code);
+  if (metric === "student-change" || metric === "decline-small") return studentChange(bundle, code);
+  if (metric === "unused-count" || metric === "unused-share") {
+    const assets = bundle.closedSchools.rows.filter(r => code === PROVINCE_CODE || r.regionCode === code);
+    const unused = assets.filter(r => r.usage === "미활용").length;
+    return metric === "unused-count" ? unused : assets.length ? unused / assets.length * 100 : null;
+  }
   const rows = bundle.schools.schools.filter(
-    (s) => code === "52000" || s.regionCode === code,
+    (s) => code === PROVINCE_CODE || s.regionCode === code,
   );
   const main = rows.filter((s) => data.schools[s.id].isMain);
   const regular = rows.filter((s) => s.level !== "special");
   switch (metric) {
+    case "school-size": return main.filter(s => s.level === level).length;
     case "small-share":
       return !main.length || main.some((s) => s.students === null)
         ? null
@@ -89,11 +98,12 @@ export function formatIssueValue(
   value: number | Designation | null,
 ): string {
   if (value === null)
-    return metric === "student-change" ? "계산 불가" : "자료 없음";
+    return metric === "unused-share" ? "해당 없음" : ["student-change", "decline-small"].includes(metric) ? "계산 불가" : "자료 없음";
   if (typeof value === "string") return DESIGNATION_LABELS[value];
-  if (metric === "student-change")
+  if (metric === "student-change" || metric === "decline-small")
     return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
-  if (metric === "small-share") return `${value.toFixed(1)}%`;
+  if (metric === "small-share" || metric === "unused-share") return `${value.toFixed(1)}%`;
+  if (metric === "unused-count") return `${count(value)}건`;
   return `${count(value)}${metric === "special-classes" ? "학급" : metric === "special-students" ? "명" : "개교"}`;
 }
 
@@ -118,21 +128,22 @@ export function buildIssueModel(
   data: EducationIssuesFile,
   issue: EducationIssue,
   requestedMetric: string | null,
+  level: IssueLevel = "elem",
 ): IssueMapModel {
   const metric = resolveIssueMetric(issue, requestedMetric);
   const raw = REGION_CODES.map((code) => ({
     code,
-    value: issueValue(bundle, data, metric, code),
+    value: issueValue(bundle, data, metric, code, level),
   }));
   const numbers = raw.flatMap((r) =>
     typeof r.value === "number" ? [r.value] : [],
   );
   const max =
-    metric === "small-share" ? 100 : Math.max(1, ...numbers.map(Math.abs));
+    ["small-share", "unused-share"].includes(metric) ? 100 : Math.max(1, ...numbers.map(Math.abs));
   const colorOf = (value: number | Designation | null): IssueColor => {
     if (value === null) return MISSING;
     if (typeof value === "string") return CATEGORY[value];
-    if (metric === "student-change") {
+    if (metric === "student-change" || metric === "decline-small") {
       const strength = Math.min(1, Math.abs(value) / max);
       const end = value < 0 ? [200, 105, 45] : [47, 143, 122];
       return [
@@ -164,7 +175,7 @@ export function buildIssueModel(
       );
     }
     return (
-      (metric === "student-change"
+      (["student-change", "decline-small"].includes(metric)
         ? Number(a.value) - Number(b.value)
         : Number(b.value) - Number(a.value)) ||
       regionName(a.code).localeCompare(regionName(b.code), "ko")
@@ -172,7 +183,7 @@ export function buildIssueModel(
   });
   const range = changeYearRange(bundle.series.students_total);
   const title =
-    metric === "student-change" && range
+    ["student-change", "decline-small"].includes(metric) && range
       ? `학생수 ${range[0]}→${range[1]} 증감률`
       : METRIC_LABELS[metric];
   let legend: IssueMapModel["legend"];
@@ -181,7 +192,7 @@ export function buildIssueModel(
       label: DESIGNATION_LABELS[value],
       color: colorOf(value),
     }));
-  } else if (metric === "student-change") {
+  } else if (metric === "student-change" || metric === "decline-small") {
     legend = [-max, 0, max].map((value) => ({
       label: formatIssueValue(metric, value),
       color: colorOf(value),
@@ -195,7 +206,10 @@ export function buildIssueModel(
   if (raw.some((r) => r.value === null))
     legend.push({ label: "자료 없음", color: MISSING });
   const note =
-    metric === "designation"
+    metric === "school-size" ? "본교 기준 · 60명 이하 / 61~999명 / 1,000명 이상은 앱의 탐색 구간이며 과밀·부실 판정이 아닙니다. 휴교 포함, 분교 제외."
+    : metric.startsWith("unused-") ? "자료에 수록된 폐교재산 기준입니다. 전체 폐교 이력이 아니며, 비율은 해당 지역 수록 재산을 분모로 합니다. 주소만 제공되므로 개별 위치는 표시하지 않습니다."
+    : metric === "decline-small" ? "면 색은 시군 학생수 증감률, 점은 학생 60명 이하 본교입니다. 서로 다른 집계 단위이며 통폐합 예정이나 정책 효과를 뜻하지 않습니다."
+    : metric === "designation"
       ? "공식 지정 현황입니다. 지정 없음은 안전을 뜻하지 않으며, 지역 소멸을 예측하는 지수가 아닙니다."
       : metric === "student-change"
         ? "같은 기간의 재학생 수 변화입니다. 미래 인구 예측이나 정책 효과를 뜻하지 않습니다."
@@ -206,9 +220,18 @@ export function buildIssueModel(
             : metric === "special-schools"
               ? "특수학교 본교 수입니다. 현재 위치 자료가 없는 학교도 지역 집계와 목록에 포함합니다."
               : "일반학교(초·중·고, 분교 포함)의 특수학급만 집계하며 특수학교는 제외합니다. 수치만으로 지원의 충분·부족을 판단할 수 없습니다.";
-  const source = data.sources[metric === "designation" ? 0 : 1];
+  const source = metric.startsWith("unused-")
+    ? { ...bundle.closedSchools.source, referenceDate: bundle.closedSchools.referenceDate }
+    : data.sources[metric === "designation" ? 0 : 1];
   return {
     issue,
+    level,
+    regionOverlay: metric === "decline-small",
+    readingGuide: metric === "school-size" ? "원의 크기는 학생 수, 색은 규모 구간입니다. 원을 누르면 학교별 수치를 볼 수 있습니다."
+      : metric === "decline-small" ? "시군의 학생 증감률 위에 작은학교를 표시합니다. 주황 테두리는 신입생 0명 학교입니다."
+      : metric.startsWith("unused-") ? "시군의 색이 진할수록 미활용 건수 또는 비율이 큽니다. 지역을 누르면 주소 목록을 확인할 수 있습니다."
+      : issue.id === "special-education" ? "보라색 원은 일반학교 특수학급, ◆는 특수학교입니다. 원 크기는 선택한 학생·학급 수입니다."
+      : "시군을 선택해 지역 현황과 관련 학교를 함께 확인하세요.",
     metric,
     title,
     note,
@@ -220,10 +243,13 @@ export function buildIssueModel(
     provinceText:
       metric === "designation"
         ? `인구감소지역 ${raw.filter((r) => r.value === "decline").length}곳 · 관심지역 ${raw.filter((r) => r.value === "attention").length}곳`
-        : `전북 전체 ${formatIssueValue(metric, issueValue(bundle, data, metric, "52000"))}`,
+        : `${ACTIVE_PROFILE.province.shortName} 전체 ${formatIssueValue(metric, issueValue(bundle, data, metric, PROVINCE_CODE, level))}`,
     schools: bundle.schools.schools
-      .filter((s) => relatedSchool(s, data, metric))
+      .filter((s) => metric.startsWith("unused-") ? false
+        : metric === "school-size" ? data.schools[s.id].isMain && s.level === level
+        : metric === "decline-small" ? relatedSchool(s, data, "small-share")
+        : relatedSchool(s, data, metric))
       .sort((a, b) => a.name.localeCompare(b.name, "ko")),
-    sources: metric === "designation" ? data.sources : [data.sources[1]],
+    sources: metric === "designation" ? data.sources : [source],
   };
 }

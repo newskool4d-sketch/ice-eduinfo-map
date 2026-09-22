@@ -16,8 +16,18 @@ export interface SchoolIssueFacts {
   specialClasses: number | null;
   specialStudents: number | null;
 }
+export type IssueLevel = "elem" | "mid" | "high";
+export interface SpecialTrend {
+  regionCode: string;
+  year: number;
+  regularStudents: number | null;
+  regularClasses: number | null;
+  specialStudents: number | null;
+  specialClasses: number | null;
+}
 export interface EducationIssuesFile {
   version: 1;
+  specialTrends?: SpecialTrend[];
   statsReferenceDate: string;
   sources: IssueSource[];
   designations: Record<RegionCode, Designation | null>;
@@ -34,6 +44,7 @@ export interface EducationIssue {
   status: "published" | "planned";
   metrics: string[];
   dataNeeded?: string;
+  nextQuestion?: string;
 }
 export type IssueColor = [number, number, number, number];
 export interface IssueRegionValue {
@@ -52,5 +63,8 @@ export interface IssueMapModel {
   schools: School[];
   legend: { label: string; color: IssueColor }[];
   provinceText: string;
+  level?: IssueLevel;
+  readingGuide?: string;
+  regionOverlay?: boolean;
   sources: IssueSource[];
 }

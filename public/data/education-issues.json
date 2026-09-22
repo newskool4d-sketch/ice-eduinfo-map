@@ -1,5 +1,607 @@
 {
   "version": 1,
+  "specialTrends": [
+    {
+      "regionCode": "52000",
+      "year": 2022,
+      "regularStudents": 1864,
+      "regularClasses": 422,
+      "specialStudents": 1125,
+      "specialClasses": 215
+    },
+    {
+      "regionCode": "52110",
+      "year": 2022,
+      "regularStudents": 490,
+      "regularClasses": 92,
+      "specialStudents": 463,
+      "specialClasses": 87
+    },
+    {
+      "regionCode": "52130",
+      "year": 2022,
+      "regularStudents": 284,
+      "regularClasses": 53,
+      "specialStudents": 183,
+      "specialClasses": 33
+    },
+    {
+      "regionCode": "52140",
+      "year": 2022,
+      "regularStudents": 296,
+      "regularClasses": 61,
+      "specialStudents": 213,
+      "specialClasses": 40
+    },
+    {
+      "regionCode": "52180",
+      "year": 2022,
+      "regularStudents": 141,
+      "regularClasses": 35,
+      "specialStudents": 84,
+      "specialClasses": 17
+    },
+    {
+      "regionCode": "52190",
+      "year": 2022,
+      "regularStudents": 82,
+      "regularClasses": 21,
+      "specialStudents": 68,
+      "specialClasses": 16
+    },
+    {
+      "regionCode": "52210",
+      "year": 2022,
+      "regularStudents": 114,
+      "regularClasses": 29,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52710",
+      "year": 2022,
+      "regularStudents": 125,
+      "regularClasses": 33,
+      "specialStudents": 114,
+      "specialClasses": 22
+    },
+    {
+      "regionCode": "52720",
+      "year": 2022,
+      "regularStudents": 32,
+      "regularClasses": 9,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52730",
+      "year": 2022,
+      "regularStudents": 29,
+      "regularClasses": 8,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52740",
+      "year": 2022,
+      "regularStudents": 34,
+      "regularClasses": 11,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52750",
+      "year": 2022,
+      "regularStudents": 34,
+      "regularClasses": 12,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52770",
+      "year": 2022,
+      "regularStudents": 39,
+      "regularClasses": 14,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52790",
+      "year": 2022,
+      "regularStudents": 88,
+      "regularClasses": 21,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52800",
+      "year": 2022,
+      "regularStudents": 76,
+      "regularClasses": 23,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52000",
+      "year": 2023,
+      "regularStudents": 1994,
+      "regularClasses": 444,
+      "specialStudents": 1120,
+      "specialClasses": 216
+    },
+    {
+      "regionCode": "52110",
+      "year": 2023,
+      "regularStudents": 534,
+      "regularClasses": 98,
+      "specialStudents": 437,
+      "specialClasses": 83
+    },
+    {
+      "regionCode": "52130",
+      "year": 2023,
+      "regularStudents": 309,
+      "regularClasses": 57,
+      "specialStudents": 196,
+      "specialClasses": 33
+    },
+    {
+      "regionCode": "52140",
+      "year": 2023,
+      "regularStudents": 324,
+      "regularClasses": 64,
+      "specialStudents": 216,
+      "specialClasses": 43
+    },
+    {
+      "regionCode": "52180",
+      "year": 2023,
+      "regularStudents": 162,
+      "regularClasses": 36,
+      "specialStudents": 80,
+      "specialClasses": 19
+    },
+    {
+      "regionCode": "52190",
+      "year": 2023,
+      "regularStudents": 85,
+      "regularClasses": 22,
+      "specialStudents": 73,
+      "specialClasses": 16
+    },
+    {
+      "regionCode": "52210",
+      "year": 2023,
+      "regularStudents": 125,
+      "regularClasses": 31,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52710",
+      "year": 2023,
+      "regularStudents": 121,
+      "regularClasses": 33,
+      "specialStudents": 118,
+      "specialClasses": 22
+    },
+    {
+      "regionCode": "52720",
+      "year": 2023,
+      "regularStudents": 33,
+      "regularClasses": 10,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52730",
+      "year": 2023,
+      "regularStudents": 34,
+      "regularClasses": 9,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52740",
+      "year": 2023,
+      "regularStudents": 33,
+      "regularClasses": 12,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52750",
+      "year": 2023,
+      "regularStudents": 33,
+      "regularClasses": 12,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52770",
+      "year": 2023,
+      "regularStudents": 39,
+      "regularClasses": 14,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52790",
+      "year": 2023,
+      "regularStudents": 83,
+      "regularClasses": 22,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52800",
+      "year": 2023,
+      "regularStudents": 79,
+      "regularClasses": 24,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52000",
+      "year": 2024,
+      "regularStudents": 2182,
+      "regularClasses": 485,
+      "specialStudents": 1189,
+      "specialClasses": 224
+    },
+    {
+      "regionCode": "52110",
+      "year": 2024,
+      "regularStudents": 615,
+      "regularClasses": 110,
+      "specialStudents": 472,
+      "specialClasses": 88
+    },
+    {
+      "regionCode": "52130",
+      "year": 2024,
+      "regularStudents": 338,
+      "regularClasses": 63,
+      "specialStudents": 197,
+      "specialClasses": 33
+    },
+    {
+      "regionCode": "52140",
+      "year": 2024,
+      "regularStudents": 344,
+      "regularClasses": 68,
+      "specialStudents": 231,
+      "specialClasses": 47
+    },
+    {
+      "regionCode": "52180",
+      "year": 2024,
+      "regularStudents": 175,
+      "regularClasses": 41,
+      "specialStudents": 88,
+      "specialClasses": 19
+    },
+    {
+      "regionCode": "52190",
+      "year": 2024,
+      "regularStudents": 91,
+      "regularClasses": 24,
+      "specialStudents": 74,
+      "specialClasses": 15
+    },
+    {
+      "regionCode": "52210",
+      "year": 2024,
+      "regularStudents": 134,
+      "regularClasses": 33,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52710",
+      "year": 2024,
+      "regularStudents": 127,
+      "regularClasses": 37,
+      "specialStudents": 127,
+      "specialClasses": 22
+    },
+    {
+      "regionCode": "52720",
+      "year": 2024,
+      "regularStudents": 44,
+      "regularClasses": 14,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52730",
+      "year": 2024,
+      "regularStudents": 38,
+      "regularClasses": 13,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52740",
+      "year": 2024,
+      "regularStudents": 32,
+      "regularClasses": 12,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52750",
+      "year": 2024,
+      "regularStudents": 35,
+      "regularClasses": 13,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52770",
+      "year": 2024,
+      "regularStudents": 42,
+      "regularClasses": 13,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52790",
+      "year": 2024,
+      "regularStudents": 83,
+      "regularClasses": 21,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52800",
+      "year": 2024,
+      "regularStudents": 84,
+      "regularClasses": 23,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52000",
+      "year": 2025,
+      "regularStudents": 2383,
+      "regularClasses": 522,
+      "specialStudents": 1240,
+      "specialClasses": 228
+    },
+    {
+      "regionCode": "52110",
+      "year": 2025,
+      "regularStudents": 659,
+      "regularClasses": 120,
+      "specialStudents": 496,
+      "specialClasses": 89
+    },
+    {
+      "regionCode": "52130",
+      "year": 2025,
+      "regularStudents": 358,
+      "regularClasses": 66,
+      "specialStudents": 203,
+      "specialClasses": 34
+    },
+    {
+      "regionCode": "52140",
+      "year": 2025,
+      "regularStudents": 377,
+      "regularClasses": 73,
+      "specialStudents": 251,
+      "specialClasses": 48
+    },
+    {
+      "regionCode": "52180",
+      "year": 2025,
+      "regularStudents": 193,
+      "regularClasses": 44,
+      "specialStudents": 85,
+      "specialClasses": 20
+    },
+    {
+      "regionCode": "52190",
+      "year": 2025,
+      "regularStudents": 97,
+      "regularClasses": 28,
+      "specialStudents": 72,
+      "specialClasses": 15
+    },
+    {
+      "regionCode": "52210",
+      "year": 2025,
+      "regularStudents": 159,
+      "regularClasses": 35,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52710",
+      "year": 2025,
+      "regularStudents": 153,
+      "regularClasses": 41,
+      "specialStudents": 133,
+      "specialClasses": 22
+    },
+    {
+      "regionCode": "52720",
+      "year": 2025,
+      "regularStudents": 40,
+      "regularClasses": 16,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52730",
+      "year": 2025,
+      "regularStudents": 43,
+      "regularClasses": 13,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52740",
+      "year": 2025,
+      "regularStudents": 37,
+      "regularClasses": 12,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52750",
+      "year": 2025,
+      "regularStudents": 37,
+      "regularClasses": 13,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52770",
+      "year": 2025,
+      "regularStudents": 51,
+      "regularClasses": 13,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52790",
+      "year": 2025,
+      "regularStudents": 82,
+      "regularClasses": 23,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52800",
+      "year": 2025,
+      "regularStudents": 97,
+      "regularClasses": 25,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52000",
+      "year": 2026,
+      "regularStudents": 2483,
+      "regularClasses": 559,
+      "specialStudents": 1321,
+      "specialClasses": 241
+    },
+    {
+      "regionCode": "52110",
+      "year": 2026,
+      "regularStudents": 702,
+      "regularClasses": 132,
+      "specialStudents": 530,
+      "specialClasses": 93
+    },
+    {
+      "regionCode": "52130",
+      "year": 2026,
+      "regularStudents": 376,
+      "regularClasses": 72,
+      "specialStudents": 206,
+      "specialClasses": 33
+    },
+    {
+      "regionCode": "52140",
+      "year": 2026,
+      "regularStudents": 404,
+      "regularClasses": 81,
+      "specialStudents": 281,
+      "specialClasses": 50
+    },
+    {
+      "regionCode": "52180",
+      "year": 2026,
+      "regularStudents": 178,
+      "regularClasses": 44,
+      "specialStudents": 89,
+      "specialClasses": 20
+    },
+    {
+      "regionCode": "52190",
+      "year": 2026,
+      "regularStudents": 100,
+      "regularClasses": 31,
+      "specialStudents": 69,
+      "specialClasses": 16
+    },
+    {
+      "regionCode": "52210",
+      "year": 2026,
+      "regularStudents": 165,
+      "regularClasses": 38,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52710",
+      "year": 2026,
+      "regularStudents": 158,
+      "regularClasses": 41,
+      "specialStudents": 130,
+      "specialClasses": 22
+    },
+    {
+      "regionCode": "52720",
+      "year": 2026,
+      "regularStudents": 37,
+      "regularClasses": 16,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52730",
+      "year": 2026,
+      "regularStudents": 51,
+      "regularClasses": 16,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52740",
+      "year": 2026,
+      "regularStudents": 33,
+      "regularClasses": 12,
+      "specialStudents": 16,
+      "specialClasses": 7
+    },
+    {
+      "regionCode": "52750",
+      "year": 2026,
+      "regularStudents": 41,
+      "regularClasses": 13,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52770",
+      "year": 2026,
+      "regularStudents": 51,
+      "regularClasses": 14,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52790",
+      "year": 2026,
+      "regularStudents": 85,
+      "regularClasses": 23,
+      "specialStudents": 0,
+      "specialClasses": 0
+    },
+    {
+      "regionCode": "52800",
+      "year": 2026,
+      "regularStudents": 102,
+      "regularClasses": 26,
+      "specialStudents": 0,
+      "specialClasses": 0
+    }
+  ],
   "statsReferenceDate": "2026-04-01",
   "sources": [
     {

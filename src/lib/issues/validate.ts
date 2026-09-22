@@ -1,4 +1,4 @@
-import { REGION_CODES } from "../geo/regions";
+import { PROVINCE_CODE, REGION_CODES } from "../geo/regions";
 import type { SchoolsFile } from "../schools/types";
 import type { EducationIssuesFile } from "./types";
 
@@ -67,4 +67,21 @@ export function assertIssueData(
       if (n !== null && (!Number.isInteger(n) || n < 0)) return fail();
     }
   }
+  if (data.specialTrends !== undefined) {
+    if (!Array.isArray(data.specialTrends)) return fail();
+    const keys = new Set<string>();
+    for (const row of data.specialTrends) {
+      if (!row || ![PROVINCE_CODE, ...REGION_CODES].includes(row.regionCode) ||
+        !Number.isInteger(row.year) || row.year < 1900 || row.year > Number(data.statsReferenceDate.slice(0, 4))) return fail();
+      const key = `${row.regionCode}:${row.year}`;
+      if (keys.has(key)) return fail();
+      keys.add(key);
+      for (const n of [row.regularStudents, row.regularClasses, row.specialStudents, row.specialClasses])
+        if (n !== null && (!Number.isInteger(n) || n < 0)) return fail();
+    }
+    for (const year of new Set(data.specialTrends.map(r => r.year)))
+      for (const code of [PROVINCE_CODE, ...REGION_CODES])
+        if (!keys.has(`${code}:${year}`)) return fail();
+  }
+
 }
