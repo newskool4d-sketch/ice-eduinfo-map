@@ -74,7 +74,7 @@ test.describe("접근성", () => {
     const firstRegionButton = page.getByRole("complementary").getByRole("button", { name: /전주시/ });
     expect(await tabUntilFocused(page, firstRegionButton, 20)).toBe(true);
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "전주시", exact: true })).toBeVisible();
     await openMapSettings(page);
     await page.getByLabel("전북 학교 위치 지도").focus();
     const schoolNames = page.getByRole("button", { name: "학교명", exact: true });

@@ -58,7 +58,7 @@ test.describe("읍면동 경계", () => {
   await openMapSettings(page);
     await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
-    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "전주시", exact: true })).toBeVisible();
 
     // Default ON — no stored preference yet (task brief: "기본 ON").
     const toggle = page.getByRole("button", { name: "읍면동 경계" });

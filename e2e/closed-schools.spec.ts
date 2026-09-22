@@ -29,7 +29,7 @@ test("폐교 지표: /?indicator=closed_schools 진입 → 범례 라벨 → 시
   // substring (with "(게시 2026-07-20)" appended).
   await expect(page.getByTestId("metric-legend").getByText("기준 2026-07-16", { exact: true })).toBeVisible();
 
-  await expect(page.getByRole("heading", { name: "군산시" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "군산시", exact: true })).toBeVisible();
 
   const section = page.getByTestId("closed-schools-section");
   await expect(section).toBeVisible();

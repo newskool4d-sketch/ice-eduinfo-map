@@ -79,7 +79,7 @@ test.describe("시군 선택", () => {
     await page.getByRole("button", { name: /전주시/ }).click();
 
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
-    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "전주시", exact: true })).toBeVisible();
     // RegionList is gone, replaced by the panel.
     await expect(page.getByText("시군을 클릭하거나 목록에서 선택하세요")).not.toBeVisible();
 
@@ -109,7 +109,7 @@ test.describe("시군 선택", () => {
     // selection.
     await page.goBack();
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
-    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "전주시", exact: true })).toBeVisible();
 
     expect(consoleErrors).toEqual([]);
   });
@@ -255,7 +255,7 @@ test.describe("시군 선택", () => {
     }
 
     await expect(page).toHaveURL(REGION_URL);
-    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "전주시", exact: true })).toBeVisible();
 
     // Esc deselects here too, without ever focusing the wrapper (fix round
     // 1, review finding #1) — after a canvas click, deck.gl/mjolnir.js
@@ -279,7 +279,7 @@ test.describe("시군 선택", () => {
     await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
-    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "전주시", exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: /^전체 지표/ }).click();
     const dialog = page.getByRole("dialog", { name: "전체 지표 선택" });
@@ -289,6 +289,6 @@ test.describe("시군 선택", () => {
 
     await expect(dialog).not.toBeVisible();
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
-    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "전주시", exact: true })).toBeVisible();
   });
 });
