@@ -12,6 +12,23 @@ describe("school cylinders", () => {
     expect(chartHeight(0, 0, 12)).toBe(0);
     expect(chartHeight(100, 1000, 13)).toBe(chartHeight(100, 1000, 12) / 2);
   });
+  it("keeps school-count indicators short instead of normalizing one school to maximum height", () => {
+    const facts = JSON.parse(readFileSync("public/data/education-issues.json", "utf8"));
+    const metrics = [
+      schoolChartMetric("schools_total"), schoolChartMetric("small_schools"),
+      schoolChartMetric("zero_entrant_schools", undefined, facts),
+      schoolChartMetric("students_total", "special-schools"),
+    ];
+    for (const metric of metrics) {
+      expect(metric!.heightMode).toBe("school-count");
+      for (const zoom of [10, 16, 18]) {
+        expect(chartHeight(1, 1, zoom, metric!.heightMode)).toBeCloseTo(chartHeight(1, 1, zoom) * 12 / 150, 8);
+        expect(chartHeight(0, 1, zoom, metric!.heightMode)).toBe(0);
+        expect(chartHeight(null, 1, zoom, metric!.heightMode)).toBe(0);
+      }
+    }
+    expect(schoolChartMetric("students_total")!.heightMode).toBeUndefined();
+  });
   it("maps the selected metric and keeps the province-wide scale across filters", () => {
     const metric = schoolChartMetric("students_total")!;
     const max = chartMaximum(schools, metric);

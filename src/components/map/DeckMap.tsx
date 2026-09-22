@@ -426,7 +426,7 @@ export default function DeckMap({
   const chartMetric = useMemo(() => schoolChartMetric(indicatorId, issueModel?.metric, schoolFacts), [indicatorId, issueModel, schoolFacts]);
   const chartMax = useMemo(() => chartMetric ? chartMaximum(bundle.schools.schools, chartMetric) : 0, [bundle.schools, chartMetric]);
   const columnsVisible = scene === "city" && schoolChart === "columns" && chartMetric !== null;
-  const heightOfSchool = useCallback((school: School) => columnsVisible && chartMetric ? chartHeight(chartMetric.value(school), chartMax, zoom) : 0, [columnsVisible, chartMetric, chartMax, zoom]);
+  const heightOfSchool = useCallback((school: School) => columnsVisible && chartMetric ? chartHeight(chartMetric.value(school), chartMax, zoom, chartMetric.heightMode) : 0, [columnsVisible, chartMetric, chartMax, zoom]);
   const schoolLabelsVisible = showSchoolNames && zoom >= SCHOOL_LABEL_MIN_ZOOM;
   const handleSchoolClick = useCallback(
     (id: string) => onHighlightSchool(id),
@@ -894,8 +894,13 @@ export default function DeckMap({
         <div data-testid="school-chart-legend" className="max-w-full rounded border border-line bg-surface/95 px-3 py-2 text-xs text-ink-muted">
           {scene === "flat" ? "원통 높이는 입체 현황판에서 표시됩니다" : chartMetric ? <>
             <p className="font-semibold text-ink">원통 높이 · {chartMetric.label}</p>
-            <p>0 → {chartValueText(chartMax, chartMetric.unit)} · 전북 전체 학교 기준</p>
-            <p>높이는 값에 정비례 · 0·자료 없음은 점으로 표시</p>
+            {chartMetric.heightMode === "school-count" ? <>
+              <p>원통 1개 = 학교 1교 · 낮은 동일 높이</p>
+              <p>집계 제외·자료 없음은 점으로 표시</p>
+            </> : <>
+              <p>0 → {chartValueText(chartMax, chartMetric.unit)} · 전북 전체 학교 기준</p>
+              <p>높이는 값에 정비례 · 0·자료 없음은 점으로 표시</p>
+            </>}
           </> : <p>이 지표는 학교별 높이 자료가 없어 점으로 표시합니다</p>}
         </div>
       )}

@@ -72,3 +72,16 @@ test("원통 클릭은 학교를 선택하고 모바일에서도 전환할 수 �
   await expect(page.getByTestId("school-chart-legend")).toBeVisible();
   await page.screenshot({ path: "test-results/school-columns-mobile.png" });
 });
+
+
+test("학교수는 낮은 동일 높이로 표시한다", async ({ page }) => {
+  await page.goto("/?scene=city&region=52110&indicator=schools_total");
+  await expect(page.getByTestId("school-chart-legend")).toContainText("원통 1개 = 학교 1교 · 낮은 동일 높이");
+  await expect.poll(async () => (await columns(page)).length).toBeGreaterThan(10);
+  const rows = (await columns(page)).filter(s => s.height > 0);
+  expect(new Set(rows.map(s => s.height)).size).toBe(1);
+  const zoom = await page.evaluate(() => window.__jbmap!.deck.getViewports()[0].zoom);
+  const metersPerPixel = 40075016.686 * Math.cos(35.8 * Math.PI / 180) / (512 * 2 ** zoom);
+  expect(rows[0].height / metersPerPixel).toBeCloseTo(12, 1);
+  await page.screenshot({ path: "test-results/school-count-short-columns.png" });
+});

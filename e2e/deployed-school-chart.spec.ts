@@ -22,3 +22,13 @@ test("deployed school cylinders follow the metric and remain readable on mobile"
   await page.screenshot({ path: "test-results/deployed-school-columns-mobile.png" });
   expect(errors).toEqual([]);
 });
+
+test("deployed school counts use short uniform cylinders", async ({ page }) => {
+  const site = process.env.DEPLOYMENT_URL;
+  test.skip(!site, "Requires a deployed site URL");
+  await page.goto(`${site}/?scene=city&region=52110&indicator=schools_total`);
+  await expect(page.getByTestId("school-chart-legend")).toContainText("원통 1개 = 학교 1교 · 낮은 동일 높이");
+  await expect(page.locator("#school-map")).toHaveAttribute("data-map-ready", "true");
+  await page.waitForLoadState("networkidle");
+  await page.screenshot({ path: "test-results/deployed-school-count.png" });
+});
