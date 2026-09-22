@@ -87,7 +87,7 @@ describe("city scene", () => {
   });
   it("bounds tile cache and concurrency and excludes picking", () => {
     const layer = makeBuildingLayer({mobile:true,issueActive:false,retry:0,onStatus:vi.fn()});
-    expect(layer.props).toMatchObject({ minZoom:16,maxZoom:16,maxRequests:2,maxCacheSize:32,maxCacheByteSize:24*1024*1024,pickable:false });
+    expect(layer.props).toMatchObject({ minZoom:16,maxZoom:16,visibleMinZoom:16,maxRequests:2,maxCacheSize:32,maxCacheByteSize:24*1024*1024,pickable:false });
   });
 });
 

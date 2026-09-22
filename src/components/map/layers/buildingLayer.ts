@@ -24,11 +24,14 @@ export function makeBuildingLayer(options: {
     id: `buildings-${options.retry}`,
     TilesetClass: BuildingTileset,
     minZoom: 16, maxZoom: 16, tileSize: 512, extent: BUILDING_EXTENT,
+    visibleMinZoom: options.mobile ? 16 : 15.5,
     maxRequests: options.mobile ? 2 : 4,
     maxCacheSize: options.mobile ? 32 : 64,
     maxCacheByteSize: (options.mobile ? 24 : 64) * 1024 * 1024,
     refinementStrategy: "no-overlap",
     pickable: false,
+    // Rebuild only the sublayers when the issue overlay changes; retain tile data.
+    updateTriggers: { getFillColor: options.issueActive },
     getTileData: async ({ index, signal, id }) => {
       try {
         const response = await fetch(`/api/buildings/v1/16/${index.x}/${index.y}`, { signal });

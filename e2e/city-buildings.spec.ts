@@ -50,6 +50,21 @@ test("city tiles are gated, reused, non-pickable and recover from failures", asy
   await page.getByRole("button",{name:"학교명",exact:true}).click();
   await page.waitForTimeout(300);
   expect(requests).toBe(loaded);
+  await page.getByRole("tab", {name:"교육문제",exact:true}).click();
+  await page.getByRole("button", {name:/학생이 줄어드는 지역의 학교는 어떤 상황인가/}).click();
+  await expect.poll(() => page.evaluate(() => {
+    const deck = window.__jbmap!.deck as unknown as {layerManager:{getLayers:()=>{id:string,props:{getFillColor?:number[]}}[]}};
+    const volumes = deck.layerManager.getLayers().filter(l=>l.id.endsWith("-volume"));
+    return volumes.length > 0 && volumes.every(l=>l.props.getFillColor?.[3]===38);
+  })).toBe(true);
+  expect(requests).toBe(loaded);
+  await page.getByRole("tab", {name:"학교 탐색",exact:true}).click();
+  await expect.poll(() => page.evaluate(() => {
+    const deck = window.__jbmap!.deck as unknown as {layerManager:{getLayers:()=>{id:string,props:{getFillColor?:number[]}}[]}};
+    const volumes = deck.layerManager.getLayers().filter(l=>l.id.endsWith("-volume"));
+    return volumes.length > 0 && volumes.every(l=>l.props.getFillColor?.[3]===64);
+  })).toBe(true);
+  expect(requests).toBe(loaded);
   fail=true;
   await move(page,16,127.425,35.791);
   await expect(page.getByText(/일부 건물 정보를 불러오지 못했습니다/)).toBeVisible();
@@ -57,6 +72,12 @@ test("city tiles are gated, reused, non-pickable and recover from failures", asy
   await page.getByRole("button",{name:"재시도",exact:true}).click();
   await expect(page.getByText(/일부 건물 정보를 불러오지 못했습니다/)).toHaveCount(0);
   await page.screenshot({path:"test-results/city-buildings-desktop.png"});
+  await expect.poll(() => page.evaluate(() => window.__jbmap!.deck.props.layers?.flat().every(l => !l || !("id" in l) || !String(l.id).startsWith("buildings-") || ("isLoaded" in l && l.isLoaded)))).toBe(true);
+  const beforeZoomOut=requests;
+  await move(page,8);
+  await expect(page.getByText("건물은 더 확대하면 표시됩니다")).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(requests).toBe(beforeZoomOut);
 });
 
 test("mobile gates at 16, caps pitch, and remembers explicit flat mode", async ({page}) => {
