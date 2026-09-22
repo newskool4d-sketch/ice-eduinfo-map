@@ -6,7 +6,7 @@ async function waitForMapReady(page: Page) {
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
 }
 
-/** Reads the live `schools` ColumnLayer's `data.length` off the NEXT_PUBLIC_E2E-only window.__jbmap bridge (see DeckMap.tsx / e2e/select-region.spec.ts's readCamera for the same pattern). */
+/** Reads the live `schools` ScatterplotLayer's `data.length` off the NEXT_PUBLIC_E2E-only window.__jbmap bridge (see DeckMap.tsx / e2e/select-region.spec.ts's readCamera for the same pattern). */
 function readSchoolsLayerDataLength(page: Page) {
   return page.evaluate(() => {
     const deck = window.__jbmap?.deck;
@@ -43,7 +43,7 @@ function readLabelLayerIndices(page: Page) {
 }
 
 test.describe("학교 점", () => {
-  test("무주군(?region=52730) 진입 → 패널 학교 목록과 schools 레이어 data 길이 일치 → 첫 행 클릭 시 강조", async ({
+  test("무주군(?region=52730) 진입 → 전체 학교 점 표시 → 첫 행 클릭 시 강조", async ({
     page,
   }) => {
     const consoleErrors: string[] = [];
@@ -63,7 +63,12 @@ test.describe("학교 점", () => {
     expect(rowCount).toBeGreaterThan(10);
 
     const layerDataLength = await readSchoolsLayerDataLength(page);
-    expect(layerDataLength).toBe(rowCount);
+    const positionedSchoolCount = await page.evaluate(async () => {
+      const data = await fetch("/data/schools.json").then((response) => response.json());
+      return data.schools.filter((school: { lat: number | null; lng: number | null }) => school.lat !== null && school.lng !== null).length;
+    });
+    expect(layerDataLength).toBe(positionedSchoolCount);
+    expect(layerDataLength).toBeGreaterThan(rowCount);
 
     // 학교급 4색 legend key appears once a 시군 is selected.
     await expect(page.getByTestId("legend-school-swatch").first()).toBeVisible();
@@ -81,6 +86,24 @@ test.describe("학교 점", () => {
     await docShot(page, "schools-after-highlight");
 
     expect(consoleErrors).toEqual([]);
+  });
+
+  test("학교 이름은 지도를 확대해도 11px로 유지된다", async ({ page }) => {
+    await page.goto("/?region=52110");
+    await waitForMapReady(page);
+    await expect(page.locator('[data-labels-ready="true"]')).toBeAttached({ timeout: 20000 });
+
+    const labelStyle = () => page.evaluate(() => {
+      const layers = window.__jbmap?.deck.props.layers as unknown as
+        ({ id: string; props: { sizeUnits: string; getSize: number } } | null)[];
+      const layer = layers.find((item) => item?.id === "school-labels");
+      if (!layer) throw new Error("school-labels layer missing");
+      return { units: layer.props.sizeUnits, size: layer.props.getSize };
+    });
+
+    expect(await labelStyle()).toEqual({ units: "pixels", size: 11 });
+    await page.getByRole("button", { name: "확대" }).click();
+    expect(await labelStyle()).toEqual({ units: "pixels", size: 11 });
   });
 
   // Task D, fix round 1 — regression test for the review finding: a region's

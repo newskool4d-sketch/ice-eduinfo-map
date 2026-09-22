@@ -27,14 +27,14 @@ function readEmdLayerDataLength(page: Page): Promise<number | null> {
   });
 }
 
-/** Task E brief's layer order: … region-top-rings → emd-boundaries(또는 null) → schools … */
+/** Task E brief's layer order: … regions → emd-boundaries(또는 null) → schools … */
 function readLayerOrderIndices(page: Page) {
   return page.evaluate(() => {
     const deck = window.__jbmap?.deck;
     if (!deck) throw new Error("window.__jbmap not exposed — is NEXT_PUBLIC_E2E=1 set for the dev server?");
     const layers = deck.props.layers as unknown as ({ id: string } | null)[];
     return {
-      regionTopRings: layers.findIndex((l) => l?.id === "region-top-rings"),
+      regions: layers.findIndex((l) => l?.id === "regions"),
       emdBoundaries: layers.findIndex((l) => l?.id === "emd-boundaries"),
       schools: layers.findIndex((l) => l?.id === "schools"),
     };
@@ -42,7 +42,7 @@ function readLayerOrderIndices(page: Page) {
 }
 
 test.describe("읍면동 경계", () => {
-  test("전주(52110) 선택 → emd-boundaries 레이어 표시(순서: region-top-rings 뒤·schools 앞) → 토글 OFF 시 사라짐 → 새로고침 후 OFF 유지 → 다시 ON, 콘솔 error 0", async ({
+  test("전주(52110) 선택 → emd-boundaries 레이어 표시(순서: regions 뒤·schools 앞) → 토글 OFF 시 사라짐 → 새로고침 후 OFF 유지 → 다시 ON, 콘솔 error 0", async ({
     page,
   }) => {
     // CI fix (run 35570411276) — this test's reload/toggle cycle exceeded
@@ -69,8 +69,8 @@ test.describe("읍면동 경계", () => {
     await expect.poll(() => readEmdLayerDataLength(page)).toBeGreaterThan(0);
 
     const order = await readLayerOrderIndices(page);
-    expect(order.regionTopRings).toBeGreaterThanOrEqual(0);
-    expect(order.emdBoundaries).toBeGreaterThan(order.regionTopRings);
+    expect(order.regions).toBeGreaterThanOrEqual(0);
+    expect(order.emdBoundaries).toBeGreaterThan(order.regions);
     expect(order.schools).toBeGreaterThan(order.emdBoundaries);
 
     // OFF: the layer slot goes back to `null` (not merely invisible).

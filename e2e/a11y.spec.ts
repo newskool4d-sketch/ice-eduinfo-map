@@ -107,7 +107,7 @@ test.describe("접근성", () => {
     await page.goto("/");
     await waitForMapReady(page);
 
-    await page.getByLabel("전북 시군 3D 지도").focus();
+    await page.getByLabel("전북 학교 위치 지도").focus();
     const resetView = page.getByRole("button", { name: "전체보기" });
     expect(await tabUntilFocused(page, resetView, 3)).toBe(true);
   });

@@ -18,15 +18,8 @@ import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
 import { makeBasemapLayer, makeBasemapWashLayer } from "@/components/map/layers/basemapLayer";
 import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
-import {
-  makeFootprintLayer,
-  makeIslandsLayer,
-  makeNeighborsLayer,
-  makeRegionsLayer,
-  makeRegionTopRingsLayer,
-} from "@/components/map/layers/regionLayers";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
-import { hasCoordinates, makeSchoolLabelsLayer, makeSchoolsLayer } from "@/components/map/layers/schoolLayers";
+import { hasCoordinates, makeSchoolLabelsLayer } from "@/components/map/layers/schoolLayers";
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
 import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
 import { useCamera } from "@/components/map/useCamera";
@@ -36,13 +29,10 @@ import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
 import { collisionPriorityFromRank, displayLabel, rank, valueMap } from "@/lib/stats";
-import { makeColorScale } from "@/lib/colors";
-import { makeElevationScale } from "@/lib/scales";
-import { makeSchoolHeightScale } from "@/lib/schoolVisuals";
 import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipText";
 import { regionRankList, selectionAnnouncement } from "@/lib/selection";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { ringsOf } from "@/lib/geo/geo";
+import { makeFlatRegionsLayer, makeFlatSchoolsLayer } from "@/components/map/layers/flatMapLayers";
 
 // Task 2 fix round 1 — give deck.gl's post-processing render buffers a depth
 // attachment (see deckDepthPatch.ts); module scope so the prototype is
@@ -248,8 +238,6 @@ export default function DeckMap({
 
   const file = bundle.indicators[indicatorId];
   const map = useMemo(() => valueMap(file), [file]);
-  const elevationOf = useMemo(() => makeElevationScale(def, map), [def, map]);
-  const { colorOf } = useMemo(() => makeColorScale(def, map), [def, map]);
   const label = useMemo(() => displayLabel(def, bundle.series), [def, bundle.series]);
 
   // Rank order for keyboard ←/→ cycling ("현재 순위 순") and, indirectly (via
@@ -325,55 +313,18 @@ export default function DeckMap({
     [bundle.regionsMain],
   );
 
-  // Task A — region-top-rings' data: one `{code, ring}` entry per ring (a
-  // MultiPolygon region, or one with interior holes, contributes multiple
-  // entries sharing the same code), for EVERY 시군 at once — see
-  // `makeRegionTopRingsLayer`'s own doc comment. Own useMemo (not inlined in
-  // `layers` below), same reasoning as `labels` just above: this reference
-  // only changes when `bundle.regionsMain` itself changes, never on a
-  // selection/indicator-only re-render.
-  const rings = useMemo(
-    () => bundle.regionsMain.features.flatMap((f) => ringsOf(f).map((ring) => ({ code: f.properties.code, ring }))),
-    [bundle.regionsMain],
-  );
-
   const characterSet = useMemo(() => Array.from(bundle.charset), [bundle.charset]);
 
   const views = useMemo(() => VIEW, []);
 
-  // Task D — 학교 기둥. heightOf is scaled over the FULL schools.json list
-  // (bundle.schools, stable across a selection change) so column heights
-  // never silently mean something different when the user picks a
-  // different 시군 — see makeSchoolHeightScale's doc comment. `heightKey`
-  // is a stable identity for that scale's domain (schoolLayers.ts's own
-  // `heightKey` option doc explains why it's needed at all).
-  const heightOf = useMemo(() => makeSchoolHeightScale(bundle.schools.schools), [bundle.schools]);
-  const heightKey = bundle.schools.referenceDate.stats;
-
-  // Only the selected 시군's schools are ever handed to the layers/data —
-  // per the task brief, both the point layer and the label layer only ever
-  // render the selected region's schools (`visible` below additionally
-  // gates the whole layer off when nothing is selected at all).
-  const regionSchools = useMemo(
-    () => (selectedCode ? bundle.schools.schools.filter((s) => s.regionCode === selectedCode) : []),
-    [bundle.schools, selectedCode],
+  const positionedSchools = useMemo(
+    () => bundle.schools.schools.filter(hasCoordinates),
+    [bundle.schools],
   );
-  // fix-round-2 (review finding #1): coordinate-filtering used to happen
-  // INSIDE makeSchoolsLayer/makeSchoolLabelsLayer themselves, on every call —
-  // which allocated a brand-new array identity every time `layers` below
-  // recomputed, including for reasons unrelated to which schools are
-  // selected (e.g. a highlight click; `highlightedSchoolId` is one of
-  // `layers`' own deps). deck.gl treats a new `data` array as "everything
-  // changed" and rebuilds every attribute buffer (`invalidateAll()`),
-  // defeating the layers' own scoped `updateTriggers`. Filtering HERE
-  // instead, keyed only on `regionSchools`, keeps this array's identity —
-  // and therefore both
-  // layers' `data` identity, since they're both handed this SAME array —
-  // stable across a highlight-only re-render; it only changes when the
-  // selected region's school set itself actually changes. See
-  // tests/unit/schoolLayers.test.ts's "data reference stability" block.
-  const positionedRegionSchools = useMemo(() => regionSchools.filter(hasCoordinates), [regionSchools]);
-  const schoolsVisible = !!selectedCode;
+  const positionedRegionSchools = useMemo(
+    () => selectedCode ? positionedSchools.filter((school) => school.regionCode === selectedCode) : [],
+    [positionedSchools, selectedCode],
+  );
   const schoolLabelsVisible = !!selectedCode && zoom >= SCHOOL_LABEL_MIN_ZOOM;
 
   // A school point (or its RegionPanel row counterpart) was clicked: toggle
@@ -381,9 +332,13 @@ export default function DeckMap({
   // it. Mirrors handleRegionClick's own "reselect == toggle" shape.
   const handleSchoolClick = useCallback(
     (id: string) => {
+      const school = positionedSchools.find((item) => item.id === id);
+      if (school && school.regionCode !== selectedCode && isRegionCode(school.regionCode)) {
+        onSelect(school.regionCode);
+      }
       onHighlightSchool(id === highlightedSchoolId ? null : id);
     },
-    [highlightedSchoolId, onHighlightSchool],
+    [positionedSchools, selectedCode, onSelect, highlightedSchoolId, onHighlightSchool],
   );
 
   const getRegionTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
@@ -654,62 +609,19 @@ export default function DeckMap({
   const emdFc = useEmdBoundaries(selectedCode, emdEnabled);
 
   const layers = useMemo<LayersList>(() => {
-    const transitionDuration = reduceMotion ? 0 : undefined; // undefined -> each factory's own 600ms default
+    const transitionDuration = reduceMotion ? 0 : undefined;
     const layerList: LayersList = [
-      // Task C — always slot 0 (front of the array), `null` (not omitted,
-      // not nested) when off — e2e/basemap.spec.ts reads
-      // `deck.props.layers[0]` directly, and `layers` must stay a FLAT array
-      // (a nested array here would break that same test's plain `.find`).
       basemapLayer,
-      // Task 3 — slot 1: the white wash, drawn right over the tiles and
-      // under everything else; `null` in lockstep with `basemapLayer`.
       basemapWashLayer,
-      makeNeighborsLayer(bundle.neighbors, { masked: basemapOn }),
-      makeFootprintLayer(bundle.regions),
-      makeRegionsLayer(bundle.regionsMain, {
-        elevationOf,
-        fillColorOf: colorOf,
-        triggerKey: indicatorId,
-        selectedCode,
-        onClick: handleRegionClick,
-        transitionDuration,
-      }),
-      makeIslandsLayer(bundle.regionsIslands, {
-        fillColorOf: colorOf,
-        triggerKey: indicatorId,
-        selectedCode,
-        onClick: handleRegionClick,
-        transitionDuration,
-      }),
-      makeRegionTopRingsLayer(rings, {
-        elevationOf,
-        selectedCode,
-        triggerKey: indicatorId,
-        transitionDuration,
-      }),
-      // Task E — 읍면동 경계: `null` (a flat array slot, same as
-      // `basemapLayer` above — e2e does a flat `find` on `deck.props.layers`)
-      // when off/nothing selected/not yet loaded. Sits just after
-      // region-top-rings and before schools, per the task brief's layer
-      // order — thin outline drawn on the selected region's top face,
-      // beneath the school columns.
+      makeFlatRegionsLayer(bundle.regions, selectedCode, handleRegionClick),
       emdEnabled && selectedCode && emdFc
         ? makeEmdBoundaryLayer(emdFc, {
-            elevation: elevationOf(selectedCode),
+            elevation: 1,
             triggerKey: indicatorId,
             transitionDuration,
           })
         : null,
-      makeSchoolsLayer(positionedRegionSchools, {
-        elevationOf,
-        heightOf,
-        heightKey,
-        highlightedId: highlightedSchoolId,
-        visible: schoolsVisible,
-        onClick: handleSchoolClick,
-        triggerKey: indicatorId,
-        transitionDuration,
-      }),
+      makeFlatSchoolsLayer(positionedSchools, highlightedSchoolId, handleSchoolClick),
     ];
     if (fontReady) {
       // Task D, fix round 1 — school-labels is pushed BEFORE region-labels
@@ -739,9 +651,9 @@ export default function DeckMap({
       // ends up on top of the final composited frame regardless.
       layerList.push(
         makeSchoolLabelsLayer(positionedRegionSchools, {
-          elevationOf,
-          heightOf,
-          heightKey,
+          elevationOf: () => 0,
+          heightOf: () => 0,
+          heightKey: "flat",
           visible: schoolLabelsVisible,
           fontFamily,
           characterSet,
@@ -749,7 +661,7 @@ export default function DeckMap({
           transitionDuration,
         }),
         makeRegionLabelLayer(labels, {
-          elevationOf,
+          elevationOf: () => 0,
           textOf: labelTextOf,
           triggerKey: indicatorId,
           fontFamily,
@@ -762,35 +674,10 @@ export default function DeckMap({
     }
     return layerList;
   }, [
-    basemapLayer,
-    basemapWashLayer,
-    basemapOn,
-    bundle.regions,
-    bundle.regionsMain,
-    bundle.regionsIslands,
-    bundle.neighbors,
-    elevationOf,
-    colorOf,
-    indicatorId,
-    selectedCode,
-    handleRegionClick,
-    rings,
-    emdEnabled,
-    emdFc,
-    positionedRegionSchools,
-    heightOf,
-    heightKey,
-    highlightedSchoolId,
-    schoolsVisible,
-    schoolLabelsVisible,
-    handleSchoolClick,
-    fontReady,
-    labels,
-    labelTextOf,
-    fontFamily,
-    characterSet,
-    priorityOf,
-    reduceMotion,
+    basemapLayer, basemapWashLayer, bundle.regions, selectedCode, handleRegionClick,
+    emdEnabled, emdFc, indicatorId, positionedSchools, positionedRegionSchools,
+    highlightedSchoolId, handleSchoolClick, fontReady, schoolLabelsVisible,
+    fontFamily, characterSet, labels, labelTextOf, priorityOf, reduceMotion,
   ]);
 
   // Fires every frame. The first frame after the initial view state is
@@ -856,7 +743,7 @@ export default function DeckMap({
       className="relative h-full w-full bg-paper outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
       style={WIDGET_THEME_STYLE}
       tabIndex={0}
-      aria-label="전북 시군 3D 지도"
+      aria-label="전북 학교 위치 지도"
       onKeyDown={handleWrapperKeyDown}
       // 사용자 요구(2026-09-21): 지도 위 우클릭은 아무 조작도 아니므로(회전 제거)
       // 브라우저 컨텍스트 메뉴가 뜨지 않게 한다.

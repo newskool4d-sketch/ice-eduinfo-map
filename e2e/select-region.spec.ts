@@ -20,7 +20,7 @@ async function waitForMapReady(page: Page) {
   await expect(page.locator('[data-labels-ready="true"]')).toBeAttached({ timeout: 20000 });
 }
 
-const MAP_WRAPPER_LABEL = "전북 시군 3D 지도";
+const MAP_WRAPPER_LABEL = "전북 학교 위치 지도";
 
 /** 전주시's labelPoint, read directly from the built regions.geojson (no browser round-trip needed). */
 function jeonjuLabelPoint(): [number, number] {

@@ -108,14 +108,9 @@ export default function Legend({
             const [r, g, b] = SCHOOL_LEVEL_COLORS[level];
             return (
               <span key={level} className="flex items-center gap-1">
-                {/* Task D — 기둥 상징: a small square (was a rounded-full
-                    dot), echoing the map's own school ColumnLayer swatches
-                    (a column viewed from directly above reads as a small
-                    square, not a circle) now that schools render as 3D
-                    columns rather than flat points. */}
                 <span
                   data-testid="legend-school-swatch"
-                  className="h-2.5 w-2.5 rounded-sm ring-1 ring-inset ring-ink/10"
+                  className="h-2.5 w-2.5 rounded-full ring-1 ring-inset ring-ink/10"
                   style={{ backgroundColor: rgbCss([r, g, b]) }}
                   aria-hidden
                 />

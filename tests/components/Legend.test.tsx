@@ -167,7 +167,7 @@ describe("Legend", () => {
   // Task D — 학교 레이어가 점(ScatterplotLayer)에서 기둥(ColumnLayer)으로 바뀌면서,
   // 범례 스와치도 원(rounded-full)이 아니라 작은 사각형으로 바뀐다(기둥을 위에서
   // 내려다본 모양의 상징).
-  it("renders 학교급 swatches as small squares (기둥 상징), not circles", () => {
+  it("renders 학교급 swatches as circles matching the map dots", () => {
     render(
       <Legend
         def={baseDef()}
@@ -179,12 +179,7 @@ describe("Legend", () => {
       />,
     );
     for (const swatch of screen.getAllByTestId("legend-school-swatch")) {
-      // fix round 1/5 (review, Minor) — positively assert the actual square
-      // class, not just the absence of the old circle class (an assertion
-      // that could still pass if the shape class were removed entirely,
-      // not merely replaced).
-      expect(swatch.className).toContain("rounded-sm");
-      expect(swatch.className).not.toContain("rounded-full");
+      expect(swatch.className).toContain("rounded-full");
     }
   });
 
