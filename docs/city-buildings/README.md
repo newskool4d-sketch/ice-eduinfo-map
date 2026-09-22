@@ -51,3 +51,5 @@ Apple M4 / ANGLE Metal / Chromium 창 모드에서 2초 연속 이동 rAF 표본
 - 학교 선택 줌 16, 최대 줌 18, 5px/11px 고정, 실제 건물 위 학교 picking, 두 교육문제의 alpha 38(약 15%), URL/저장 설정/뒤로가기, 요청 취소 및 타일 재사용을 검증했다.
 - 서울 미리보기 API `/api/buildings/v1/16/55914/25774`: 680동, complete=true, 첫 요청 MISS → 다음 요청 HIT(age 33), 동일 조회 시각/내용. 실패 응답은 502 + no-store + MISS였다.
 - 운영 smoke 테스트는 `DEPLOYMENT_URL=https://jb-edu-map.vercel.app npx playwright test e2e/deployed-city.spec.ts --headed --workers=1`로 재현한다.
+
+운영 배포 완료: https://jb-edu-map.vercel.app (구현 커밋 `1071d8c`, 2026-09-22). 운영 브라우저 smoke 1개가 통과했으며 학교 선택, 두 교육문제, 입체/평면 및 모바일 컨트롤을 실제 API와 함께 확인했다. `deployed-city-*.png`는 요청 완료 후 캡처한 운영 화면이다. 운영 김제 타일도 1,211동 / complete=true / MISS → HIT(age 1)로 확인했다. 지표 전환 중 타일 요청 증가 없이 alpha 64↔38 갱신, 급격한 축소 시 추가 건물 요청 0건도 회귀 테스트로 확인했다.
