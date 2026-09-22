@@ -18,13 +18,21 @@ import {
 import type { EducationIssuesFile, IssueMapModel } from "@/lib/issues/types";
 import type { School } from "@/lib/schools/types";
 import { SCHOOL_LEVEL_LABELS } from "@/lib/schoolVisuals";
-import Sparkline from "@/components/ui/Sparkline";
+import TimeSeriesChart from "@/components/ui/TimeSeriesChart";
+import { indicatorById } from "@/lib/indicators/registry";
+import { trend as seriesTrend } from "@/lib/stats";
 import { useMapQuery } from "@/lib/state/urlState";
 import { IssueComparison, IssueDetails } from "./IssueDetails";
 import { SchoolDetail } from "./SchoolExplorer";
 
 const button =
   "min-h-11 rounded-lg border border-line px-3 py-2 text-xs hover:bg-paper";
+const ISSUE_TREND_INDICATOR: Record<string, string> = {
+  "decline-small": "students_total",
+  "student-change": "students_total",
+  "small-share": "small_school_share",
+  "zero-entrants": "zero_entrant_schools",
+};
 export function IssueLegend({ model }: { model: IssueMapModel }) {
   const unit =
     ["librarian-schools", "counselor-schools"].includes(model.metric)
@@ -157,10 +165,16 @@ export default function IssueExplorer({
   const scopeSchools = bundle.schools.schools.filter(
     (s) => !region || s.regionCode === region,
   );
-  const trend =
-    bundle.series.students_total?.rows
-      .filter((r) => r.regionCode === scope)
-      .sort((a, b) => a.year - b.year) ?? [];
+  const trendId = ISSUE_TREND_INDICATOR[model.metric];
+  const trendDefinition = trendId ? indicatorById(trendId) : null;
+  const specialTrend = ["special-classes", "special-students"].includes(model.metric);
+  const trendRows = specialTrend
+    ? (data.specialTrends ?? []).filter((row) => row.regionCode === scope).map((row) => ({
+        year: row.year,
+        value: model.metric === "special-classes" ? row.regularClasses : row.regularStudents,
+      }))
+    : trendId && bundle.series[trendId]
+      ? seriesTrend(bundle.series[trendId], scope) : [];
   const relatedModels = definition.metrics.map((metric) =>
     buildIssueModel(bundle, data, definition, metric, query.issueLevel),
   );
@@ -216,6 +230,14 @@ export default function IssueExplorer({
         </p>
         <p className="mt-2 text-xs text-ink-muted">{model.date}</p>
       </div>
+      {(trendDefinition || specialTrend) && <TimeSeriesChart
+        key={`${model.metric}:${scope}`}
+        data={trendRows}
+        label={specialTrend ? model.title : trendDefinition!.label}
+        place={region ? regionName(region) : `${ACTIVE_PROFILE.province.shortName} 전체`}
+        unit={specialTrend ? (model.metric === "special-classes" ? "학급" : "명") : trendDefinition!.unit}
+        format={specialTrend ? (value) => value.toLocaleString("ko-KR") : trendDefinition!.format}
+      />}
       <div className="rounded-xl bg-accent-soft p-3 text-sm leading-relaxed"><strong>지도 읽는 법</strong><p className="mt-1">{model.readingGuide}</p></div>
       {model.metric === "decline-small" && <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={query.zeroEntrants} onChange={e => query.setZeroEntrants(e.target.checked)} />신입생 0명 학교 강조</label>}
       <p className="text-xs leading-relaxed text-ink-muted">{model.note}</p>
@@ -292,20 +314,6 @@ export default function IssueExplorer({
               }
               개교 · 본교 기준
             </p>
-            <h4 className="text-xs font-semibold">학생수 추이</h4>
-            <Sparkline data={trend} />
-            <dl className="flex flex-wrap gap-3 text-xs">
-              {trend.map((r) => (
-                <div key={r.year}>
-                  <dt className="text-ink-muted">{r.year}</dt>
-                  <dd>
-                    {r.value === null
-                      ? "자료 없음"
-                      : `${r.value.toLocaleString("ko-KR")}명`}
-                  </dd>
-                </div>
-              ))}
-            </dl>
           </>
         ) : definition.id === "special-education" ? (
           <div className="rounded-lg bg-paper p-3 text-xs leading-relaxed">

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import Sparkline from "@/components/ui/Sparkline";
+import TimeSeriesChart from "@/components/ui/TimeSeriesChart";
 import type { DataBundle } from "@/lib/data/types";
 import { REGION_CODES, regionName } from "@/lib/geo/regions";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
@@ -48,7 +48,7 @@ interface OtherIndicatorRow {
 
 /**
  * The right panel's selected state: the current indicator's value/rank/전북
- * 대비 for `regionCode`, its 5-year trend (Sparkline), and a full 15-row
+ * 대비 for `regionCode`, its annual trend, and a full indicator
  * "다른 지표" table. Self-contained like IndicatorMenu/RegionList — reads
  * `indicatorId`/`regionCode` and writes both via useMapQuery() itself, so
  * Dashboard only needs to pass the loaded data bundle (and only render this
@@ -197,10 +197,17 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         )}
       </section>
 
-      <section className="mb-4">
-        <p className="mb-1 text-xs text-ink-muted">추이</p>
-        {seriesFile ? <Sparkline data={trendRows} /> : <p className="text-xs text-ink-muted">추이 없음</p>}
-      </section>
+      <div className="mb-4">
+        <TimeSeriesChart
+          key={`${indicatorId}:${regionCode}`}
+          data={trendRows}
+          label={label}
+          place={regionName(regionCode)}
+          unit={def.unit}
+          format={def.format}
+          onShowStudents={indicatorId === "students_change_5y" ? () => setIndicator("students_total") : undefined}
+        />
+      </div>
 
       <section className="mb-4">
         <p className="mb-1 text-xs text-ink-muted">다른 지표</p>

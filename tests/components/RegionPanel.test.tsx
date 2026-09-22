@@ -237,7 +237,7 @@ describe("RegionPanel", () => {
     expect(screen.getByTestId("region-panel-caveat")).toHaveTextContent(smallSchoolsDef.caveat!);
   });
 
-  it("renders a sparkline trend when a series file exists for the current indicator", () => {
+  it("renders annual values when a series file exists for the current indicator", () => {
     renderSelected(`?region=${REGION}&indicator=students_total`);
     expect(screen.getByRole("img", { name: /2022년부터 2026년까지/ })).toBeInTheDocument();
     expect(screen.queryByText("추이 없음")).not.toBeInTheDocument();

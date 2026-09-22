@@ -7,6 +7,10 @@ import { indicatorById } from "@/lib/indicators/registry";
 import { regionRankList } from "@/lib/selection";
 import { displayLabel, rank, valueMap } from "@/lib/stats";
 import { useMapQuery } from "@/lib/state/urlState";
+import TimeSeriesChart from "@/components/ui/TimeSeriesChart";
+import { PROVINCE_CODE } from "@/lib/geo/regions";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
+import { trend } from "@/lib/stats";
 
 export interface RegionListProps {
   bundle: Pick<DataBundle, "indicators" | "series">;
@@ -23,7 +27,7 @@ function rgbCss([r, g, b]: readonly number[]): string {
  * useMapQuery(), so Dashboard only needs to pass the loaded data bundle.
  */
 export default function RegionList({ bundle }: RegionListProps) {
-  const { indicatorId, setRegion } = useMapQuery();
+  const { indicatorId, setRegion, setIndicator } = useMapQuery();
 
   const def = indicatorById(indicatorId);
   if (!def) throw new Error(`RegionList: unknown indicatorId "${indicatorId}"`);
@@ -34,9 +38,21 @@ export default function RegionList({ bundle }: RegionListProps) {
   const ranks = rank(map);
   const orderedCodes = regionRankList(map);
   const { colorOf } = makeColorScale(def, map);
+  const provinceTrend = bundle.series[indicatorId] ? trend(bundle.series[indicatorId], PROVINCE_CODE) : [];
 
   return (
     <div>
+      <div className="mb-4">
+        <TimeSeriesChart
+          key={indicatorId}
+          data={provinceTrend}
+          label={label}
+          place={`${ACTIVE_PROFILE.province.shortName} 전체`}
+          unit={def.unit}
+          format={def.format}
+          onShowStudents={indicatorId === "students_change_5y" ? () => setIndicator("students_total") : undefined}
+        />
+      </div>
       <p className="mb-3 text-sm text-ink-muted">시군을 클릭하거나 목록에서 선택하세요</p>
       <p className="mb-2 text-xs text-ink-muted">{label} 기준</p>
       <ul className="flex flex-col gap-1">
