@@ -1,6 +1,6 @@
 import type { DataBundle } from "@/lib/data/types";
 
-import IndicatorMenu from "./IndicatorMenu";
+import MapTopicMenu from "./MapTopicMenu";
 import KpiTiles, { KPI_INDICATOR_IDS } from "./KpiTiles";
 
 export interface TopBarProps {
@@ -51,7 +51,7 @@ export default function TopBar({ bundle }: TopBarProps) {
       <span className="shrink-0 text-base font-semibold text-ink">전북교육지도</span>
 
       {bundle ? (
-        <IndicatorMenu series={bundle.series} />
+        <MapTopicMenu series={bundle.series} />
       ) : (
         <SkeletonBar className="h-7 w-56" />
       )}

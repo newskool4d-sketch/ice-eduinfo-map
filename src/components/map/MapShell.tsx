@@ -61,12 +61,13 @@ export default function MapShell(props: DeckMapProps) {
   // highlightedSchoolId/onHighlightSchool are never relevant to it.
   const fallbackProps = useMemo(
     () => ({
+      issueModel: props.issueModel,
       indicatorId: props.indicatorId,
       bundle,
       selectedCode: props.selectedCode,
       onSelect: props.onSelect,
     }),
-    [props.indicatorId, bundle, props.selectedCode, props.onSelect],
+    [props.indicatorId, bundle, props.selectedCode, props.onSelect, props.issueModel],
   );
 
   let content: ReactNode;

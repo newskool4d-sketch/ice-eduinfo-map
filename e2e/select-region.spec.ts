@@ -82,16 +82,11 @@ test.describe("시군 선택", () => {
     // RegionList is gone, replaced by the panel.
     await expect(page.getByText("시군을 클릭하거나 목록에서 선택하세요")).not.toBeVisible();
 
-    // Let the fly-to transition (FlyToInterpolator, transitionDuration:
-    // 'auto') settle before asserting the camera / taking the "after" shot.
-    // CI fix (run 35570411276) — a fixed 2s wait + one-shot pitch read raced
-    // the transition on CI's slow software-GL runner (observed 57.19/57.06,
-    // not yet 58): poll instead, frame-rate-independent, up to 15s.
-    // Task B — FIT_REGION_PITCH 55 → 58 (camera.ts).
-    await expect.poll(async () => (await readCamera(page)).pitch, { timeout: 15000 }).toBe(0);
-
-    const selectedCamera = await readCamera(page);
-    expect(selectedCamera.zoom).toBeGreaterThan(overviewCamera.zoom);
+    // The flat map's pitch is always zero, so wait for zoom movement to
+    // confirm the asynchronous camera transition has actually started.
+    await expect.poll(async () => (await readCamera(page)).zoom, { timeout: 15000 })
+      .toBeGreaterThan(overviewCamera.zoom);
+    expect((await readCamera(page)).pitch).toBe(0);
 
     await docShot(page, "select-region-after");
 

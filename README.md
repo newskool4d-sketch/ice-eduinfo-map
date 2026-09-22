@@ -37,7 +37,7 @@
 | `npm run data:indicators` | 지표 집계 데이터 생성 |
 | `npm run data:charset` | 폰트/문자셋 서브셋 생성 |
 | `npm run data:validate` | 생성된 데이터 검증 |
-| `npm run data:build` | `regions → emd → kess → schools → indicators → charset → validate` 순으로 데이터 파이프라인 전체 실행 (학교 점 레이어 포함) |
+| `npm run data:build` | `regions → emd → kess → schools → indicators → issues → charset → validate` 순으로 데이터 파이프라인 전체 실행 (학교 점 레이어 포함) |
 
 ## CI
 
@@ -63,7 +63,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
    - 폐교재산 현황: `전북특별자치도교육청_폐교재산 현황_YYYYMMDD.csv` — 마찬가지로 파일명 끝의 날짜가 기준일자입니다.
    - 행정구역 경계: `data/raw/admdongkor-ver20260701.geojson` — 파일명의 `verYYYYMMDD` 가 기준일자입니다. 새 버전을 받으면 `scripts/pipeline/sources.ts`의 `BOUNDARY_SOURCE.url`(vuski/admdongkor의 새 `verYYYYMMDD` 태그)도 함께 갱신해야 합니다.
    - KESS 교육기본통계: `kess-<연도>.xlsx` (예: `kess-2026.xlsx`) — 파일명이 아니라 파일 내용에서 기준일자를 읽습니다(`npm run data:kess` 실행 로그의 `referenceDate=...` 로 확인 가능). `data:kess`가 `data/raw/`에 없는 연도 파일을 자동으로 내려받으려 시도합니다.
-2. **`npm run data:build` 를 실행합니다.** `regions → emd → kess → schools → indicators → charset → validate` 순으로 전체 파이프라인이 돌고, 마지막 `data:validate` 단계가 실패하면(학교수/학생수/교원수 공식치 대비 오차, 좌표-시군 정합성, 매칭률 100% 등) 0이 아닌 종료 코드와 함께 무엇이 틀렸는지 표로 보여줍니다 — 이 단계를 통과하지 못한 데이터는 커밋하지 않습니다.
+2. **`npm run data:build` 를 실행합니다.** `regions → emd → kess → schools → indicators → issues → charset → validate` 순으로 전체 파이프라인이 돌고, 마지막 `data:validate` 단계가 실패하면(학교수/학생수/교원수 공식치 대비 오차, 좌표-시군 정합성, 매칭률 100% 등) 0이 아닌 종료 코드와 함께 무엇이 틀렸는지 표로 보여줍니다 — 이 단계를 통과하지 못한 데이터는 커밋하지 않습니다.
 3. **`git status`/`git diff public/data/` 로 실제 변경 내용을 확인합니다.** `public/data/manifest.json`의 `builtAt` 필드는 실행할 때마다 항상 바뀌므로, 그 외 내용이 정말 달라졌는지(지표 값, 연도, 학교 수 등) 확인한 뒤 커밋하세요. `builtAt`만 바뀌고 나머지가 동일하다면(원천 데이터가 그대로인 재실행 등) 그 변경은 커밋하지 않아도 됩니다.
 4. `public/data/**`(그리고 필요 시 `data/interim/**`, `data/manual/label-offsets.json` 처럼 수동으로 조정한 파일)를 커밋합니다. `data/raw/**` 는 원천 파일이라 `.gitignore` 로 제외되어 있으니 커밋하지 않습니다.
 
@@ -86,3 +86,27 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 - **다문화(이주배경) 학생 지표** — KESS 통계표(`[주제별] 이주배경(유형별) 학생수`)는 존재하지만, 공개 출처에서 시군 단위로 분해된 데이터를 확보하지 못해 1차 범위에서 제외했습니다.
 - **연도 슬라이더** — 특정 연도를 직접 골라보는 UI는 1차 범위에 포함되지 않았습니다. 연도별 추이는 시군 선택 시 RegionPanel의 스파크라인으로 확인할 수 있습니다.
 - **배경 타일 지도** — 브이월드 일반지도(`Base`, 원래 색상과 해상도)를 제공합니다. `NEXT_PUBLIC_VWORLD_KEY`가 필요합니다.
+
+
+## 교육문제 탐색
+
+`교육문제` 탭에서 질문을 선택하면 일반지도 위에 시군별 현황을 반투명 색으로 표시하고 관련 학교를 점과 목록으로 보여줍니다. 지도·비교 목록·범례는 동일한 모델을 사용합니다. `view=issues&issue=regional-sustainability&issueMetric=designation&region=52720`처럼 질문·지표·지역을 URL로 공유할 수 있습니다. 기존 `indicator`·`region` 링크도 유지됩니다.
+
+첫 공개 질문은 다음 두 가지입니다.
+
+- **지역의 지속가능성과 학교**: 행정안전부 인구감소지역·관심지역 지정 현황, 2022→2026 학생수 증감률, 본교 중 학생 60명 이하 학교 비율, 신입생 0명 본교 수.
+- **특수교육의 지역별 분포**: 일반학교 특수학급 수·특수교육 학생수와 특수학교 수를 구분합니다. 좌표가 없는 특수학교 11개교도 집계와 목록에 포함합니다.
+
+공식 지정은 미래 소멸 예측이 아니며, 소규모학교 기준은 앱의 탐색 기준입니다. 결측값은 0으로 바꾸지 않습니다. 정책 문서 발행일, 교육통계 기준일, 지정 현황 확인일을 구분해 표시합니다.
+
+### 출처와 갱신
+
+- 정책 질문의 근거: [전북교육청 인수위원회 활동 백서](https://www.jbe.go.kr/board/view.jbe?boardId=BBS_0000002&dataSid=1160997), 2026-08-05 발행. 과제 번호와 쪽수는 `src/lib/issues/registry.ts`에 기록합니다.
+- 지정 현황: [행정안전부 인구감소지역 지정](https://www.mois.go.kr/frt/sub/a06/b06/populationDecline/screen.do). `data/manual/population-designations.json`의 상태와 확인일을 공식 자료와 대조해 갱신합니다.
+- 학교별 교육통계: 기존 KESS 원천의 KEDI 코드를 기준으로 학교명·시군·학교급·분교 여부까지 대조합니다. `npm run data:issues`가 `public/data/education-issues.json`을 생성하며 `npm run data:validate`가 14개 시군과 학교별 자료의 식별자·값을 검증합니다.
+
+교육문제 자료는 해당 탭에서 별도로 불러오며 실패 시 다시 시도할 수 있습니다. 기존 학교 탐색에는 영향을 주지 않습니다. 갱신 시 학교 자료와 교육문제 자료를 함께 생성·검증·배포합니다.
+
+### 후속 질문 공개 조건
+
+기초학력, 독서, 돌봄, 마음건강, 진로, AI교육은 레지스트리에 준비 상태로 등록하고 화면에는 노출하지 않습니다. 각 질문의 `dataNeeded`에 맞는 공개 자료를 확보한 뒤 지역코드·연도·집계 단위·분모·결측값을 검증하고, 출처·지표 정의·지도 표현·검증 테스트를 추가한 경우에만 `published`로 전환합니다. 공개 자료가 없는 지표나 임의의 위험 점수는 생성하지 않습니다.

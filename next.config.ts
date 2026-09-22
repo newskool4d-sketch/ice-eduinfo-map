@@ -51,6 +51,7 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      { source: "/data/education-issues.json", headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }] },
     ];
   },
 };

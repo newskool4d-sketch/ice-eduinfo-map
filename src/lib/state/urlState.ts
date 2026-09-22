@@ -13,6 +13,11 @@
 
 import { parseAsStringLiteral, useQueryStates } from "nuqs";
 
+import { ISSUE_IDS, ISSUE_METRICS, issueById, resolveIssueMetric } from "../issues/registry";
+
+export const MAP_VIEWS = ["schools", "issues", "statistics"] as const;
+export type MapPanelView = (typeof MAP_VIEWS)[number];
+
 import { REGION_CODES, type RegionCode } from "../geo/regions";
 import { DEFAULT_INDICATOR_ID, INDICATOR_IDS } from "../indicators/registry";
 
@@ -34,9 +39,18 @@ export const regionParser = parseAsStringLiteral(REGION_CODES);
 export const mapQueryParsers = {
   indicator: indicatorParser,
   region: regionParser,
+  view: parseAsStringLiteral(MAP_VIEWS).withDefault("schools"),
+  issue: parseAsStringLiteral(ISSUE_IDS),
+  issueMetric: parseAsStringLiteral(ISSUE_METRICS),
 };
 
 export interface MapQuery {
+  view: MapPanelView;
+  issueId: string | null;
+  issueMetric: string | null;
+  setView: (view: MapPanelView) => void;
+  setIssue: (id: string | null) => void;
+  setIssueMetric: (metric: string) => void;
   indicatorId: string;
   regionCode: RegionCode | null;
   /** Replaces the current history entry — switching indicators doesn't clutter back/forward. */
@@ -60,12 +74,26 @@ export interface MapQuery {
  * drilling of the setters is needed.
  */
 export function useMapQuery(): MapQuery {
-  const [{ indicator, region }, setQuery] = useQueryStates(mapQueryParsers, {
+  const [{ indicator, region, view, issue, issueMetric }, setQuery] = useQueryStates(mapQueryParsers, {
     history: "replace",
     shallow: true,
   });
 
+  const definition = issueById(issue);
   return {
+    view,
+    issueId: definition?.id ?? null,
+    issueMetric: definition ? resolveIssueMetric(definition, issueMetric) : null,
+    setView(next) {
+      void setQuery({ view: next, issue: null, issueMetric: null }, { history: "push" });
+    },
+    setIssue(id) {
+      const next = issueById(id);
+      void setQuery({ view: "issues", issue: next?.id ?? null, issueMetric: next?.metrics[0] ?? null }, { history: "push" });
+    },
+    setIssueMetric(metric) {
+      if (definition) void setQuery({ issueMetric: resolveIssueMetric(definition, metric) });
+    },
     indicatorId: indicator,
     regionCode: region,
     setIndicator(id) {

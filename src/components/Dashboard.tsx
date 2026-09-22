@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import IssueExplorer, { IssueLegend } from "@/components/panels/IssueExplorer";
+import { useIssueData } from "@/lib/issues/useIssueData";
+import { issueById } from "@/lib/issues/registry";
+import { buildIssueModel } from "@/lib/issues/model";
 import SchoolExplorer, {
   SchoolLegend,
 } from "@/components/panels/SchoolExplorer";
@@ -19,7 +23,7 @@ import type { RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
 import { makeColorScale, paletteFor } from "@/lib/colors";
 import { displayLabel, regionValues, valueMap } from "@/lib/stats";
-import { useMapQuery } from "@/lib/state/urlState";
+import { MAP_VIEWS, useMapQuery } from "@/lib/state/urlState";
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
@@ -107,7 +111,14 @@ function DashboardInner({
 
   const [name, setName] = useState("");
   const [level, setLevel] = useState<SchoolFilters["level"]>("all");
-  const [tab, setTab] = useState<"schools" | "statistics">("schools");
+  const { view: tab, setView: setTab, issueId, issueMetric, setIssue, setIssueMetric } = useMapQuery();
+  const { state: issueState, retry: retryIssues } = useIssueData(tab === "issues", bundle.schools);
+  const issueModel = useMemo(() => {
+    const definition = issueById(issueId);
+    return tab === "issues" && definition && issueState.status === "ready"
+      ? buildIssueModel(bundle, issueState.data, definition, issueMetric)
+      : null;
+  }, [tab, issueId, issueMetric, issueState, bundle]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [highlightedSchoolId, setHighlightedSchoolId] = useState<string | null>(
@@ -118,8 +129,10 @@ function DashboardInner({
   const panelButtonRef = useRef<HTMLButtonElement>(null);
   const panelReturnFocusRef = useRef<HTMLElement | null>(null);
   const filteredSchools = useMemo(
-    () => filterSchools(bundle.schools.schools, { name, level, regionCode }),
-    [bundle.schools, name, level, regionCode],
+    () => tab === "issues"
+      ? (issueModel?.schools ?? bundle.schools.schools).filter((school) => !regionCode || school.regionCode === regionCode)
+      : filterSchools(bundle.schools.schools, { name, level, regionCode }),
+    [bundle.schools, name, level, regionCode, tab, issueModel],
   );
   const selectedSchool =
     filteredSchools.find((s) => s.id === highlightedSchoolId) ?? null;
@@ -162,6 +175,7 @@ function DashboardInner({
     setHighlightedSchoolId(id);
     if (id) setCollapsed(false);
     setSchoolFocusNonce((n) => n + 1);
+    if (id) requestAnimationFrame(() => panelRef.current?.querySelector('[aria-label="선택한 학교"]')?.scrollIntoView({ block: "nearest" }));
     if (
       id &&
       bundle.schools.schools.find((s) => s.id === id && hasCoordinates(s))
@@ -232,7 +246,7 @@ function DashboardInner({
               aria-label="탐색 유형"
               className="flex flex-1 gap-1"
             >
-              {(["schools", "statistics"] as const).map((value, index) => (
+              {MAP_VIEWS.map((value, index) => (
                 <button
                   type="button"
                   role="tab"
@@ -249,21 +263,16 @@ function DashboardInner({
                       )
                     ) {
                       event.preventDefault();
-                      const next =
-                        event.key === "Home"
-                          ? "schools"
-                          : event.key === "End"
-                            ? "statistics"
-                            : index === 0
-                              ? "statistics"
-                              : "schools";
+                      const next = event.key === "Home" ? MAP_VIEWS[0]
+                        : event.key === "End" ? MAP_VIEWS[MAP_VIEWS.length - 1]
+                        : MAP_VIEWS[(index + (event.key === "ArrowRight" ? 1 : MAP_VIEWS.length - 1)) % MAP_VIEWS.length];
                       setTab(next);
                       document.getElementById(`tab-${next}`)?.focus();
                     }
                   }}
                   className={`min-h-11 rounded-lg px-3 text-sm ${tab === value ? "bg-accent-soft font-semibold text-accent-text" : "text-ink-muted hover:bg-paper"}`}
                 >
-                  {value === "schools" ? "학교 탐색" : "시군 통계"}
+                  {value === "schools" ? "학교 탐색" : value === "issues" ? "교육문제" : "시군 통계"}
                 </button>
               ))}
             </div>
@@ -295,6 +304,16 @@ function DashboardInner({
                 onSelect={selectSchool}
                 onStatistics={showStatistics}
               />
+            ) : tab === "issues" ? (
+              issueState.status === "ready" ? <IssueExplorer
+                bundle={bundle} data={issueState.data} model={issueModel} issueId={issueId}
+                region={regionCode} schools={filteredSchools} selectedSchool={selectedSchool}
+                onIssue={(id) => { setHighlightedSchoolId(null); setIssue(id); }}
+                onMetric={(metric) => { setHighlightedSchoolId(null); setIssueMetric(metric); }}
+                onRegion={setRegion} onSchool={selectSchool} onStatistics={showStatistics}
+                onSearch={(code) => { setName(""); setLevel("all"); setRegion(code); setTab("schools"); }}
+              /> : issueState.status === "error" ? <div role="alert" className="space-y-3 text-sm"><p>{issueState.message}</p><button className="min-h-11 rounded border border-line px-3" onClick={retryIssues}>다시 시도</button></div>
+              : <p role="status" className="py-8 text-sm text-ink-muted">교육문제 자료 불러오는 중…</p>
             ) : (
               <>
                 {regionCode ? (
@@ -338,6 +357,7 @@ function DashboardInner({
             onHighlightSchool={selectSchool}
             schools={filteredSchools}
             schoolFocusNonce={schoolFocusNonce}
+            issueModel={issueModel}
             statisticsVisible={tab === "statistics"}
             interactionBlocked={panelOpen}
           />
@@ -360,7 +380,8 @@ function DashboardInner({
               onClick={(event) => {
                 panelReturnFocusRef.current = event.currentTarget;
                 setPanelOpen(window.matchMedia("(max-width: 1023px)").matches);
-                setTab("schools");
+                if (tab !== "issues") setTab("schools");
+                requestAnimationFrame(() => panelRef.current?.querySelector('[aria-label="선택한 학교"]')?.scrollIntoView({ block: "nearest" }));
               }}
               className={`${panelOpen ? "hidden" : ""} absolute bottom-20 left-16 right-3 z-10 rounded-xl border border-accent/30 bg-surface p-3 text-left text-sm shadow-lg lg:hidden`}
             >
@@ -371,6 +392,7 @@ function DashboardInner({
             </button>
           )}
           <div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-lg border border-line bg-surface/95 px-3 py-2 text-ink-muted shadow-sm">
+            {issueModel && <div className="mb-2 border-b border-line pb-2"><IssueLegend model={issueModel} /></div>}
             <SchoolLegend />
           </div>
         </main>

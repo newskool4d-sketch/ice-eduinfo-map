@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { IssueMapModel } from "@/lib/issues/types";
+import { PUBLISHED_ISSUES } from "@/lib/issues/registry";
+
 import MapFallback from "@/components/map/MapFallback";
 import { REGIONS } from "@/lib/geo/regions";
 import type { IndicatorFile, SeriesFile } from "@/lib/indicators/types";
@@ -42,7 +45,7 @@ describe("MapFallback", () => {
     render(
       <MapFallback indicatorId="students_total" bundle={bundleFixture()} selectedCode={null} onSelect={vi.fn()} reason="webgl" />,
     );
-    expect(screen.getByText("이 환경에서는 3D 지도를 표시할 수 없어 표로 보여드립니다")).toBeInTheDocument();
+    expect(screen.getByText("이 환경에서는 지도를 표시할 수 없어 표로 보여드립니다")).toBeInTheDocument();
   });
 
   it("shows the narrow-viewport reason text", () => {
@@ -154,4 +157,22 @@ describe("MapFallback", () => {
     ).toThrow();
     spy.mockRestore();
   });
+});
+
+
+it("keeps issue values and region selection available when WebGL is unavailable", async () => {
+  const onSelect = vi.fn();
+  const model: IssueMapModel = {
+    issue: PUBLISHED_ISSUES[0], metric: "designation", title: "인구감소지역 지정",
+    date: "공식 자료 확인 2026-09-22", note: "공식 지정 현황입니다.",
+    regions: REGIONS.map(({code}) => ({code, value: code === "52140" ? "attention" : null, text: code === "52140" ? "관심지역" : "자료 없음", color: [100, 100, 100, 85]})),
+    schools: [], legend: [], provinceText: "관심지역 1곳", sources: [],
+  };
+  render(<MapFallback indicatorId="students_total" bundle={bundleFixture()} issueModel={model} selectedCode={null} onSelect={onSelect} reason="webgl" />);
+  expect(screen.getByRole("heading", {name: "인구감소지역 지정"})).toBeInTheDocument();
+  expect(screen.getByText("관심지역")).toBeInTheDocument();
+  expect(screen.getAllByRole("row")).toHaveLength(15);
+  expect(screen.queryByText("70,851")).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", {name: "익산시"}));
+  expect(onSelect).toHaveBeenCalledWith("52140");
 });

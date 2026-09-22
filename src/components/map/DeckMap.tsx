@@ -22,6 +22,7 @@ import {
   type RegionCode,
 } from "@/lib/geo/regions";
 import { declutterLabels, type LabelCandidate } from "./declutterLabels";
+import type { IssueMapModel } from "@/lib/issues/types";
 import type { School } from "@/lib/schools/types";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
@@ -138,6 +139,7 @@ const WIDGET_THEME_STYLE: CSSProperties = {
 } as CSSProperties;
 
 export interface DeckMapProps {
+  issueModel?: IssueMapModel | null;
   schools?: School[];
   schoolFocusNonce?: number;
   statisticsVisible?: boolean;
@@ -163,6 +165,7 @@ export default function DeckMap({
   schoolFocusNonce = 0,
   statisticsVisible = false,
   interactionBlocked = false,
+  issueModel = null,
 }: DeckMapProps) {
   const bundle = useBundle();
   const [showSchoolNames, setShowSchoolNames] = useState(true);
@@ -214,7 +217,8 @@ export default function DeckMap({
     }
   }, []);
 
-  const { fontReady, fontFamily } = useFontGate(bundle.charset);
+  const mapCharset = useMemo(() => bundle.charset + (issueModel ? issueModel.regions.map((row) => row.text).join("") : ""), [bundle.charset, issueModel]);
+  const { fontReady, fontFamily } = useFontGate(mapCharset);
   // Mirrored into a ref so handleAfterRender (a stable, []-deps callback —
   // see its own comment) can read the LATEST fontReady without itself
   // becoming a new function every time fontReady flips.
@@ -289,7 +293,7 @@ export default function DeckMap({
 
   // Rank order for keyboard ←/→ cycling ("현재 순위 순") and, indirectly (via
   // the same pure function), RegionList's render order.
-  const orderedCodes = useMemo(() => regionRankList(map), [map]);
+  const orderedCodes = useMemo(() => issueModel ? issueModel.regions.map((row) => row.code) : regionRankList(map), [map, issueModel]);
 
   // Task B — region-label collision priority (makeRegionLabelLayer's
   // getCollisionPriority/priorityOf — CollisionFilterExtension): reversed
@@ -313,6 +317,7 @@ export default function DeckMap({
 
   const announcement = useMemo(() => {
     if (!selectedCode) return "선택 해제됨, 전체 보기";
+    if (issueModel) return `${nameOf(selectedCode)} · ${issueModel.title} · ${issueModel.regions.find((row) => row.code === selectedCode)?.text ?? "자료 없음"}`;
     const value = map.get(selectedCode);
     const r = rank(map).get(selectedCode) ?? null;
     const valueText =
@@ -326,17 +331,18 @@ export default function DeckMap({
       rank: r,
       total: REGION_CODES.length,
     });
-  }, [selectedCode, map, def, label]);
+  }, [selectedCode, map, def, label, issueModel]);
 
   const labelTextOf = useCallback(
     (code: string): string => {
       const name = nameOf(code);
+      if (issueModel) return `${name}\n${issueModel.regions.find((row) => row.code === code)?.text ?? "자료 없음"}`;
       if (!statisticsVisible) return name;
       const value = map.get(code);
       if (value === null || value === undefined) return `${name}\n자료 없음`;
       return `${name}\n${def.format(value)}`;
     },
-    [map, def, statisticsVisible],
+    [map, def, statisticsVisible, issueModel],
   );
 
   // Tooltip line assembly (name / value / rank / vsProvince delta) lives in
@@ -345,8 +351,8 @@ export default function DeckMap({
   // dependency. makeLinesOf computes rank(map) once per def/label/map
   // change (not per hover) and returns the (code) => string[] tooltip fn.
   const linesOf = useMemo(
-    () => makeLinesOf({ def, label, map }),
-    [def, label, map],
+    () => issueModel ? (code: string) => [nameOf(code), issueModel.title, issueModel.regions.find((row) => row.code === code)?.text ?? "자료 없음", issueModel.date] : makeLinesOf({ def, label, map }),
+    [def, label, map, issueModel],
   );
 
   // Static across indicator switches — regenerating this array on every
@@ -369,8 +375,8 @@ export default function DeckMap({
   );
 
   const characterSet = useMemo(
-    () => Array.from(bundle.charset),
-    [bundle.charset],
+    () => Array.from(new Set(mapCharset)),
+    [mapCharset],
   );
 
   const views = useMemo(() => VIEW, []);
@@ -620,6 +626,7 @@ export default function DeckMap({
         bundle.regions,
         selectedCode,
         handleRegionClick,
+        issueModel,
       ),
       emdEnabled && selectedCode && emdFc
         ? makeEmdBoundaryLayer(emdFc, {
@@ -665,6 +672,7 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
+    issueModel,
     bundle.regions,
     selectedCode,
     handleRegionClick,

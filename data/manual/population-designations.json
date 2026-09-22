@@ -1,0 +1,14 @@
+{
+  "source": {
+    "name": "행정안전부 인구감소지역 지정 현황",
+    "url": "https://www.mois.go.kr/frt/sub/a06/b06/populationDecline/screen.do",
+    "checkedAt": "2026-09-22"
+  },
+  "designations": {
+    "52110": "none", "52130": "none", "52140": "attention",
+    "52180": "decline", "52190": "decline", "52210": "decline",
+    "52710": "none", "52720": "decline", "52730": "decline",
+    "52740": "decline", "52750": "decline", "52770": "decline",
+    "52790": "decline", "52800": "decline"
+  }
+}

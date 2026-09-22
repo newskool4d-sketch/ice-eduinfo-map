@@ -65,6 +65,8 @@ test.describe("접근성", () => {
 
     await page.getByRole("tab", { name: "학교 탐색" }).focus();
     await page.keyboard.press("ArrowRight");
+    await expect(page.getByRole("tab", { name: "교육문제" })).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("tab", { name: "시군 통계" })).toHaveAttribute("aria-selected", "true");
     const firstRegionButton = page.getByRole("complementary").getByRole("button", { name: /전주시/ });
     expect(await tabUntilFocused(page, firstRegionButton, 20)).toBe(true);

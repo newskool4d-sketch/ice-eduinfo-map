@@ -38,6 +38,8 @@
  *         property that (a)-(d) deliberately skip past.
  * Exits 1 and prints a table of every mismatch if any check fails.
  */
+import { assertIssueData } from "../../src/lib/issues/validate";
+import type { SchoolsFile } from "../../src/lib/schools/types";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
@@ -389,6 +391,12 @@ function main(): void {
 
   // (6) schools.json — see checkSchools's own doc comment for (a)-(e).
   checkSchools();
+  const issueData = loadJSON<unknown>(path.join(PUBLIC_DATA_DIR, "education-issues.json"));
+  const schoolData = loadJSON<SchoolsFile>(SCHOOLS_JSON_PATH);
+  if (schoolData) {
+    try { assertIssueData(issueData, schoolData); }
+    catch (error) { fail("education-issues", error instanceof Error ? error.message : String(error)); }
+  }
 
   // (7) closed_schools* indicator files vs closed-schools.json — see
   // checkClosedSchools's own doc comment.

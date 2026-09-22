@@ -32,7 +32,7 @@ test("WebGL2 컨텍스트를 생성할 수 없으면 지도 대신 표를 보여
   expect(webgl2Available).toBe(false);
 
   await expect(page.getByTestId("map-fallback-reason")).toHaveText(
-    "이 환경에서는 3D 지도를 표시할 수 없어 표로 보여드립니다",
+    "이 환경에서는 지도를 표시할 수 없어 표로 보여드립니다",
   );
   await expect(page.getByRole("table")).toBeVisible();
   // The deck.gl canvas is never even attempted.

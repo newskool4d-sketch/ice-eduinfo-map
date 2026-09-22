@@ -1,4 +1,5 @@
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers";
+import type { IssueMapModel } from "@/lib/issues/types";
 import type { PickingInfo } from "@deck.gl/core";
 import type { Feature, MultiPolygon, Polygon } from "geojson";
 
@@ -11,6 +12,7 @@ export function makeFlatRegionsLayer(
   regions: RegionsFeatureCollection,
   selectedCode: string | null,
   onClick: (code: string) => void,
+  issueModel?: IssueMapModel | null,
 ) {
   return new GeoJsonLayer({
     id: "regions",
@@ -18,7 +20,7 @@ export function makeFlatRegionsLayer(
     extruded: false,
     filled: true,
     stroked: true,
-    getFillColor: [255, 255, 255, 0],
+    getFillColor: issueModel ? (feature) => issueModel.regions.find((row) => row.code === feature.properties.code)?.color ?? [255, 255, 255, 0] : [255, 255, 255, 0],
     getLineColor: (feature) =>
       feature.properties.code === selectedCode ? [28, 35, 49, 230] : [85, 100, 118, 110],
     getLineWidth: (feature) => feature.properties.code === selectedCode ? 2 : 1,
@@ -26,7 +28,7 @@ export function makeFlatRegionsLayer(
     pickable: true,
     autoHighlight: false,
 
-    updateTriggers: { getLineColor: [selectedCode], getLineWidth: [selectedCode] },
+    updateTriggers: { getFillColor: [issueModel], getLineColor: [selectedCode], getLineWidth: [selectedCode] },
     onClick: (info: PickingInfo<Feature<Polygon | MultiPolygon>>) => {
       const code = info.object?.properties?.code;
       if (code) onClick(code);

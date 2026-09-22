@@ -10,6 +10,7 @@
  * RegionList/RegionPanel, so this renders (and is unit-testable) with a
  * small in-memory fixture and no DataProvider/nuqs wrapper at all.
  */
+import type { IssueMapModel } from "@/lib/issues/types";
 import type { DataBundle } from "@/lib/data/types";
 import { regionName, type RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
@@ -19,6 +20,7 @@ import { regionRankList } from "@/lib/selection";
 import { displayLabel, rank, valueMap } from "@/lib/stats";
 
 export interface MapFallbackProps {
+  issueModel?: IssueMapModel | null;
   indicatorId: string;
   bundle: Pick<DataBundle, "indicators" | "series">;
   selectedCode: RegionCode | null;
@@ -28,7 +30,7 @@ export interface MapFallbackProps {
 }
 
 const REASON_TEXT: Record<MapFallbackProps["reason"], string> = {
-  webgl: "이 환경에서는 3D 지도를 표시할 수 없어 표로 보여드립니다",
+  webgl: "이 환경에서는 지도를 표시할 수 없어 표로 보여드립니다",
   viewport: "화면이 좁아 표로 표시합니다",
   error: "지도를 표시하는 중 오류가 발생해 표로 보여드립니다",
 };
@@ -45,7 +47,13 @@ function rgbCss([r, g, b]: readonly number[]): string {
  * this table reads as a direct, consistent stand-in for the map, not a
  * separately-invented visualization.
  */
-export default function MapFallback({ indicatorId, bundle, selectedCode, onSelect, reason }: MapFallbackProps) {
+export default function MapFallback({ indicatorId, bundle, selectedCode, onSelect, reason, issueModel }: MapFallbackProps) {
+  if (issueModel) return <div className="h-full overflow-y-auto bg-paper p-4">
+    <p data-testid="map-fallback-reason" className="mb-3 text-sm">{REASON_TEXT[reason]}</p>
+    <h2 className="font-semibold">{issueModel.title}</h2><p className="my-2 text-xs">{issueModel.date}</p>
+    <table className="w-full text-sm"><thead><tr><th className="text-left">시군</th><th className="text-right">현황</th></tr></thead><tbody>{issueModel.regions.map((row) => <tr key={row.code} className={row.code === selectedCode ? "bg-accent-soft" : ""}><td><button className="min-h-11 underline" onClick={() => onSelect(row.code)}>{regionName(row.code)}</button></td><td className="text-right">{row.text}</td></tr>)}</tbody></table>
+    <p className="mt-3 text-xs">{issueModel.note}</p>
+  </div>;
   const def = indicatorById(indicatorId);
   if (!def) {
     throw new Error(`MapFallback: unknown indicatorId "${indicatorId}"`);
