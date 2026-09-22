@@ -7,6 +7,7 @@ async function waitForMapReady(page: import("@playwright/test").Page) {
 
 test("selecting an indicator from the menu updates the URL and survives a refresh", async ({ page }) => {
   await page.goto("/");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await waitForMapReady(page);
 
   const legendLabel = page.getByTestId("legend-indicator-label");
@@ -26,6 +27,7 @@ test("selecting an indicator from the menu updates the URL and survives a refres
   await expect(page).toHaveURL(/[?&]indicator=students_per_class(&|$)/);
 
   await page.reload();
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await waitForMapReady(page);
   await expect(legendLabel).toHaveText("학급당 학생수");
   await expect(page).toHaveURL(/[?&]indicator=students_per_class(&|$)/);
@@ -33,6 +35,7 @@ test("selecting an indicator from the menu updates the URL and survives a refres
 
 test("navigating directly to ?indicator=teachers_total starts on that indicator", async ({ page }) => {
   await page.goto("/?indicator=teachers_total");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await waitForMapReady(page);
 
   await expect(page.getByTestId("legend-indicator-label")).toHaveText("교원수");
@@ -51,22 +54,25 @@ test("legend shows the quantile note for both students_total (14 distinct values
   page,
 }) => {
   await page.goto("/");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await waitForMapReady(page);
   await expect(page.getByTestId("legend-indicator-label")).toHaveText("학생수");
   await expect(page.getByText("색 구간: 고유값 5분위")).toBeVisible();
-  await expect(page.getByText("높이는 값에 비례")).toBeVisible();
+  await expect(page.getByText("시군별 통계 색 구간", { exact: false })).toBeVisible();
   await expect(page.getByText("높이·색 모두 값에 비례")).toHaveCount(0);
 
   await page.goto("/?indicator=closed_schools_unused");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await waitForMapReady(page);
   await expect(page.getByTestId("legend-indicator-label")).toHaveText("미활용 폐교 수");
   await expect(page.getByText("색 구간: 고유값 5분위")).toBeVisible();
-  await expect(page.getByText("높이는 값에 비례")).toBeVisible();
+  await expect(page.getByText("시군별 통계 색 구간", { exact: false })).toBeVisible();
   await expect(page.getByText("높이·색 모두 값에 비례")).toHaveCount(0);
 });
 
 test("an invalid ?indicator value falls back to the default indicator", async ({ page }) => {
   await page.goto("/?indicator=not_a_real_indicator");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await waitForMapReady(page);
 
   await expect(page.getByTestId("legend-indicator-label")).toHaveText("학생수");
@@ -77,6 +83,7 @@ test("arrow-key navigation in the indicator menu previews live (URL updates, pop
   page,
 }) => {
   await page.goto("/");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await waitForMapReady(page);
 
   const menuButton = page.getByRole("button", { name: /^조건별 맵/ });

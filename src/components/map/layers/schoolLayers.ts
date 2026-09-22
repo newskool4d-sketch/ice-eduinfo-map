@@ -1,6 +1,10 @@
+import { terrainExtension } from "./terrainLayer";
 import { ColumnLayer, TextLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
-import { CollisionFilterExtension, type CollisionFilterExtensionProps } from "@deck.gl/extensions";
+import {
+  CollisionFilterExtension,
+  type CollisionFilterExtensionProps,
+} from "@deck.gl/extensions";
 
 import { SCHOOL_LEVEL_COLORS } from "@/lib/schoolVisuals";
 import { REGION_MATERIAL } from "@/components/map/lighting";
@@ -150,9 +154,13 @@ export interface SchoolsLayerOptions {
  * branch), so the old getLineColor/getLineWidth toggle has no extruded
  * equivalent to move to.
  */
-export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayerOptions) {
+export function makeSchoolsLayer(
+  schools: PositionedSchool[],
+  opts: SchoolsLayerOptions,
+) {
   const highlightedId = opts.highlightedId ?? null;
-  const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
+  const transitionDuration =
+    opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
   // `null`, not -1, when nothing is highlighted (or the highlighted id
   // isn't in `data` at all): deck.gl's own `updateAutoHighlight` (installed
   // @deck.gl/core's layer.ts:1306) only runs the hover-highlight path
@@ -182,7 +190,11 @@ export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayer
     extruded: true,
     flatShading: true,
     material: REGION_MATERIAL,
-    getPosition: (d): [number, number, number] => [d.lng, d.lat, opts.elevationOf(d.regionCode)],
+    getPosition: (d): [number, number, number] => [
+      d.lng,
+      d.lat,
+      opts.elevationOf(d.regionCode),
+    ],
     getElevation: (d) => opts.heightOf(d.students),
     getFillColor: (d) => SCHOOL_LEVEL_COLORS[d.level],
     // Task D — NO `parameters` override (the old ScatterplotLayer's
@@ -203,7 +215,9 @@ export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayer
     // Omitted when 0 — see labelLayer.ts (collision FBO re-render per frame
     // while any layer carries a truthy `transitions`).
     transitions:
-      transitionDuration > 0 ? { getPosition: transitionDuration, getElevation: transitionDuration } : undefined,
+      transitionDuration > 0
+        ? { getPosition: transitionDuration, getElevation: transitionDuration }
+        : undefined,
     onClick: opts.onClick
       ? (info: PickingInfo<PositionedSchool>) => {
           if (info.object) opts.onClick?.(info.object.id);
@@ -213,8 +227,11 @@ export function makeSchoolsLayer(schools: PositionedSchool[], opts: SchoolsLayer
 }
 
 export interface SchoolLabelsLayerOptions {
+  collisionEnabled?: boolean;
+  terrainEnabled?: boolean;
+  highlightedId?: string | null;
   elevationOf: (regionCode: string) => number;
-  /** students -> column height(m) — the SAME accessor DeckMap hands makeSchoolsLayer (see its own doc comment), so a label always floats exactly 30m above ITS OWN school's actual column top, not a fixed/average offset. */
+  /** students -> column height(m) — the SAME accessor DeckMap hands makeSchoolsLayer (see its own doc comment), used by legacy columns; the live school map passes zero. */
   heightOf: (students: number | null) => number;
   /** Same as makeSchoolsLayer's heightKey — included in updateTriggers.getPosition since z now depends on heightOf too. */
   heightKey: string | number;
@@ -227,27 +244,33 @@ export interface SchoolLabelsLayerOptions {
   transitionDuration?: number;
 }
 
-/** 학교명 라벨 — billboarded text just above each school's own column top. Only meaningful once zoomed in (see `visible`'s doc comment); the data given is always already scoped to the selected 시군 by the caller. `schools` must already be pre-filtered to real coordinates, same as makeSchoolsLayer — see its doc comment (fix-round-2, review finding #1). */
-export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolLabelsLayerOptions) {
-  const transitionDuration = opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
+/** Fixed-size names for positioned schools; callers can resolve collisions in screen space. */
+export function makeSchoolLabelsLayer(
+  schools: PositionedSchool[],
+  opts: SchoolLabelsLayerOptions,
+) {
+  const transitionDuration =
+    opts.transitionDuration ?? DEFAULT_TRANSITION_DURATION;
 
-  return new TextLayer<PositionedSchool, CollisionFilterExtensionProps<PositionedSchool>>({
+  return new TextLayer<
+    PositionedSchool,
+    CollisionFilterExtensionProps<PositionedSchool>
+  >({
     id: "school-labels",
     data: schools,
     visible: opts.visible,
-    // Task D — z now tracks each school's OWN column top (elevationOf +
-    // heightOf(students)) + a fixed 30m clearance, replacing the old
-    // constant +80 offset (which assumed every school sat at the SAME flat
-    // point-marker height, elevationOf+50 — meaningless now that height
-    // varies per school via makeSchoolHeightScale).
+    // Zero-height accessors anchor the live map to ground, without column clearance.
     getPosition: (d): [number, number, number] => [
       d.lng,
       d.lat,
-      opts.elevationOf(d.regionCode) + opts.heightOf(d.students) + 30,
+      opts.elevationOf(d.regionCode) + opts.heightOf(d.students),
     ],
     getText: (d) => d.name,
     sizeUnits: "pixels",
     getSize: 11,
+    sizeMinPixels: 11,
+    sizeMaxPixels: 11,
+    getPixelOffset: [0, -8],
     billboard: true,
     getAlignmentBaseline: "bottom",
     fontFamily: opts.fontFamily,
@@ -288,11 +311,19 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
     // every accessor whenever `data`'s reference changes (a new selected
     // region), which is the only way a school's own student count could
     // ever change here.
-    extensions: [COLLISION_FILTER_EXTENSION],
-    collisionEnabled: true,
+    extensions: [
+      ...(opts.collisionEnabled === false ? [] : [COLLISION_FILTER_EXTENSION]),
+      ...(opts.terrainEnabled ? [terrainExtension] : []),
+    ],
+    collisionEnabled: opts.collisionEnabled ?? true,
     collisionGroup: "labels",
-    collisionTestProps: { sizeScale: 1.6 },
-    getCollisionPriority: (d: PositionedSchool) => schoolCollisionPriority(d.students),
+    collisionTestProps: {
+      sizeScale: 1.6,
+      getPixelOffset: [0, 0],
+      getAlignmentBaseline: "center",
+    },
+    getCollisionPriority: (d: PositionedSchool) =>
+      d.id === opts.highlightedId ? -1 : schoolCollisionPriority(d.students),
     parameters: { depthCompare: "always", depthWriteEnabled: false },
     // Task A — 그림자 캐스팅 제외: same reasoning as labelLayer.ts's
     // region-labels — an outer `shadowEnabled` prop never reaches TextLayer's
@@ -303,10 +334,12 @@ export function makeSchoolLabelsLayer(schools: PositionedSchool[], opts: SchoolL
       background: { shadowEnabled: false },
     },
     updateTriggers: {
+      getCollisionPriority: [opts.highlightedId],
       getPosition: [opts.triggerKey, opts.heightKey],
       getText: [opts.triggerKey],
     },
     // Omitted when 0 — see labelLayer.ts.
-    transitions: transitionDuration > 0 ? { getPosition: transitionDuration } : undefined,
+    transitions:
+      transitionDuration > 0 ? { getPosition: transitionDuration } : undefined,
   });
 }

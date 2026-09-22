@@ -281,12 +281,12 @@ describe("makeSchoolLabelsLayer", () => {
   // heightOf(students)) + a fixed 30m clearance, replacing the old constant
   // +80 offset (which assumed a flat point marker sitting at elevationOf+50
   // — meaningless now that height varies per school).
-  it("getPosition is elevationOf(regionCode) + heightOf(students) + 30", () => {
+  it("getPosition is elevationOf(regionCode) + heightOf(students)", () => {
     const layer = makeSchoolLabelsLayer([], baseOpts);
     const d = school({ id: "a", regionCode: "52110", students: 100, lat: 35.5, lng: 127.2 });
     const getPosition = layer.props.getPosition as (d: School, ctx: Ctx) => Position;
     // elevationOf("52110") = 1000, heightOf(100) = 500 -> 1000 + 500 + 30
-    expect(getPosition(d, ctxFor([d]))).toEqual([127.2, 35.5, 1530]);
+    expect(getPosition(d, ctxFor([d]))).toEqual([127.2, 35.5, 1500]);
     expect(elevationOf).toHaveBeenCalledWith("52110");
     expect(heightOf).toHaveBeenCalledWith(100);
   });
@@ -345,7 +345,7 @@ describe("makeSchoolLabelsLayer", () => {
     expect(layer.props.extensions[0]).toBeInstanceOf(CollisionFilterExtension);
     expect(layer.props.collisionEnabled).toBe(true);
     expect(layer.props.collisionGroup).toBe("labels");
-    expect(layer.props.collisionTestProps).toEqual({ sizeScale: 1.6 });
+    expect(layer.props.collisionTestProps).toEqual({ sizeScale: 1.6, getPixelOffset: [0, 0], getAlignmentBaseline: "center" });
   });
 
   // Task D, fix round 1 — now that school-labels shares region-labels' own

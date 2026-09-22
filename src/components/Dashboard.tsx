@@ -1,7 +1,12 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import SchoolExplorer, {
+  SchoolLegend,
+} from "@/components/panels/SchoolExplorer";
+import { filterSchools, type SchoolFilters } from "@/lib/schools/filter";
+import { hasCoordinates } from "@/components/map/layers/schoolLayers";
 import MapShell from "@/components/map/MapShell";
 import Footer from "@/components/panels/Footer";
 import Legend from "@/components/panels/Legend";
@@ -71,97 +76,304 @@ function DashboardInner({
   // color scale from the same pure function over the same bundle+indicatorId
   // inputs (see "상태 위치" in the brief — no scale objects are prop-drilled
   // between Dashboard and DeckMap).
-  const { ticks, colorBuckets } = useMemo(() => makeColorScale(def, map), [def, map]);
+  const { ticks, colorBuckets } = useMemo(
+    () => makeColorScale(def, map),
+    [def, map],
+  );
   const palette = useMemo(() => paletteFor(def.polarity), [def.polarity]);
-  const hasNull = useMemo(() => regionValues(map).some((r) => r.value === null), [map]);
+  const hasNull = useMemo(
+    () => regionValues(map).some((r) => r.value === null),
+    [map],
+  );
   // fix round, review finding #4 — the Legend's "(특수학교는 위치 자료 없음)"
   // caveat must only show for a region that actually HAS such a school; a
   // school's own regionCode never equals `regionCode` when it's null, so
   // this is safely false without a selected region too.
   const hasSchoolsWithoutLocation = useMemo(
-    () => bundle.schools.schools.some((s) => s.regionCode === regionCode && s.lat === null),
+    () =>
+      bundle.schools.schools.some(
+        (s) => s.regionCode === regionCode && s.lat === null,
+      ),
     [bundle.schools, regionCode],
   );
   // The registry's static label with students_change_5y's "5년" replaced by
   // the real series year span (추가 요구 #5) — Legend's `def` prop is
   // otherwise passed straight from the registry, so this is the one field we
   // override before handing it to Legend.
-  const legendDef = useMemo(() => ({ ...def, label: displayLabel(def, bundle.series) }), [def, bundle.series]);
+  const legendDef = useMemo(
+    () => ({ ...def, label: displayLabel(def, bundle.series) }),
+    [def, bundle.series],
+  );
 
-  // Task 4B — the highlighted school (map point / RegionPanel row click).
-  // Owned here (not the URL: it's a transient view-state, not something a
-  // shared link should restore) and mirrored to both MapShell (map dot
-  // highlight) and RegionPanel (row highlight) so either side can drive it.
-  // Cleared whenever the selected 시군 itself changes, so a highlighted id
-  // from a previous region never silently survives into the next one (it
-  // would just never match any point there, but a stale value is still
-  // wrong to keep around). Reset-on-prop-change during render (the React-
-  // recommended "adjusting state when a prop changes" pattern —
-  // react.dev/learn/you-might-not-need-an-effect) rather than in a
-  // useEffect, which would cost an extra cascading render for no benefit.
-  const [highlightedSchoolId, setHighlightedSchoolId] = useState<string | null>(null);
-  const [highlightedForRegion, setHighlightedForRegion] = useState(regionCode);
-  if (regionCode !== highlightedForRegion) {
-    setHighlightedForRegion(regionCode);
-    setHighlightedSchoolId(null);
-  }
+  const [name, setName] = useState("");
+  const [level, setLevel] = useState<SchoolFilters["level"]>("all");
+  const [tab, setTab] = useState<"schools" | "statistics">("schools");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [highlightedSchoolId, setHighlightedSchoolId] = useState<string | null>(
+    null,
+  );
+  const [schoolFocusNonce, setSchoolFocusNonce] = useState(0);
+  const panelRef = useRef<HTMLElement>(null);
+  const panelButtonRef = useRef<HTMLButtonElement>(null);
+  const panelReturnFocusRef = useRef<HTMLElement | null>(null);
+  const filteredSchools = useMemo(
+    () => filterSchools(bundle.schools.schools, { name, level, regionCode }),
+    [bundle.schools, name, level, regionCode],
+  );
+  const selectedSchool =
+    filteredSchools.find((s) => s.id === highlightedSchoolId) ?? null;
+  if (highlightedSchoolId && !selectedSchool) setHighlightedSchoolId(null);
+
+  useEffect(() => {
+    if (!panelOpen) return;
+    const previous =
+      panelReturnFocusRef.current ??
+      (document.activeElement as HTMLElement | null);
+    const opener = panelButtonRef.current;
+    panelRef.current
+      ?.querySelector<HTMLButtonElement>('[aria-label="패널 닫기"]')
+      ?.focus();
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setPanelOpen(false);
+      }
+    };
+    document.addEventListener("keydown", close, true);
+    return () => {
+      document.removeEventListener("keydown", close, true);
+      if (previous?.isConnected) previous.focus();
+      else opener?.focus();
+    };
+  }, [panelOpen]);
+
+  useEffect(() => {
+    const compact = window.matchMedia("(max-width: 1023px)");
+    const resize = () => {
+      if (!compact.matches) setPanelOpen(false);
+    };
+    compact.addEventListener("change", resize);
+    return () => compact.removeEventListener("change", resize);
+  }, []);
+
+  const selectSchool = (id: string | null) => {
+    setHighlightedSchoolId(id);
+    if (id) setCollapsed(false);
+    setSchoolFocusNonce((n) => n + 1);
+    if (
+      id &&
+      bundle.schools.schools.find((s) => s.id === id && hasCoordinates(s))
+    )
+      setPanelOpen(false);
+  };
+  const changeFilters = (filters: SchoolFilters) => {
+    setName(filters.name);
+    setLevel(filters.level);
+    if (filters.regionCode !== regionCode)
+      setRegion(filters.regionCode as RegionCode | null);
+  };
+  const showStatistics = (code: RegionCode) => {
+    setRegion(code);
+    setTab("statistics");
+    setCollapsed(false);
+    setPanelOpen(window.matchMedia("(max-width: 1023px)").matches);
+  };
 
   return (
-    <div className="grid grid-rows-[1fr_auto] overflow-hidden">
-      {/* Task 6, Section B — a DEDICATED aria-live region for indicator
-          switches, independent of DeckMap's own region-selection
-          announcement (src/components/map/DeckMap.tsx): that one only
-          updates its TEXT (and so only gets announced by a screen reader)
-          when something is actually selected — switching indicators while
-          nothing is selected leaves its string unchanged ("선택 해제됨, 전체
-          보기" either way), so it alone can't cover "지표 변경" in general.
-          Placed here (not inside <main>) so it still fires even when
-          MapShell renders MapFallback/MapErrorBoundary instead of the real
-          map (Section A). */}
-      <span aria-live="polite" className="sr-only" data-testid="indicator-announcement">
-        {`지표 변경: ${legendDef.label}`}
-      </span>
-      <div className="grid grid-cols-[1fr_360px] overflow-hidden">
-        <main className="relative min-h-0 min-w-0 overflow-hidden">
+    <div className="flex min-h-0 flex-col overflow-hidden">
+      <span
+        aria-live="polite"
+        className="sr-only"
+        data-testid="indicator-announcement"
+      >{`지표 변경: ${legendDef.label}`}</span>
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {panelOpen && (
+          <button
+            type="button"
+            aria-label="패널 바깥 닫기"
+            onClick={() => setPanelOpen(false)}
+            className="fixed inset-0 z-40 bg-ink/20 lg:hidden"
+          />
+        )}
+        <aside
+          ref={panelRef}
+          aria-label="학교 탐색 및 시군 통계"
+          role={panelOpen ? "dialog" : undefined}
+          aria-modal={panelOpen ? true : undefined}
+          onKeyDown={(event) => {
+            if (!panelOpen || event.key !== "Tab") return;
+            const items = Array.from(
+              event.currentTarget.querySelectorAll<HTMLElement>(
+                'button, input, select, a[href], summary, [tabindex="0"]',
+              ),
+            ).filter(
+              (el) =>
+                el.getClientRects().length &&
+                el.tabIndex >= 0 &&
+                !el.hasAttribute("disabled"),
+            );
+            const first = items[0],
+              last = items[items.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }}
+          className={`${panelOpen ? "flex" : "hidden"} ${collapsed ? "lg:hidden" : "lg:flex"} fixed inset-x-0 bottom-0 z-50 max-h-[75%] flex-col rounded-t-2xl border-t border-line bg-surface shadow-xl lg:relative lg:inset-auto lg:z-10 lg:h-full lg:max-h-none lg:w-[360px] lg:shrink-0 lg:rounded-none lg:border-r lg:border-t-0 lg:shadow-none`}
+        >
+          <div className="flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
+            <div
+              role="tablist"
+              aria-label="탐색 유형"
+              className="flex flex-1 gap-1"
+            >
+              {(["schools", "statistics"] as const).map((value, index) => (
+                <button
+                  type="button"
+                  role="tab"
+                  id={`tab-${value}`}
+                  aria-controls={`panel-${value}`}
+                  aria-selected={tab === value}
+                  tabIndex={tab === value ? 0 : -1}
+                  key={value}
+                  onClick={() => setTab(value)}
+                  onKeyDown={(event) => {
+                    if (
+                      ["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                        event.key,
+                      )
+                    ) {
+                      event.preventDefault();
+                      const next =
+                        event.key === "Home"
+                          ? "schools"
+                          : event.key === "End"
+                            ? "statistics"
+                            : index === 0
+                              ? "statistics"
+                              : "schools";
+                      setTab(next);
+                      document.getElementById(`tab-${next}`)?.focus();
+                    }
+                  }}
+                  className={`min-h-11 rounded-lg px-3 text-sm ${tab === value ? "bg-accent-soft font-semibold text-accent-text" : "text-ink-muted hover:bg-paper"}`}
+                >
+                  {value === "schools" ? "학교 탐색" : "시군 통계"}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label="패널 닫기"
+              onClick={() => {
+                setPanelOpen(false);
+                setCollapsed(true);
+              }}
+              className="min-h-11 min-w-11 rounded-lg text-ink-muted hover:bg-paper"
+            >
+              ✕
+            </button>
+          </div>
+          <div
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"
+            role="tabpanel"
+            id={`panel-${tab}`}
+            aria-labelledby={`tab-${tab}`}
+          >
+            {tab === "schools" ? (
+              <SchoolExplorer
+                schools={filteredSchools}
+                filters={{ name, level, regionCode }}
+                onFilters={changeFilters}
+                selectedSchoolId={highlightedSchoolId}
+                selectedSchool={selectedSchool}
+                onSelect={selectSchool}
+                onStatistics={showStatistics}
+              />
+            ) : (
+              <>
+                {regionCode ? (
+                  <RegionPanel
+                    bundle={bundle}
+                    highlightedSchoolId={highlightedSchoolId}
+                    onHighlightSchool={selectSchool}
+                    showSchools={false}
+                  />
+                ) : (
+                  <RegionList bundle={bundle} />
+                )}
+                <div className="mt-4 border-t border-line pt-4">
+                  <Legend
+                    def={legendDef}
+                    ticks={ticks}
+                    palette={palette}
+                    hasNull={hasNull}
+                    referenceDate={file.referenceDate}
+                    hasSchoolsWithoutLocation={hasSchoolsWithoutLocation}
+                    colorBuckets={colorBuckets}
+                  />
+                </div>
+                <footer
+                  role="contentinfo"
+                  aria-label="데이터 출처"
+                  className="mt-4"
+                >
+                  <Footer manifest={bundle.manifest} />
+                </footer>
+              </>
+            )}
+          </div>
+        </aside>
+        <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <MapShell
             indicatorId={indicatorId}
             selectedCode={regionCode}
             onSelect={setRegion}
             highlightedSchoolId={highlightedSchoolId}
-            onHighlightSchool={setHighlightedSchoolId}
+            onHighlightSchool={selectSchool}
+            schools={filteredSchools}
+            schoolFocusNonce={schoolFocusNonce}
+            statisticsVisible={tab === "statistics"}
+            interactionBlocked={panelOpen}
           />
-        </main>
-
-        <aside className="w-[360px] overflow-y-auto border-l border-line p-4">
-          {regionCode ? (
-            <RegionPanel
-              bundle={bundle}
-              highlightedSchoolId={highlightedSchoolId}
-              onHighlightSchool={setHighlightedSchoolId}
-            />
-          ) : (
-            <RegionList bundle={bundle} />
+          <button
+            ref={panelButtonRef}
+            type="button"
+            onClick={(event) => {
+              panelReturnFocusRef.current = event.currentTarget;
+              setPanelOpen(window.matchMedia("(max-width: 1023px)").matches);
+              setCollapsed(false);
+            }}
+            className={`${collapsed ? "" : "lg:hidden"} absolute left-3 top-3 z-10 min-h-11 rounded-lg border border-line bg-surface px-3 text-sm font-medium shadow-sm`}
+          >
+            학교·통계
+          </button>
+          {selectedSchool && (
+            <button
+              type="button"
+              aria-label={`${selectedSchool.name} 학교 정보 보기`}
+              onClick={(event) => {
+                panelReturnFocusRef.current = event.currentTarget;
+                setPanelOpen(window.matchMedia("(max-width: 1023px)").matches);
+                setTab("schools");
+              }}
+              className={`${panelOpen ? "hidden" : ""} absolute bottom-20 left-16 right-3 z-10 rounded-xl border border-accent/30 bg-surface p-3 text-left text-sm shadow-lg lg:hidden`}
+            >
+              <span className="font-semibold">{selectedSchool.name}</span>
+              <span className="ml-2 text-xs text-ink-muted">
+                학교 정보 보기
+              </span>
+            </button>
           )}
-        </aside>
-      </div>
-
-      <div>
-        <footer className="flex min-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-x-auto border-t border-line px-4 py-2">
-          <Legend
-            def={legendDef}
-            ticks={ticks}
-            palette={palette}
-            hasNull={hasNull}
-            referenceDate={file.referenceDate}
-            schoolLevelsVisible={!!regionCode}
-            hasSchoolsWithoutLocation={hasSchoolsWithoutLocation}
-            colorBuckets={colorBuckets}
-          />
-        </footer>
-        {/* Task 5 — replaces the old inline "학교 위치 기준 …" span: Footer
-            now covers every named source (KESS/학교 위치/경계/폐교), read
-            entirely from manifest.sources, not just the school-location one. */}
-        <Footer manifest={bundle.manifest} />
+          <div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-lg border border-line bg-surface/95 px-3 py-2 text-ink-muted shadow-sm">
+            <SchoolLegend />
+          </div>
+        </main>
       </div>
     </div>
   );
@@ -179,7 +391,9 @@ function DashboardBody() {
   return (
     <div className="grid h-full grid-rows-[56px_1fr] bg-paper text-ink">
       <TopBar indicatorId={indicatorId} bundle={bundle} />
-      {state.status === "loading" && <CenteredMessage>데이터 불러오는 중…</CenteredMessage>}
+      {state.status === "loading" && (
+        <CenteredMessage>데이터 불러오는 중…</CenteredMessage>
+      )}
       {state.status === "error" && <DataErrorMessage error={state.error} />}
       {state.status === "ready" && (
         <DashboardInner

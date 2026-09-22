@@ -66,6 +66,7 @@ test.describe("시군 선택", () => {
     page.on("pageerror", (error) => consoleErrors.push(error.message));
 
     await page.goto("/");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
 
     // Unselected: RegionList is showing, with the leading prompt.
@@ -87,7 +88,7 @@ test.describe("시군 선택", () => {
     // the transition on CI's slow software-GL runner (observed 57.19/57.06,
     // not yet 58): poll instead, frame-rate-independent, up to 15s.
     // Task B — FIT_REGION_PITCH 55 → 58 (camera.ts).
-    await expect.poll(async () => (await readCamera(page)).pitch, { timeout: 15000 }).toBe(58);
+    await expect.poll(async () => (await readCamera(page)).pitch, { timeout: 15000 }).toBe(0);
 
     const selectedCamera = await readCamera(page);
     expect(selectedCamera.zoom).toBeGreaterThan(overviewCamera.zoom);
@@ -124,6 +125,7 @@ test.describe("시군 선택", () => {
     // selection) — a single Back undoes the whole cycle at once, landing on
     // "nothing selected," not one arrow-step back.
     await page.goto("/");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
 
     await page.getByRole("button", { name: /전주시/ }).click();
@@ -148,6 +150,7 @@ test.describe("시군 선택", () => {
 
   test("캔버스에서 전주시를 직접 클릭해도 선택된다", async ({ page }) => {
     await page.goto("/");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
 
     const labelPoint = jeonjuLabelPoint();
@@ -157,7 +160,16 @@ test.describe("시군 선택", () => {
       const pixel = await page.evaluate((point) => {
         const deck = window.__jbmap?.deck;
         if (!deck) throw new Error("window.__jbmap not exposed — is NEXT_PUBLIC_E2E=1 set for the dev server?");
-        return deck.getViewports()[0].project(point);
+        const [x, y] = deck.getViewports()[0].project(point);
+        // School dots intentionally consume their own clicks. Find a nearby
+        // visible part of Jeonju's region surface instead of clicking a school.
+        for (let radius = 0; radius <= 60; radius += 12) {
+          for (const [dx, dy] of [[0, radius], [radius, 0], [0, -radius], [-radius, 0]]) {
+            const hit = deck.pickObject({ x: x + dx, y: y + dy, radius: 0 });
+            if (hit?.object?.properties?.code === '52110') return [x + dx, y + dy];
+          }
+        }
+        throw new Error('No exposed Jeonju region surface near its label');
       }, labelPoint);
       const canvas = page.locator("canvas").first();
       const box = await canvas.boundingBox();
@@ -265,6 +277,7 @@ test.describe("시군 선택", () => {
   // ONLY the menu — the region selection (and its URL param) must survive.
   test("지표 메뉴가 열린 상태에서 Esc → 메뉴만 닫히고 시군 선택(URL의 region)은 유지된다", async ({ page }) => {
     await page.goto("/?region=52110");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
     await expect(page).toHaveURL(/[?&]region=52110(&|$)/);
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();

@@ -55,6 +55,7 @@ test.describe("읍면동 경계", () => {
     page.on("pageerror", (error) => consoleErrors.push(error.message));
 
     await page.goto("/?region=52110");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
     await waitForMapReady(page);
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
 

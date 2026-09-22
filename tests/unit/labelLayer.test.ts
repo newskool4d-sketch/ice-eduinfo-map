@@ -3,7 +3,6 @@ import type { Position } from "@deck.gl/core";
 import { CollisionFilterExtension } from "@deck.gl/extensions";
 
 import { makeRegionLabelLayer, type RegionLabel } from "@/components/map/layers/labelLayer";
-import { SCHOOL_HEIGHT_MAX_M } from "@/lib/schoolVisuals";
 
 const labels: RegionLabel[] = [
   { code: "52110", name: "전주시", position: [127.1, 35.8] },
@@ -56,7 +55,7 @@ describe("makeRegionLabelLayer", () => {
     expect(layer.props.backgroundBorderRadius).toBe(6);
   });
 
-  it("getPosition appends elevationOf(code)+200 as the z coordinate", () => {
+  it("getPosition appends elevationOf(code) as the z coordinate", () => {
     const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
     const layer = makeRegionLabelLayer(labels, {
       elevationOf,
@@ -68,7 +67,7 @@ describe("makeRegionLabelLayer", () => {
     type Ctx = { index: number; data: RegionLabel[]; target: number[] };
     const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
     const ctx: Ctx = { index: 0, data: labels, target: [] };
-    expect(getPosition(labels[0], ctx)).toEqual([127.1, 35.8, 1200]);
+    expect(getPosition(labels[0], ctx)).toEqual([127.1, 35.8, 1000]);
     expect(elevationOf).toHaveBeenCalledWith("52110");
   });
 
@@ -331,11 +330,11 @@ describe("makeRegionLabelLayer — CollisionFilterExtension (Task B)", () => {
 // OTHER (non-selected) region's label is unaffected by this — its own
 // schools are never even rendered (DeckMap only ever hands the schools
 // layers the SELECTED region's schools) — so it keeps the plain +200.
-describe("makeRegionLabelLayer — selected-region label z clears the school-column forest (Task D)", () => {
+describe("makeRegionLabelLayer — ground anchors regardless of selection", () => {
   type Ctx = { index: number; data: RegionLabel[]; target: number[] };
   const ctxFor = (data: RegionLabel[]): Ctx => ({ index: 0, data, target: [] });
 
-  it("getPosition is elevationOf(code)+200 for a NON-selected region", () => {
+  it("getPosition is elevationOf(code) for a NON-selected region", () => {
     const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
     const layer = makeRegionLabelLayer(labels, {
       elevationOf,
@@ -346,10 +345,10 @@ describe("makeRegionLabelLayer — selected-region label z clears the school-col
       selectedCode: "52130", // labels[0] (52110) is NOT the selected one
     });
     const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
-    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1200]);
+    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1000]);
   });
 
-  it(`getPosition is elevationOf(code)+${SCHOOL_HEIGHT_MAX_M}+200 for the SELECTED region`, () => {
+  it("selected labels remain anchored at ground height", () => {
     const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
     const layer = makeRegionLabelLayer(labels, {
       elevationOf,
@@ -360,10 +359,10 @@ describe("makeRegionLabelLayer — selected-region label z clears the school-col
       selectedCode: "52110", // labels[0] IS the selected one
     });
     const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
-    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1000 + SCHOOL_HEIGHT_MAX_M + 200]);
+    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1000]);
   });
 
-  it("only the selected region's own label gets the +SCHOOL_HEIGHT_MAX_M bump, not every label", () => {
+  it("other region labels also stay at their ground height", () => {
     const elevationOf = vi.fn((code: string) => (code === "52110" ? 1000 : 2000));
     const layer = makeRegionLabelLayer(labels, {
       elevationOf,
@@ -374,7 +373,7 @@ describe("makeRegionLabelLayer — selected-region label z clears the school-col
       selectedCode: "52110", // labels[0] selected; labels[1] (52130) is not
     });
     const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
-    expect(getPosition(labels[1], ctxFor(labels))).toEqual([126.7, 35.9, 2200]);
+    expect(getPosition(labels[1], ctxFor(labels))).toEqual([126.7, 35.9, 2000]);
   });
 
   it("updateTriggers.getPosition includes both triggerKey and selectedCode", () => {
@@ -389,7 +388,7 @@ describe("makeRegionLabelLayer — selected-region label z clears the school-col
     expect(layer.props.updateTriggers.getPosition).toEqual(expect.arrayContaining(["indicator-7", "52110"]));
   });
 
-  it("defaults to the plain +200 (no selectedCode bump) when selectedCode is omitted", () => {
+  it("does not add artificial height when selectedCode is omitted", () => {
     const elevationOf = vi.fn(() => 1000);
     const layer = makeRegionLabelLayer(labels, {
       elevationOf,
@@ -399,6 +398,6 @@ describe("makeRegionLabelLayer — selected-region label z clears the school-col
       characterSet: ["a"],
     });
     const getPosition = layer.props.getPosition as (d: RegionLabel, ctx: Ctx) => Position;
-    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1200]);
+    expect(getPosition(labels[0], ctxFor(labels))).toEqual([127.1, 35.8, 1000]);
   });
 });

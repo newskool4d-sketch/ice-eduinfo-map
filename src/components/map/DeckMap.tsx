@@ -1,25 +1,48 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
-import { Deck, MapView } from "@deck.gl/core";
+import { Deck, MapView, WebMercatorViewport } from "@deck.gl/core";
 import type { Effect, LayersList, PickingInfo } from "@deck.gl/core";
 import { LightGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
-import { isRegionCode, regionName, REGION_CODES, type RegionCode } from "@/lib/geo/regions";
-import { lightingEffect, lightingEffectNoShadow } from "@/components/map/lighting";
+import {
+  isRegionCode,
+  regionName,
+  REGION_CODES,
+  type RegionCode,
+} from "@/lib/geo/regions";
+import {
+  lightingEffect,
+  lightingEffectNoShadow,
+} from "@/components/map/lighting";
 import { createPostProcessEffects } from "@/components/map/effects";
 import { applyDeckDepthPatch } from "@/components/map/deckDepthPatch";
 import { isMapFxOff } from "@/components/map/mapFx";
-import { readBasemapPref, writeBasemapPref, type BasemapMode } from "@/components/map/basemapPref";
+import { declutterLabels, type LabelCandidate } from "./declutterLabels";
+import { readMapMode, writeMapMode, type MapDisplayMode } from "./mapModePref";
+import type { School } from "@/lib/schools/types";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
-import { makeBasemapLayer, makeBasemapWashLayer } from "@/components/map/layers/basemapLayer";
+import {
+  makeBasemapLayer,
+  makeBasemapWashLayer,
+} from "@/components/map/layers/basemapLayer";
 import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
-import { hasCoordinates, makeSchoolLabelsLayer } from "@/components/map/layers/schoolLayers";
+import {
+  hasCoordinates,
+  makeSchoolLabelsLayer,
+} from "@/components/map/layers/schoolLayers";
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
 import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
 import { useCamera } from "@/components/map/useCamera";
@@ -28,20 +51,35 @@ import { useFontGate } from "@/components/map/useFontGate";
 import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
-import { collisionPriorityFromRank, displayLabel, rank, valueMap } from "@/lib/stats";
-import { makeLinesOf, formatWithUnit, schoolTooltipLines } from "@/lib/tooltipText";
+import {
+  collisionPriorityFromRank,
+  displayLabel,
+  rank,
+  valueMap,
+} from "@/lib/stats";
+import {
+  makeLinesOf,
+  formatWithUnit,
+  schoolTooltipLines,
+} from "@/lib/tooltipText";
 import { regionRankList, selectionAnnouncement } from "@/lib/selection";
 import { useReducedMotion } from "@/lib/useReducedMotion";
-import { makeFlatRegionsLayer, makeFlatSchoolsLayer } from "@/components/map/layers/flatMapLayers";
-import { makeTerrainLayer, makeTerrainWashLayer } from "@/components/map/layers/terrainLayer";
+import {
+  makeFlatRegionsLayer,
+  makeFlatSchoolsLayer,
+} from "@/components/map/layers/flatMapLayers";
+import {
+  makeTerrainLayer,
+  makeTerrainWashLayer,
+} from "@/components/map/layers/terrainLayer";
 
 // Task 2 fix round 1 — give deck.gl's post-processing render buffers a depth
 // attachment (see deckDepthPatch.ts); module scope so the prototype is
 // patched before the first <DeckGL> ever constructs a DeckRenderer.
 applyDeckDepthPatch();
 
-/** zoom≥10 이 되어야 학교명 라벨을 그린다 (브리프 고정값 — DeckMap.tsx 의 onViewStateChange 스로틀 zoom 으로 판단; Task B: 11 → 10, 라벨 칩·CollisionFilterExtension 도입에 맞춰 더 낮은 줌에서도 학교명이 보이도록 낮춤). */
-const SCHOOL_LABEL_MIN_ZOOM = 10;
+/** School names appear at neighbourhood scale, independently of region selection. */
+const SCHOOL_LABEL_MIN_ZOOM = 11;
 /** onViewStateChange 스로틀 간격(ms). */
 const ZOOM_THROTTLE_MS = 100;
 
@@ -67,7 +105,11 @@ const ZOOM_THROTTLE_MS = 100;
 // the coverage (see the test's own comment for the full reasoning).
 declare global {
   interface Window {
-    __jbmap?: { deck: Deck; events?: JbmapEvent[]; selectRegion?: (code: string) => void };
+    __jbmap?: {
+      deck: Deck;
+      events?: JbmapEvent[];
+      selectRegion?: (code: string) => void;
+    };
   }
 }
 
@@ -117,9 +159,16 @@ const VIEW = new MapView();
 // ("widgetThemeStyle 등 매 렌더 새 객체를 모듈 상수로"): an inline literal would be
 // a NEW object reference every render, pointlessly changing the wrapper
 // div's `style` prop identity every time.
-const WIDGET_THEME_STYLE: CSSProperties = { ...LightGlassTheme, "--widget-margin": "16px" } as CSSProperties;
+const WIDGET_THEME_STYLE: CSSProperties = {
+  ...LightGlassTheme,
+  "--widget-margin": "16px",
+} as CSSProperties;
 
 export interface DeckMapProps {
+  schools?: School[];
+  schoolFocusNonce?: number;
+  statisticsVisible?: boolean;
+  interactionBlocked?: boolean;
   indicatorId: string;
   /** Selection truth lives in the URL (useMapQuery().regionCode) — DeckMap only renders/reacts to it. */
   selectedCode: RegionCode | null;
@@ -137,11 +186,24 @@ export default function DeckMap({
   onSelect,
   highlightedSchoolId,
   onHighlightSchool,
+  schools,
+  schoolFocusNonce = 0,
+  statisticsVisible = false,
+  interactionBlocked = false,
 }: DeckMapProps) {
   const bundle = useBundle();
+  const [mode, setMode] = useState<MapDisplayMode>(() => readMapMode());
+  const [showSchoolNames, setShowSchoolNames] = useState(true);
+  const selectedSchool =
+    bundle.schools.schools.find((s) => s.id === highlightedSchoolId) ?? null;
+  const basemapMode = mode === "terrain" ? "satellite" : "base";
+  const terrainEnabled = mode === "terrain";
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef | null>(null);
   const mapReadyRef = useRef(false);
+  const lastLabelViewportKey = useRef("");
+  const [labelViewport, setLabelViewport] =
+    useState<WebMercatorViewport | null>(null);
   const labelsReadyRef = useRef(false);
 
   // Task 6, Section A.4 — reduced-motion: zeroes both the camera's
@@ -154,7 +216,15 @@ export default function DeckMap({
   // (not `regionsMain`) is deliberately what's handed in — `properties.bbox`
   // already spans a region's FULL original geometry (mainland + islands), so
   // the camera never clips an island out of frame.
-  const { overview, cameraViewState, reselect } = useCamera(containerRef, bundle.regions, selectedCode, reduceMotion);
+  const { overview, cameraViewState, reselect, rememberViewState } = useCamera(
+    containerRef,
+    bundle.regions,
+    selectedCode,
+    reduceMotion,
+    mode,
+    selectedSchool,
+    schoolFocusNonce,
+  );
 
   // Task 6, Section A.2 — WebGL context loss: deck.gl's own internal
   // handling (Deck#_onWebGLContextLost) calls onError(new Error('WebGL
@@ -212,25 +282,29 @@ export default function DeckMap({
   // already has a defined, safely-below-threshold value.
   const [zoom, setZoom] = useState<number>(VIEW_LIMITS.minZoom);
   const lastZoomUpdateRef = useRef(0);
-  const handleViewStateChange = useCallback(({ viewState }: { viewState: Record<string, unknown> }) => {
-    const now = Date.now();
-    if (now - lastZoomUpdateRef.current < ZOOM_THROTTLE_MS) return;
-    lastZoomUpdateRef.current = now;
-    const nextZoom = viewState.zoom;
-    if (typeof nextZoom !== "number") return;
-    // deck.gl/react's <DeckGL> can invoke onViewStateChange synchronously
-    // from within its OWN render/transition tick (e.g. mid-FlyTo, or a
-    // canvas drag) — calling setState directly from here occasionally lands
-    // while a *different* component (ForwardRef(DeckGLWithRef) itself) is
-    // still rendering, which React flags: "Cannot update a component while
-    // rendering a different component" (confirmed via a real e2e console-
-    // error assertion, not just a lint rule — see e2e/select-region.spec.ts's
-    // canvas-click test). Deferring one microtask moves the update outside
-    // that synchronous call stack (microtasks run after the current script/
-    // render finishes, before the next paint) without adding a
-    // human-perceptible delay the way a setTimeout(0) macrotask would.
-    queueMicrotask(() => setZoom(nextZoom));
-  }, []);
+  const handleViewStateChange = useCallback(
+    ({ viewState }: { viewState: Record<string, unknown> }) => {
+      rememberViewState(viewState);
+      const now = Date.now();
+      if (now - lastZoomUpdateRef.current < ZOOM_THROTTLE_MS) return;
+      lastZoomUpdateRef.current = now;
+      const nextZoom = viewState.zoom;
+      if (typeof nextZoom !== "number") return;
+      // deck.gl/react's <DeckGL> can invoke onViewStateChange synchronously
+      // from within its OWN render/transition tick (e.g. mid-FlyTo, or a
+      // canvas drag) — calling setState directly from here occasionally lands
+      // while a *different* component (ForwardRef(DeckGLWithRef) itself) is
+      // still rendering, which React flags: "Cannot update a component while
+      // rendering a different component" (confirmed via a real e2e console-
+      // error assertion, not just a lint rule — see e2e/select-region.spec.ts's
+      // canvas-click test). Deferring one microtask moves the update outside
+      // that synchronous call stack (microtasks run after the current script/
+      // render finishes, before the next paint) without adding a
+      // human-perceptible delay the way a setTimeout(0) macrotask would.
+      queueMicrotask(() => setZoom(nextZoom));
+    },
+    [rememberViewState],
+  );
 
   const def = indicatorById(indicatorId);
   if (!def) {
@@ -239,7 +313,10 @@ export default function DeckMap({
 
   const file = bundle.indicators[indicatorId];
   const map = useMemo(() => valueMap(file), [file]);
-  const label = useMemo(() => displayLabel(def, bundle.series), [def, bundle.series]);
+  const label = useMemo(
+    () => displayLabel(def, bundle.series),
+    [def, bundle.series],
+  );
 
   // Rank order for keyboard ←/→ cycling ("현재 순위 순") and, indirectly (via
   // the same pure function), RegionList's render order.
@@ -261,14 +338,18 @@ export default function DeckMap({
     // stats.ts as a pure, unit-tested helper (collisionPriorityFromRank);
     // this closure only supplies what's specific to THIS render (the rank
     // lookup + REGION_CODES.length).
-    return (code: string): number => collisionPriorityFromRank(ranks.get(code), REGION_CODES.length);
+    return (code: string): number =>
+      collisionPriorityFromRank(ranks.get(code), REGION_CODES.length);
   }, [map]);
 
   const announcement = useMemo(() => {
     if (!selectedCode) return "선택 해제됨, 전체 보기";
     const value = map.get(selectedCode);
     const r = rank(map).get(selectedCode) ?? null;
-    const valueText = value === null || value === undefined ? "자료 없음" : formatWithUnit(def, value);
+    const valueText =
+      value === null || value === undefined
+        ? "자료 없음"
+        : formatWithUnit(def, value);
     return selectionAnnouncement({
       name: nameOf(selectedCode),
       label,
@@ -281,11 +362,12 @@ export default function DeckMap({
   const labelTextOf = useCallback(
     (code: string): string => {
       const name = nameOf(code);
+      if (!statisticsVisible) return name;
       const value = map.get(code);
       if (value === null || value === undefined) return `${name}\n자료 없음`;
       return `${name}\n${def.format(value)}`;
     },
-    [map, def],
+    [map, def, statisticsVisible],
   );
 
   // Tooltip line assembly (name / value / rank / vsProvince delta) lives in
@@ -293,7 +375,10 @@ export default function DeckMap({
   // tested there (tests/unit/tooltipText.test.ts), with zero deck.gl/React
   // dependency. makeLinesOf computes rank(map) once per def/label/map
   // change (not per hover) and returns the (code) => string[] tooltip fn.
-  const linesOf = useMemo(() => makeLinesOf({ def, label, map }), [def, label, map]);
+  const linesOf = useMemo(
+    () => makeLinesOf({ def, label, map }),
+    [def, label, map],
+  );
 
   // Static across indicator switches — regenerating this array on every
   // indicatorId change would give the label TextLayer a new `data` reference
@@ -314,52 +399,96 @@ export default function DeckMap({
     [bundle.regionsMain],
   );
 
-  const characterSet = useMemo(() => Array.from(bundle.charset), [bundle.charset]);
+  const characterSet = useMemo(
+    () => Array.from(bundle.charset),
+    [bundle.charset],
+  );
 
   const views = useMemo(() => VIEW, []);
 
   const positionedSchools = useMemo(
-    () => bundle.schools.schools.filter(hasCoordinates),
-    [bundle.schools],
+    () => (schools ?? bundle.schools.schools).filter(hasCoordinates),
+    [schools, bundle.schools],
   );
-  const positionedRegionSchools = useMemo(
-    () => selectedCode ? positionedSchools.filter((school) => school.regionCode === selectedCode) : [],
-    [positionedSchools, selectedCode],
-  );
-  const schoolLabelsVisible = !!selectedCode && zoom >= SCHOOL_LABEL_MIN_ZOOM;
-
-  // A school point (or its RegionPanel row counterpart) was clicked: toggle
-  // the highlight off if it's already the highlighted one, otherwise select
-  // it. Mirrors handleRegionClick's own "reselect == toggle" shape.
+  const schoolLabelsVisible = showSchoolNames && zoom >= SCHOOL_LABEL_MIN_ZOOM;
   const handleSchoolClick = useCallback(
-    (id: string) => {
-      const school = positionedSchools.find((item) => item.id === id);
-      if (school && school.regionCode !== selectedCode && isRegionCode(school.regionCode)) {
-        onSelect(school.regionCode);
-      }
-      onHighlightSchool(id === highlightedSchoolId ? null : id);
-    },
-    [positionedSchools, selectedCode, onSelect, highlightedSchoolId, onHighlightSchool],
+    (id: string) => onHighlightSchool(id),
+    [onHighlightSchool],
   );
+
+  const visibleLabels = useMemo(() => {
+    if (!labelViewport || !fontReady)
+      return { schools: positionedSchools, regions: labels };
+    type Entry =
+      | { kind: "school"; value: (typeof positionedSchools)[number] }
+      | { kind: "region"; value: (typeof labels)[number] };
+    const candidates: LabelCandidate<Entry>[] = labels.map((value) => ({
+      value: { kind: "region", value },
+      position: value.position,
+      text: labelTextOf(value.code),
+      size: 14,
+      priority: value.code === selectedCode ? 900 : 800,
+    }));
+    if (schoolLabelsVisible)
+      for (const value of positionedSchools)
+        candidates.push({
+          value: { kind: "school", value },
+          position: [value.lng, value.lat],
+          text: value.name,
+          size: 11,
+          priority:
+            value.id === highlightedSchoolId
+              ? 1000
+              : Math.min(700, (value.students ?? 0) / 10),
+        });
+    const context = document.createElement("canvas").getContext("2d");
+    const placed = declutterLabels(candidates, labelViewport, (text, size) => {
+      if (!context) return text.length * size;
+      context.font = `600 ${size}px ${fontFamily}`;
+      return context.measureText(text).width;
+    });
+    return {
+      schools: placed.flatMap((entry) =>
+        entry.kind === "school" ? [entry.value] : [],
+      ),
+      regions: placed.flatMap((entry) =>
+        entry.kind === "region" ? [entry.value] : [],
+      ),
+    };
+  }, [
+    labelViewport,
+    fontReady,
+    positionedSchools,
+    labels,
+    labelTextOf,
+    fontFamily,
+    selectedCode,
+    highlightedSchoolId,
+    schoolLabelsVisible,
+  ]);
 
   const getRegionTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
-  const getSchoolTooltip = useMemo(() => makeSchoolTooltip(schoolTooltipLines), []);
-  // Dispatches by which layer was actually hovered — schools (a
-  // ColumnLayer, `info.object` is a plain School row) vs every other
-  // (GeoJsonLayer-backed — regions, region-islands, footprint, neighbors —
-  // `info.object.properties.code`) layer. `region-islands` needs no special
-  // case here: every feature it hands the picker still carries
-  // `properties.code` (see splitRegionIslands), so the same generic
-  // getRegionTooltip branch already covers it.
+  const getSchoolTooltip = useMemo(
+    () => makeSchoolTooltip(schoolTooltipLines),
+    [],
+  );
+  // School dots have plain School objects; boundaries have GeoJSON properties.
   const getTooltip = useCallback(
     (info: Parameters<typeof getRegionTooltip>[0]) =>
-      info.layer?.id === "schools" ? getSchoolTooltip(info) : getRegionTooltip(info),
+      info.layer?.id === "schools"
+        ? getSchoolTooltip(info)
+        : getRegionTooltip(info),
     [getRegionTooltip, getSchoolTooltip],
   );
 
   const getCursor = useCallback(
-    ({ isDragging, isHovering }: { isDragging: boolean; isHovering: boolean }) =>
-      isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
+    ({
+      isDragging,
+      isHovering,
+    }: {
+      isDragging: boolean;
+      isHovering: boolean;
+    }) => (isDragging ? "grabbing" : isHovering ? "pointer" : "grab"),
     [],
   );
 
@@ -377,7 +506,12 @@ export default function DeckMap({
       // bundle.regions is in fact one of the 14 시군, but this narrows the
       // type rather than assuming it.
       if (!isRegionCode(code)) return;
-      recordE2eEvent({ type: "region-click", code, picked: true, t: performance.now() });
+      recordE2eEvent({
+        type: "region-click",
+        code,
+        picked: true,
+        t: performance.now(),
+      });
       if (code === selectedCode) {
         reselect();
       } else {
@@ -416,7 +550,8 @@ export default function DeckMap({
     (info: PickingInfo) => {
       recordE2eEvent({
         type: "deck-click",
-        code: (info.object as { properties?: { code?: string } } | undefined)?.properties?.code,
+        code: (info.object as { properties?: { code?: string } } | undefined)
+          ?.properties?.code,
         picked: info.picked,
         t: performance.now(),
       });
@@ -431,6 +566,7 @@ export default function DeckMap({
   // Escape-to-deselect live in useRegionKeyboardNav now (split out of this
   // file with no intended behavior change).
   const { handleWrapperKeyDown } = useRegionKeyboardNav({
+    disabled: interactionBlocked,
     orderedCodes,
     selectedCode,
     onSelect,
@@ -460,7 +596,12 @@ export default function DeckMap({
         label: "전체보기",
         initialViewState: overview ?? undefined,
       }),
-      new ZoomWidget({ id: "zoom", placement: "bottom-left", zoomInLabel: "확대", zoomOutLabel: "축소" }),
+      new ZoomWidget({
+        id: "zoom",
+        placement: "bottom-left",
+        zoomInLabel: "확대",
+        zoomOutLabel: "축소",
+      }),
     ],
     [overview],
   );
@@ -472,21 +613,11 @@ export default function DeckMap({
   // Resets to off on every fresh page load, by design.
   const [presentation, setPresentation] = useState(false);
 
-  // Task C / Task 3 (bright diorama) — 배경 지도: a 3-way mode (`off` /
-  // `satellite` + white wash / `base` road map, spec §2), unlike
-  // `presentation` this one IS persisted (localStorage, via basemapPref.ts,
-  // which also migrates the old "1"/"0" boolean values) — `useState(() =>
-  // ...)` (lazy initializer) so `readBasemapPref()`'s localStorage read only
-  // ever happens once, on mount, not every render. Defaults to `satellite`
-  // when nothing is stored yet. Gated on `VWORLD_KEY` everywhere it's read
-  // below (`basemapLayer`/`basemapWashLayer`, `overlayItems`, the
-  // attribution string) — with no key, the control never renders and both
-  // layers are always `null`, regardless of what's in localStorage.
-  const [basemapMode, setBasemapMode] = useState<BasemapMode>(() => readBasemapPref());
-  const [terrainEnabled, setTerrainEnabled] = useState(true);
-  const handleBasemapChange = useCallback((mode: BasemapMode) => {
-    writeBasemapPref(mode);
-    setBasemapMode(mode);
+  // A single saved mode keeps camera, imagery and terrain in sync.
+  const handleModeChange = useCallback((next: MapDisplayMode) => {
+    writeMapMode(next);
+    setMode(next);
+    setPresentation(false);
   }, []);
 
   // Task E — 읍면동 경계: persisted (localStorage via emdPref.ts, same
@@ -513,110 +644,78 @@ export default function DeckMap({
   // `lightingEffect`/`lightingEffectNoShadow` are themselves already module
   // constants (lighting.ts) — only picking BETWEEN them varies here.
   const effects = useMemo<Effect[]>(
-    () => [
-      MAP_FX_OFF ? lightingEffectNoShadow : lightingEffect,
-      ...createPostProcessEffects({ presentation, fxOff: MAP_FX_OFF }),
-    ],
-    [presentation],
+    () =>
+      mode === "road"
+        ? []
+        : [
+            MAP_FX_OFF ? lightingEffectNoShadow : lightingEffect,
+            ...createPostProcessEffects({ presentation, fxOff: MAP_FX_OFF }),
+          ],
+    [presentation, mode],
   );
 
-  // Task A — MapOverlay's controlled control list. `items` is an array (not
-  // fixed named props) specifically so Task C could append a "배경 지도"
-  // entry without changing MapOverlay's shape — it does, below (a 3-way
-  // segmented radiogroup since Task 3), but ONLY when a VWorld key is
-  // configured at all (per the task brief: no key -> no control, not a
-  // disabled one).
   const overlayItems = useMemo<MapOverlayItem[]>(() => {
     const items: MapOverlayItem[] = [];
-    // I-4 — NEXT_PUBLIC_MAP_FX=off strips the post-process chain down to
-    // nothing (createPostProcessEffects), so "발표 모드" would be a visible
-    // no-op toggle; don't surface it at all in that mode.
-    if (!MAP_FX_OFF) {
-      items.push({
-        id: "presentation",
-        label: "발표 모드",
-        pressed: presentation,
-        onToggle: () => setPresentation((p) => !p),
-        title: "틸트시프트·미니어처 효과",
-      });
-    }
-    if (VWORLD_KEY) {
+    if (VWORLD_KEY)
       items.push({
         kind: "segmented",
-        id: "basemap",
-        label: "배경 지도",
-        value: basemapMode,
+        id: "map-mode",
+        label: "지도 모드",
+        value: mode,
         options: [
-          { value: "off", label: "끄기" },
-          { value: "satellite", label: "위성" },
-          { value: "base", label: "일반" },
+          { value: "road", label: "평면 지도" },
+          { value: "terrain", label: "입체 위성" },
         ],
-        onChange: handleBasemapChange,
-        title: "브이월드 배경 타일: 끄기 / 위성 / 일반",
+        onChange: (value) => handleModeChange(value as MapDisplayMode),
       });
-      if (basemapMode === "satellite") {
-        items.push({
-          id: "terrain",
-          label: "입체 지형",
-          pressed: terrainEnabled,
-          onToggle: () => setTerrainEnabled((enabled) => !enabled),
-          title: "실제 지형 높낮이를 위성지도에 적용",
-        });
-      }
-    }
-    // Task E — 읍면동 경계: always rendered (unlike "배경 지도", never gated
-    // on an external key), positioned last per the task brief ("발표
-    // 모드·배경 지도 버튼 뒤").
+    items.push({
+      id: "school-names",
+      label: "학교명",
+      pressed: showSchoolNames,
+      onToggle: () => setShowSchoolNames((value) => !value),
+    });
     items.push({
       id: "emd",
       label: "읍면동 경계",
       pressed: emdEnabled,
       onToggle: handleEmdToggle,
-      title: "선택한 시군의 읍면동 경계선",
     });
+    if (mode === "terrain" && !MAP_FX_OFF)
+      items.push({
+        id: "presentation",
+        label: "발표 모드",
+        pressed: presentation,
+        onToggle: () => setPresentation((value) => !value),
+      });
     return items;
-  }, [presentation, basemapMode, handleBasemapChange, terrainEnabled, emdEnabled, handleEmdToggle]);
+  }, [
+    mode,
+    handleModeChange,
+    showSchoolNames,
+    emdEnabled,
+    handleEmdToggle,
+    presentation,
+  ]);
 
-  // I-1 — single source of truth for "is the basemap actually visually on,"
-  // computed once and reused everywhere that used to gate on
-  // `VWORLD_KEY`/the stored mode separately (the neighbors layer's `masked`
-  // option and the attribution caption in the JSX below). Without this, a
-  // no-key deployment correctly left `basemapLayer` `null` but still passed
-  // `masked: true` (the default pref) to `makeNeighborsLayer` — the masked
-  // fill color (the translucent white [255,255,255,90], meant to sit over
-  // basemap tiles/wash as a light silhouette) would land on the bare paper
-  // background instead and all but vanish there, silently hiding every
-  // neighboring 시도 silhouette even though no basemap tile was ever drawn
-  // to mask them against; the opaque unmasked variant is what a no-basemap
-  // scene needs.
-  const basemapOn = !!VWORLD_KEY && basemapMode !== "off";
-  const terrainOn = !!VWORLD_KEY && basemapMode === "satellite" && terrainEnabled;
+  const basemapOn = !!VWORLD_KEY;
+  const terrainOn =
+    !!VWORLD_KEY && basemapMode === "satellite" && terrainEnabled;
   const terrainLayer = useMemo(
     () => (VWORLD_KEY && terrainOn ? makeTerrainLayer(VWORLD_KEY) : null),
     [terrainOn],
   );
 
-  // Task C / Task 3 — the VWorld basemap TileLayer (Satellite jpeg or Base
-  // png per `basemapMode`), or `null` when there's no key or the mode is
-  // `off`. Memoized on `basemapMode` only (not `[]`) — VWORLD_KEY is a
-  // build-time-fixed module constant (same reasoning as MAP_FX_OFF above),
-  // so it can never change across renders and including it as a dep would
-  // be a permanent no-op. The `VWORLD_KEY &&` narrows it to `string` for
-  // the factory call; `basemapMode !== "off"` narrows the mode to
-  // `BasemapTiles`.
+  // Road imagery is shown without a wash or post-processing.
   const basemapLayer = useMemo(
-    () => (VWORLD_KEY && basemapMode !== "off" ? makeBasemapLayer(VWORLD_KEY, basemapMode) : null),
+    () => (VWORLD_KEY ? makeBasemapLayer(VWORLD_KEY, basemapMode) : null),
     [basemapMode],
   );
-  // Task 3 — the translucent white wash right on top of the tiles (spec §2:
-  // heavier over the satellite photo, lighter over the already-light road
-  // map). Same `null`-when-off contract as `basemapLayer`.
-  // Known/accepted (Task 3 review, minor): on a 위성 ↔ 일반 switch the wash
-  // alpha changes immediately while the new tiles are still loading, so the
-  // previous source's tiles briefly show under the new alpha.
   const basemapWashLayer = useMemo(
-    () => (VWORLD_KEY && basemapMode !== "off" ? makeBasemapWashLayer(basemapMode) : null),
-    [basemapMode],
+    () =>
+      VWORLD_KEY && mode === "terrain"
+        ? makeBasemapWashLayer(basemapMode)
+        : null,
+    [basemapMode, mode],
   );
 
   // Only ever fetches while emdEnabled AND a 시군 is selected (see
@@ -625,13 +724,18 @@ export default function DeckMap({
   const emdFc = useEmdBoundaries(selectedCode, emdEnabled);
 
   const layers = useMemo<LayersList>(() => {
-    const transitionDuration = reduceMotion ? 0 : undefined;
+    const transitionDuration = 0;
     const layerList: LayersList = [
       basemapLayer,
       basemapWashLayer,
       terrainLayer,
       terrainOn ? makeTerrainWashLayer() : null,
-      makeFlatRegionsLayer(bundle.regions, selectedCode, handleRegionClick, terrainOn),
+      makeFlatRegionsLayer(
+        bundle.regions,
+        selectedCode,
+        handleRegionClick,
+        terrainOn,
+      ),
       emdEnabled && selectedCode && emdFc
         ? makeEmdBoundaryLayer(emdFc, {
             elevation: 1,
@@ -640,36 +744,20 @@ export default function DeckMap({
             transitionDuration,
           })
         : null,
-      makeFlatSchoolsLayer(positionedSchools, highlightedSchoolId, handleSchoolClick, terrainOn),
+      makeFlatSchoolsLayer(
+        positionedSchools,
+        highlightedSchoolId,
+        handleSchoolClick,
+        terrainOn,
+      ),
     ];
     if (fontReady) {
-      // Task D, fix round 1 — school-labels is pushed BEFORE region-labels
-      // (was the other way around): two reasons, both from the review that
-      // caught the 전주시 chip getting painted over by school-name chips.
-      // (1) Paint order: BOTH label layers draw with `depthCompare: 'always'`
-      // (labelLayer.ts:154, schoolLayers.ts:292) — the exact same hack the
-      // old flat schools point layer used, not "normal depth-testing" as an
-      // earlier version of this comment wrongly claimed. With depth testing
-      // effectively off on both sides, deck.gl's painter's-algorithm draw
-      // order is the ONLY thing that decides which label wins when two
-      // labels' screen-space quads overlap at similar depth — region-labels
-      // must be drawn LAST (pushed after school-labels here) so it always
-      // ends up the one a viewer actually sees on top. (2) A narrower,
-      // shared-collision-FBO edge case: now that both layers share
-      // `collisionGroup: 'labels'` (schoolLayers.ts), a region label at
-      // array index i and a school label ALSO at index i encode the SAME
-      // `encodePickingColor(i)` RGB (picking colors are per-LAYER-relative,
-      // not globally unique) — the installed collision shader
-      // (shader-module.js) compares sampled RGB only, with no layer
-      // identity baked in, so this is a real (if narrow) ambiguity source.
-      // Region-labels drawing last means even in that edge case, the
-      // region chip — which must ALWAYS win visually (see
-      // schoolCollisionPriority's doc comment: a school's priority range
-      // [-1000,-100] is already strictly below every region priority
-      // [-15,1000], so this is defense-in-depth, not the primary fix) —
-      // ends up on top of the final composited frame regardless.
+      // Screen-space placement above resolves collisions before either text layer draws.
       layerList.push(
-        makeSchoolLabelsLayer(positionedRegionSchools, {
+        makeSchoolLabelsLayer(visibleLabels.schools, {
+          collisionEnabled: false,
+          terrainEnabled: terrainOn,
+          highlightedId: highlightedSchoolId,
           elevationOf: () => 0,
           heightOf: () => 0,
           heightKey: "flat",
@@ -679,7 +767,9 @@ export default function DeckMap({
           triggerKey: indicatorId,
           transitionDuration,
         }),
-        makeRegionLabelLayer(labels, {
+        makeRegionLabelLayer(visibleLabels.regions, {
+          collisionEnabled: false,
+          terrainEnabled: terrainOn,
           elevationOf: () => 0,
           textOf: labelTextOf,
           triggerKey: indicatorId,
@@ -693,10 +783,26 @@ export default function DeckMap({
     }
     return layerList;
   }, [
-    basemapLayer, basemapWashLayer, terrainLayer, terrainOn, bundle.regions, selectedCode, handleRegionClick,
-    emdEnabled, emdFc, indicatorId, positionedSchools, positionedRegionSchools,
-    highlightedSchoolId, handleSchoolClick, fontReady, schoolLabelsVisible,
-    fontFamily, characterSet, labels, labelTextOf, priorityOf, reduceMotion,
+    basemapLayer,
+    basemapWashLayer,
+    terrainLayer,
+    terrainOn,
+    bundle.regions,
+    selectedCode,
+    handleRegionClick,
+    emdEnabled,
+    emdFc,
+    indicatorId,
+    positionedSchools,
+    highlightedSchoolId,
+    handleSchoolClick,
+    fontReady,
+    schoolLabelsVisible,
+    fontFamily,
+    characterSet,
+    visibleLabels,
+    labelTextOf,
+    priorityOf,
   ]);
 
   // Fires every frame. The first frame after the initial view state is
@@ -724,6 +830,26 @@ export default function DeckMap({
   // canvas.
   const handleAfterRender = useCallback(() => {
     if (!containerRef.current) return;
+    const viewport = deckRef.current?.deck?.getViewports()[0] as
+      | WebMercatorViewport
+      | undefined;
+    if (viewport) {
+      const key = [
+        viewport.width,
+        viewport.height,
+        viewport.longitude,
+        viewport.latitude,
+        viewport.zoom,
+        viewport.pitch,
+      ].join(",");
+      if (key !== lastLabelViewportKey.current) {
+        lastLabelViewportKey.current = key;
+        queueMicrotask(() => {
+          setLabelViewport(viewport);
+          setZoom(viewport.zoom);
+        });
+      }
+    }
     if (!mapReadyRef.current) {
       mapReadyRef.current = true;
       containerRef.current.setAttribute("data-map-ready", "true");
@@ -758,6 +884,7 @@ export default function DeckMap({
 
   return (
     <div
+      id="school-map"
       ref={containerRef}
       className="relative h-full w-full bg-paper outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
       style={WIDGET_THEME_STYLE}
@@ -780,7 +907,11 @@ export default function DeckMap({
           ref={deckRef}
           initialViewState={cameraViewState}
           views={views}
-          controller={CONTROLLER}
+          controller={
+            mode === "road"
+              ? { ...CONTROLLER, maxBounds: undefined }
+              : CONTROLLER
+          }
           effects={effects}
           layers={layers}
           widgets={widgets}
@@ -803,15 +934,24 @@ export default function DeckMap({
           radial gradient: zero GPU cost, no offscreen buffers, and it lets the
           default mode skip post-processing entirely (canvas MSAA instead of
           FXAA — see effects.ts). pointer-events: none keeps picking/drag intact. */}
-      <div
-        aria-hidden
-        data-testid="map-vignette"
-        className="pointer-events-none absolute inset-0 z-[5]"
-        style={{ background: "radial-gradient(ellipse 85% 75% at 50% 50%, transparent 60%, rgba(28, 35, 49, 0.12) 100%)" }}
-      />
+      {mode === "terrain" && (
+        <div
+          aria-hidden
+          data-testid="map-vignette"
+          className="pointer-events-none absolute inset-0 z-[5]"
+          style={{
+            background:
+              "radial-gradient(ellipse 85% 75% at 50% 50%, transparent 60%, rgba(28, 35, 49, 0.12) 100%)",
+          }}
+        />
+      )}
       <MapOverlay
         items={overlayItems}
-        attribution={basemapOn ? `${BASEMAP_ATTRIBUTION}${terrainOn ? " · 지형 Mapzen · SRTM/GMTED 자료 USGS" : ""}` : undefined}
+        attribution={
+          basemapOn
+            ? `${BASEMAP_ATTRIBUTION}${terrainOn ? " · 지형 Mapzen · SRTM/GMTED 자료 USGS" : ""}`
+            : undefined
+        }
       />
       {contextLost && (
         <div

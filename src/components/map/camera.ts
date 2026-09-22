@@ -1,5 +1,6 @@
 import { FlyToInterpolator, WebMercatorViewport } from "@deck.gl/core";
 
+import type { MapDisplayMode } from "./mapModePref";
 import type { Bbox } from "@/lib/geo/geo";
 
 export const OVERVIEW_PITCH = 56;
@@ -189,7 +190,7 @@ type OverviewViewState = {
   zoom: number;
   pitch: number;
   bearing: number;
-} & typeof VIEW_LIMITS;
+} & Omit<typeof VIEW_LIMITS, "maxZoom"> & { maxZoom: number };
 
 /**
  * Computes the camera view state that frames `bbox` (e.g. `unionBbox` of all
@@ -199,10 +200,10 @@ type OverviewViewState = {
  * because a region's tallest/farthest label can otherwise land outside the
  * frame even when the polygon bbox itself just barely fits.
  */
-export function fitOverview(bbox: Bbox, labelPoints: readonly LngLat[], size: Size): OverviewViewState {
+export function fitOverview(bbox: Bbox, labelPoints: readonly LngLat[], size: Size, mode: MapDisplayMode = "terrain"): OverviewViewState {
   const points = [...bboxCorners(bbox), ...labelPoints];
   const { longitude, latitude, zoom } = fitViewToPoints(points, size, {
-    pitch: OVERVIEW_PITCH,
+    pitch: mode === "road" ? 0 : OVERVIEW_PITCH,
     bearing: OVERVIEW_BEARING,
     padding: 60,
     minZoom: VIEW_LIMITS.minZoom,
@@ -212,9 +213,10 @@ export function fitOverview(bbox: Bbox, labelPoints: readonly LngLat[], size: Si
     longitude,
     latitude,
     zoom,
-    pitch: OVERVIEW_PITCH,
+    pitch: mode === "road" ? 0 : OVERVIEW_PITCH,
     bearing: OVERVIEW_BEARING,
     ...VIEW_LIMITS,
+    maxZoom: mode === "road" ? 18 : 14,
   };
 }
 
@@ -226,6 +228,7 @@ type RegionViewState = OverviewViewState & {
 const FIT_REGION_PITCH = 58;
 
 export interface FitRegionOptions {
+  mode?: MapDisplayMode;
   /**
    * Task B — the region top-face height CEILING (meters, same units as
    * `getElevation`) to also frame, e.g. `ELEVATION_MAX` (src/lib/scales.ts).
@@ -251,10 +254,11 @@ export interface FitRegionOptions {
  * ground-only fit isn't enough once the camera is pitched.
  */
 export function fitRegion(bbox: Bbox, size: Size, opts?: FitRegionOptions): RegionViewState {
-  const maxElevation = opts?.maxElevation ?? 0;
+  const mode = opts?.mode ?? "terrain";
+  const maxElevation = mode === "road" ? 0 : opts?.maxElevation ?? 0;
   const points = bboxCorners3D(bbox, [0, maxElevation]);
   const { longitude, latitude, zoom } = fitViewToPoints(points, size, {
-    pitch: FIT_REGION_PITCH,
+    pitch: mode === "road" ? 0 : FIT_REGION_PITCH,
     bearing: OVERVIEW_BEARING,
     padding: 80,
     minZoom: VIEW_LIMITS.minZoom,
@@ -264,9 +268,10 @@ export function fitRegion(bbox: Bbox, size: Size, opts?: FitRegionOptions): Regi
     longitude,
     latitude,
     zoom,
-    pitch: FIT_REGION_PITCH,
+    pitch: mode === "road" ? 0 : FIT_REGION_PITCH,
     bearing: OVERVIEW_BEARING,
     ...VIEW_LIMITS,
+    maxZoom: mode === "road" ? 18 : 14,
     transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
     transitionDuration: "auto",
   };

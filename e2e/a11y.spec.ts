@@ -30,6 +30,7 @@ test.describe("접근성", () => {
     await expect(page.getByRole("banner")).toBeVisible();
     await expect(page.getByRole("main")).toBeVisible();
     await expect(page.getByRole("complementary")).toBeVisible();
+    await page.getByRole("tab", { name: "시군 통계" }).click();
     await expect(page.getByRole("contentinfo")).toBeVisible();
   });
 
@@ -69,32 +70,19 @@ test.describe("접근성", () => {
     // (same bounded helper as the other steps). ArrowRight then moves the
     // selection to the next option (일반) and focuses it — the WAI-ARIA
     // radiogroup keyboard pattern.
-    const basemapGroup = page.getByRole("radiogroup", { name: "배경 지도" });
-    const satelliteRadio = basemapGroup.getByRole("radio", { name: "위성" });
-    await expect(satelliteRadio).toHaveAttribute("aria-checked", "true");
-    expect(await tabUntilFocused(page, satelliteRadio, 15)).toBe(true);
+    await page.getByRole("tab", { name: "학교 탐색" }).focus();
     await page.keyboard.press("ArrowRight");
-    const baseRadio = basemapGroup.getByRole("radio", { name: "일반" });
-    await expect(baseRadio).toHaveAttribute("aria-checked", "true");
-    await expect(baseRadio).toBeFocused();
-
-    // 3) 시군 목록: RegionList's buttons live in the complementary landmark
-    // (<aside>) — first one reachable by continuing to Tab forward from
-    // wherever focus is now (the 일반 radio in the map overlay, which sits
-    // before the <aside> in DOM order).
-    const firstRegionButton = page.getByRole("complementary").getByRole("button").first();
-    expect(await tabUntilFocused(page, firstRegionButton, 15)).toBe(true);
-
-    // 4) 패널: selecting a region (Enter activates the focused RegionList
-    // button) swaps <aside> from RegionList to RegionPanel. The just-clicked
-    // button unmounts with it, so focus reverts to <body> (same behavior
-    // e2e/select-region.spec.ts already documents) — Tab again to confirm
-    // the PANEL's own controls (its "선택 해제" close button) are reachable.
+    await expect(page.getByRole("tab", { name: "시군 통계" })).toHaveAttribute("aria-selected", "true");
+    const firstRegionButton = page.getByRole("complementary").getByRole("button", { name: /전주시/ });
+    expect(await tabUntilFocused(page, firstRegionButton, 20)).toBe(true);
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("heading", { level: 2 })).toBeVisible();
-    const closeButton = page.getByRole("complementary").getByLabel("선택 해제");
-    expect(await tabUntilFocused(page, closeButton, 15)).toBe(true);
-
+    await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
+    await page.getByLabel("전북 학교 위치 지도").focus();
+    const basemapGroup = page.getByRole("radiogroup", { name: "지도 모드" });
+    const roadRadio = basemapGroup.getByRole("radio", { name: "평면 지도" });
+    expect(await tabUntilFocused(page, roadRadio, 10)).toBe(true);
+    await page.keyboard.press("ArrowRight");
+    await expect(basemapGroup.getByRole("radio", { name: "입체 위성" })).toHaveAttribute("aria-checked", "true");
     expect(consoleErrors).toEqual([]);
   });
 

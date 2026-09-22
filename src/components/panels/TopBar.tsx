@@ -56,7 +56,7 @@ export default function TopBar({ bundle }: TopBarProps) {
         <SkeletonBar className="h-7 w-56" />
       )}
 
-      <div className="ml-auto flex min-w-0 shrink-0 items-center gap-4">
+      <div className="ml-auto hidden min-w-0 shrink-0 lg:flex items-center gap-4">
         {bundle ? (
           <KpiTiles indicators={bundle.indicators} series={bundle.series} manifest={bundle.manifest} />
         ) : (

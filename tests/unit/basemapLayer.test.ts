@@ -57,7 +57,7 @@ describe("makeBasemapLayer", () => {
       expect(layer.props.maxZoom).toBe(18);
       expect(layer.props.maxRequests).toBe(6);
       // 성능 조정 (2026-09-22): coarser tiles under the wash + a bounded cache.
-      expect(layer.props.zoomOffset).toBe(-1);
+      expect(layer.props.zoomOffset).toBe(tiles === "base" ? 0 : -1);
       expect(layer.props.maxCacheSize).toBe(64);
     }
   });
@@ -122,7 +122,7 @@ describe("makeBasemapLayer", () => {
     // Spec §2: only the `Base` road map is desaturated (0.5) — it's a busy
     // yellow-highway routing style that would fight the pastel blocks; the
     // satellite photo keeps its color and is lightened by the wash instead.
-    it("desaturates only the base (road map) tiles", () => {
+    it("keeps both sources in their original colors", () => {
       const fakeTile = {
         tile: { boundingBox: [[126, 35], [127, 36]] },
         data: {} as ImageBitmap,
@@ -135,7 +135,7 @@ describe("makeBasemapLayer", () => {
         fakeTile as never,
       ) as BitmapLayer;
       expect(sat.props.desaturate).toBe(0);
-      expect(base.props.desaturate).toBe(0.5);
+      expect(base.props.desaturate).toBe(0);
     });
   });
 });

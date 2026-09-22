@@ -8,12 +8,17 @@
  * every handler/effect/comment below is moved verbatim from DeckMap.tsx, not
  * rewritten. See task-6-report.md.
  */
-import { useCallback, useEffect, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 
 import type { RegionCode } from "@/lib/geo/regions";
 import { nextRegion } from "@/lib/selection";
 
 export interface UseRegionKeyboardNavOptions {
+  disabled?: boolean;
   /** Current indicator's rank order (largest value first) — see selection.ts's regionRankList; also RegionList's render order. */
   orderedCodes: readonly RegionCode[];
   selectedCode: RegionCode | null;
@@ -29,8 +34,18 @@ export interface UseRegionKeyboardNavResult {
   handleWrapperKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
 }
 
-export function useRegionKeyboardNav(opts: UseRegionKeyboardNavOptions): UseRegionKeyboardNavResult {
-  const { orderedCodes, selectedCode, onSelect, reselect, highlightedSchoolId, onHighlightSchool } = opts;
+export function useRegionKeyboardNav(
+  opts: UseRegionKeyboardNavOptions,
+): UseRegionKeyboardNavResult {
+  const {
+    disabled = false,
+    orderedCodes,
+    selectedCode,
+    onSelect,
+    reselect,
+    highlightedSchoolId,
+    onHighlightSchool,
+  } = opts;
 
   // Keyboard path on the map wrapper (tabIndex=0): ←/→ cycle through
   // `orderedCodes` and commit immediately (selection IS the URL — no
@@ -49,7 +64,7 @@ export function useRegionKeyboardNav(opts: UseRegionKeyboardNavOptions): UseRegi
       // would preventDefault() and hijack that native button activation —
       // only handle keys that land on the wrapper itself, not on a focused
       // descendant.
-      if (event.target !== event.currentTarget) return;
+      if (disabled || event.target !== event.currentTarget) return;
       switch (event.key) {
         case "ArrowRight": {
           event.preventDefault();
@@ -78,7 +93,7 @@ export function useRegionKeyboardNav(opts: UseRegionKeyboardNavOptions): UseRegi
           break;
       }
     },
-    [orderedCodes, selectedCode, onSelect, reselect],
+    [disabled, orderedCodes, selectedCode, onSelect, reselect],
   );
 
   // Escape-to-deselect via a document-level listener: a MOUSE-driven
@@ -117,14 +132,16 @@ export function useRegionKeyboardNav(opts: UseRegionKeyboardNavOptions): UseRegi
   // the effect's existing `!selectedCode` guard already covers this case
   // too — no separate attach condition needed.
   useEffect(() => {
-    if (!selectedCode) return;
+    if (disabled || (!selectedCode && !highlightedSchoolId)) return;
     function onDocumentKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       if (event.defaultPrevented) return;
       const target = event.target;
       if (
         target instanceof HTMLElement &&
-        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
       ) {
         return;
       }
@@ -136,7 +153,13 @@ export function useRegionKeyboardNav(opts: UseRegionKeyboardNavOptions): UseRegi
     }
     document.addEventListener("keydown", onDocumentKeyDown);
     return () => document.removeEventListener("keydown", onDocumentKeyDown);
-  }, [selectedCode, onSelect, highlightedSchoolId, onHighlightSchool]);
+  }, [
+    disabled,
+    selectedCode,
+    onSelect,
+    highlightedSchoolId,
+    onHighlightSchool,
+  ]);
 
   return { handleWrapperKeyDown };
 }

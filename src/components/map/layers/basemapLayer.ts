@@ -16,19 +16,23 @@ export type BasemapTiles = Exclude<BasemapMode, "off">;
  * "midnight" (the 2차 개선 dark style) so the URL rule itself is pinned by
  * the original test; the app's own callers go through `TILE_SOURCE` below.
  */
-export function vworldTileUrl(key: string, layer: string = "midnight", ext: string = "png"): string {
+export function vworldTileUrl(
+  key: string,
+  layer: string = "midnight",
+  ext: string = "png",
+): string {
   return `https://api.vworld.kr/req/wmts/1.0.0/${key}/${layer}/{z}/{y}/{x}.${ext}`;
 }
 
 /**
- * Per-mode tile source (spec §2). `Base` is VWorld's yellow-highway routing
- * map — busy under the pastel blocks — so it's desaturated to half; the
- * satellite photo keeps its color (the bright look comes from the wash
- * layer on top, see `makeBasemapWashLayer`).
+ * Per-mode tile source. Road imagery retains its original colors and resolution.
  */
-const TILE_SOURCE: Record<BasemapTiles, { layer: string; ext: string; desaturate: number }> = {
+const TILE_SOURCE: Record<
+  BasemapTiles,
+  { layer: string; ext: string; desaturate: number }
+> = {
   satellite: { layer: "Satellite", ext: "jpeg", desaturate: 0 },
-  base: { layer: "Base", ext: "png", desaturate: 0.5 },
+  base: { layer: "Base", ext: "png", desaturate: 0 },
 };
 
 /**
@@ -43,7 +47,12 @@ const TILE_SOURCE: Record<BasemapTiles, { layer: string; ext: string; desaturate
  * settled view at pitch 56: lng 124.1–130.2 / lat 34.5–39.2), so this
  * rectangle always covers the whole screen.
  */
-export const BASEMAP_COVERAGE = { west: 120, south: 30, east: 135, north: 41 } as const;
+export const BASEMAP_COVERAGE = {
+  west: 120,
+  south: 30,
+  east: 135,
+  north: 41,
+} as const;
 const BASEMAP_EXTENT: [number, number, number, number] = [
   BASEMAP_COVERAGE.west,
   BASEMAP_COVERAGE.south,
@@ -84,7 +93,7 @@ export function makeBasemapLayer(key: string, tiles: BasemapTiles) {
     // level coarser is invisible but loads ~4× fewer tiles (≈4× less texture
     // memory), and the cache is capped so panning around cannot pile up
     // 100 MB+ of tile textures (measured before: 58 → 101 MB after a pan).
-    zoomOffset: -1,
+    zoomOffset: tiles === "base" ? 0 : -1,
     maxCacheSize: 64,
     // REQUIRED: TileLayer's own default onTileError is console.error — 8 of
     // this suite's e2e specs assert zero console errors (see
@@ -125,7 +134,12 @@ export function makeBasemapLayer(key: string, tiles: BasemapTiles) {
       return new BitmapLayer(props as unknown as BitmapLayerProps, {
         data: undefined,
         image: props.data,
-        bounds: [boundingBox[0][0], boundingBox[0][1], boundingBox[1][0], boundingBox[1][1]],
+        bounds: [
+          boundingBox[0][0],
+          boundingBox[0][1],
+          boundingBox[1][0],
+          boundingBox[1][1],
+        ],
         desaturate: source.desaturate,
       });
     },

@@ -81,14 +81,14 @@ describe("Legend", () => {
     expect(screen.queryByText("자료 없음")).not.toBeInTheDocument();
   });
 
-  it("always shows the base proportionality note", () => {
+  it("describes the statistical color intervals", () => {
     render(
       <Legend def={baseDef()} ticks={TICKS} palette={paletteFor("neutral")} hasNull={false} referenceDate="2026-04-01" />,
     );
-    expect(screen.getByText(/높이·색 모두 값에 비례/)).toBeInTheDocument();
+    expect(screen.getByText(/색 구간: 등간격/)).toBeInTheDocument();
   });
 
-  it("adds a sqrt-scale note only when def.scale is 'sqrt'", () => {
+  it("does not describe the removed height scale", () => {
     const { rerender } = render(
       <Legend def={baseDef()} ticks={TICKS} palette={paletteFor("neutral")} hasNull={false} referenceDate="2026-04-01" />,
     );
@@ -103,7 +103,7 @@ describe("Legend", () => {
         referenceDate="2026-04-01"
       />,
     );
-    expect(screen.getByText(/제곱근 스케일/)).toBeInTheDocument();
+    expect(screen.queryByText(/제곱근 스케일/)).not.toBeInTheDocument();
   });
 
   it("adds a non-zero-baseline note only when the first tick isn't 0", () => {
@@ -239,7 +239,7 @@ describe("Legend", () => {
         colorBuckets="quantile"
       />,
     );
-    expect(screen.getByText(/높이는 값에 비례/)).toBeInTheDocument();
+    expect(screen.getByText(/시군별 통계 색 구간/)).toBeInTheDocument();
     expect(screen.queryByText(/높이·색 모두 값에 비례/)).not.toBeInTheDocument();
   });
 

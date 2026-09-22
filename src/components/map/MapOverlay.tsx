@@ -79,9 +79,9 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
   if (items.length === 0 && !attribution) return null;
 
   return (
-    <div className="pointer-events-none absolute right-3 top-3 z-10 flex flex-col items-end gap-1.5">
+    <div className="pointer-events-none absolute right-3 top-16 lg:top-3 z-10 flex max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5">
       {items.length > 0 && (
-        <div className="flex gap-1.5">
+        <div className="flex max-w-[calc(100vw-24px)] flex-wrap justify-end gap-1.5">
           {items.map((item) =>
             item.kind === "segmented" ? (
               <SegmentedRadioGroup key={item.id} item={item} />
@@ -92,7 +92,7 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
                 aria-pressed={item.pressed}
                 title={item.title}
                 onClick={item.onToggle}
-                className={`pointer-events-auto rounded px-2.5 py-1 text-xs backdrop-blur-sm transition-colors ${
+                className={`pointer-events-auto rounded min-h-11 px-2.5 py-1 text-xs backdrop-blur-sm transition-colors ${
                   item.pressed
                     ? "border border-accent/40 bg-accent-soft font-semibold text-ink shadow-sm"
                     : "border border-line bg-surface/85 text-ink-muted shadow-sm hover:bg-surface"
@@ -107,7 +107,7 @@ export default function MapOverlay({ items, attribution }: MapOverlayProps) {
       {attribution && (
         <div
           data-testid="basemap-attribution"
-          className="rounded border border-line bg-surface/85 px-2 py-0.5 text-[10px] text-ink-muted shadow-sm backdrop-blur-sm"
+          className="max-w-full rounded border border-line bg-surface/85 px-2 py-0.5 text-[10px] text-ink-muted shadow-sm backdrop-blur-sm"
         >
           {attribution}
         </div>
@@ -201,7 +201,7 @@ function SegmentedRadioGroup({ item }: { item: MapOverlaySegmentedItem }) {
             aria-checked={checked}
             tabIndex={index === tabStopIndex ? 0 : -1}
             onClick={() => item.onChange(opt.value)}
-            className={`px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
+            className={`min-h-11 px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent ${
               checked ? "bg-accent-soft font-semibold text-ink" : "text-ink-muted hover:bg-surface"
             }`}
           >

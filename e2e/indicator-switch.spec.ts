@@ -12,6 +12,7 @@ test("switching the indicator updates the legend, with no console errors", async
   });
 
   await page.goto("/");
+    await page.getByRole("tab", { name: "시군 통계" }).click();
   await expect(page.locator("canvas")).toBeVisible({ timeout: 15000 });
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
 

@@ -22,13 +22,13 @@ export function makeFlatRegionsLayer(
     stroked: true,
     getFillColor: [255, 255, 255, 0],
     getLineColor: (feature) =>
-      feature.properties.code === selectedCode ? [28, 35, 49, 230] : [255, 255, 255, 170],
+      feature.properties.code === selectedCode ? [28, 35, 49, 230] : terrainEnabled ? [255, 255, 255, 170] : [85, 100, 118, 110],
     getLineWidth: (feature) => feature.properties.code === selectedCode ? 2 : 1,
     lineWidthUnits: "pixels",
     pickable: true,
     autoHighlight: false,
     extensions: terrainEnabled ? [terrainExtension] : [],
-    updateTriggers: { getLineColor: [selectedCode], getLineWidth: [selectedCode] },
+    updateTriggers: { getLineColor: [selectedCode, terrainEnabled], getLineWidth: [selectedCode] },
     onClick: (info: PickingInfo<Feature<Polygon | MultiPolygon>>) => {
       const code = info.object?.properties?.code;
       if (code) onClick(code);

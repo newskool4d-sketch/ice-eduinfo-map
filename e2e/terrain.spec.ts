@@ -1,35 +1,42 @@
 import { expect, test } from "./fixtures";
 
-test("입체 지형은 위성지도 위에 표시되고 끌 수 있으며 확대 상한은 14다", async ({ page }) => {
-  test.slow();
-  await page.goto("/?region=52110");
-  await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
-
-  const toggle = page.getByRole("button", { name: "입체 지형" });
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  const mapState = () => page.evaluate(() => {
-    const deck = window.__jbmap?.deck;
-    if (!deck) throw new Error("E2E deck bridge unavailable");
-    const layers = deck.props.layers as unknown as ({ id: string } | null)[];
-    return {
-      terrain: layers.some((layer) => layer?.id === "terrain"),
-      schoolDots: layers.some((layer) => layer?.id === "schools"),
-      maxZoom: (deck.props.initialViewState as { maxZoom: number }).maxZoom,
-    };
-  });
-  await expect.poll(async () => (await mapState()).terrain).toBe(true);
-  expect(await mapState()).toMatchObject({ schoolDots: true, maxZoom: 14 });
-
-  const tile = await page.request.get("/api/terrain/8/217/100.png");
-  expect(tile.ok()).toBe(true);
-  expect(tile.headers()["content-type"]).toContain("image/png");
-
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(async () => (await mapState()).terrain).toBe(false);
-
-  for (let index = 0; index < 5; index++) {
-    await page.getByRole("button", { name: "확대" }).click();
-  }
-  await expect.poll(() => page.evaluate(() => window.__jbmap?.deck.getViewports()[0].zoom ?? 0)).toBeGreaterThan(12);
+test("선택 학교와 검색 조건은 입체 전환 후에도 유지되고 지형을 제거할 수 있다", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("searchbox", { name: "학교명 검색" })
+    .fill("전주초등학교");
+  const row = page.locator('[data-testid^="school-row-"]').first();
+  await row.click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__jbmap?.deck.getViewports()[0].zoom),
+    )
+    .toBeCloseTo(15, 2);
+  await page.getByRole("radio", { name: "입체 위성" }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__jbmap?.deck.getViewports()[0].zoom),
+    )
+    .toBeCloseTo(14, 2);
+  await expect(row).toHaveAttribute("aria-current", "true");
+  const hasTerrain = () =>
+    page.evaluate(() =>
+      (window.__jbmap!.deck.props.layers as ({ id: string } | null)[]).some(
+        (l) => l?.id === "terrain",
+      ),
+    );
+  await expect.poll(hasTerrain).toBe(true);
+  await page.getByRole("radio", { name: "평면 지도" }).click();
+  await expect.poll(hasTerrain).toBe(false);
+  await page.getByRole("button", { name: "확대", exact: true }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__jbmap?.deck.getViewports()[0].zoom),
+    )
+    .toBeCloseTo(15, 2);
+  await expect(
+    page.getByRole("searchbox", { name: "학교명 검색" }),
+  ).toHaveValue("전주초등학교");
 });

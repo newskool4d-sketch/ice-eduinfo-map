@@ -21,6 +21,7 @@ test("home page renders the flat school map with 14 regions and no console error
   // runtime. Since the 2026-09-22 성능 조정 only 발표 모드 has a post-processing
   // chain, so toggle it on first: the offscreen render buffers then exist and
   // buffer 0 must carry a depth attachment.
+  await page.getByRole("radio", { name: "입체 위성" }).click();
   await page.getByRole("button", { name: "발표 모드" }).click();
   await expect(page.getByRole("button", { name: "발표 모드" })).toHaveAttribute("aria-pressed", "true");
   await expect

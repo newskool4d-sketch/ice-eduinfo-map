@@ -1,7 +1,11 @@
 import type { RGB } from "@/lib/colors";
 import { NULL_COLOR } from "@/lib/colors";
 import type { IndicatorDef } from "@/lib/indicators/types";
-import { SCHOOL_LEVEL_COLORS, SCHOOL_LEVEL_LABELS, SCHOOL_LEVEL_ORDER } from "@/lib/schoolVisuals";
+import {
+  SCHOOL_LEVEL_COLORS,
+  SCHOOL_LEVEL_LABELS,
+  SCHOOL_LEVEL_ORDER,
+} from "@/lib/schoolVisuals";
 
 export interface LegendProps {
   def: IndicatorDef;
@@ -40,13 +44,11 @@ export default function Legend({
   hasSchoolsWithoutLocation = false,
   colorBuckets = "linear",
 }: LegendProps) {
-  // Fix round 1/5, finding 4 — "높이·색 모두 값에 비례" next to a "색 구간: 5분위"
-  // note directly contradicts itself (color is rank-based under quantile,
-  // not proportional to value). Swap the base note to the color-agnostic
-  // "높이는 값에 비례" whenever colorBuckets is 'quantile'; height itself is
-  // unaffected (still linear) either way — only this sentence changes.
-  const notes: string[] = [colorBuckets === "quantile" ? "높이는 값에 비례" : "높이·색 모두 값에 비례"];
-  if (def.scale === "sqrt") notes.push("제곱근 스케일");
+  // This legend describes the statistics panel, not marker height or size.
+  const notes: string[] = [
+    colorBuckets === "quantile" ? "시군별 통계 색 구간" : "색 구간: 등간격",
+  ];
+
   // Covers both of the brief's sub-conditions (an explicit def.domain override,
   // or a ratio-kind indicator whose data minimum isn't 0) with one check: in
   // either case the resulting scale's lower bound (ticks[0]) simply isn't 0.
@@ -65,10 +67,16 @@ export default function Legend({
   return (
     <div className="flex flex-wrap items-center gap-4 text-xs text-ink-muted">
       <span className="flex shrink-0 flex-col">
-        <span className="text-sm font-semibold text-ink" data-testid="legend-indicator-label">
+        <span
+          className="text-sm font-semibold text-ink"
+          data-testid="legend-indicator-label"
+        >
           {def.label}
         </span>
-        <span className="max-w-[280px] text-[10px] leading-snug text-ink-muted" data-testid="legend-description">
+        <span
+          className="max-w-[280px] text-[10px] leading-snug text-ink-muted"
+          data-testid="legend-description"
+        >
           {def.description}
         </span>
       </span>
@@ -82,7 +90,9 @@ export default function Legend({
               style={{ backgroundColor: rgbCss(rgb) }}
               aria-hidden
             />
-            <span className="tabular-nums text-[10px] text-ink-muted">{def.format(ticks[i])}</span>
+            <span className="tabular-nums text-[10px] text-ink-muted">
+              {def.format(ticks[i])}
+            </span>
           </div>
         ))}
         <span className="pb-[18px] tabular-nums text-[10px] text-ink-muted">
@@ -114,12 +124,16 @@ export default function Legend({
                   style={{ backgroundColor: rgbCss([r, g, b]) }}
                   aria-hidden
                 />
-                <span className="text-[10px] text-ink-muted">{SCHOOL_LEVEL_LABELS[level]}</span>
+                <span className="text-[10px] text-ink-muted">
+                  {SCHOOL_LEVEL_LABELS[level]}
+                </span>
               </span>
             );
           })}
           {hasSchoolsWithoutLocation && (
-            <span className="text-[10px] text-ink-muted">(특수학교는 위치 자료 없음)</span>
+            <span className="text-[10px] text-ink-muted">
+              (특수학교는 위치 자료 없음)
+            </span>
           )}
         </div>
       )}

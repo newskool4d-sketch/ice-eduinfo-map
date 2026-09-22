@@ -15,6 +15,7 @@ import { useMapQuery } from "@/lib/state/urlState";
 import { formatDelta, formatShare } from "@/lib/tooltipText";
 
 export interface RegionPanelProps {
+  showSchools?: boolean;
   bundle: Pick<DataBundle, "indicators" | "series" | "schools" | "closedSchools">;
   /** The currently-highlighted school (map point click / this panel's own row click), or null. Owned by Dashboard, mirrored to DeckMap so either side can drive it. */
   highlightedSchoolId: string | null;
@@ -53,7 +54,7 @@ interface OtherIndicatorRow {
  * at all once `regionCode` is set — the `!regionCode` guard below is a
  * defensive fallback, not the primary gate).
  */
-export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSchool }: RegionPanelProps) {
+export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSchool, showSchools = true }: RegionPanelProps) {
   const { indicatorId, regionCode, setIndicator, setRegion } = useMapQuery();
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   // fix round, review finding #3: reset the 학교급 filter back to "전체"
@@ -260,7 +261,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         </table>
       </section>
 
-      <section className="mb-4">
+      {showSchools && <section className="mb-4">
         <div className="mb-2 flex items-baseline justify-between gap-2">
           <p className="text-xs text-ink-muted">
             학교 {filteredSchools.length}개 · 소규모 {smallCount}개
@@ -353,7 +354,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
             </tbody>
           </table>
         )}
-      </section>
+      </section>}
 
       <section className="mb-4">
         <details data-testid="closed-schools-section">

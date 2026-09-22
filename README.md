@@ -1,8 +1,10 @@
 # 전북교육지도
 
-전북 14개 시군의 교육통계(학교수·학생수·교원수 등)를 위성지도 위에 학교 위치 점과 시군별 통계로 보여주는 Next.js 대시보드입니다.
+전북 학교를 평면 도로지도에서 검색하고, 14개 시군의 교육통계를 함께 살펴보는 Next.js 대시보드입니다.
 
-위성 모드에서는 실제 지형 높낮이를 적용한 입체 지형이 기본으로 켜집니다. 지도 상단의 `입체 지형` 버튼으로 평면 위성지도와 전환할 수 있습니다. 확대 상한은 14이며 학교 위치 점과 이름은 화면 픽셀 크기를 유지합니다. 지형 고도는 Mapzen Terrain Tiles(AWS Open Data)의 Terrarium 타일을 서버에서 캐시해 제공하고, 위성 사진은 기존 브이월드 타일을 지형 표면에 입힙니다. 브이월드 키가 없거나 일반 지도/끄기 모드에서는 평면 지도로 표시됩니다.
+기본은 북쪽이 위인 평면 도로지도이며 `입체 위성`으로 전환할 수 있습니다. 평면 지도 확대 상한은 18, 입체 위성은 14입니다. 학교 점은 반경 5px, 학교 이름은 11px로 고정하며 줌 11부터 화면에 보이는 학교 이름을 겹치지 않게 표시합니다. 입체 지형은 Mapzen Terrain Tiles(AWS Open Data)의 Terrarium 고도 타일과 브이월드 위성영상을 사용합니다.
+
+왼쪽 `학교 탐색`에서 학교명·시군·학교급을 조합해 검색합니다. 목록과 지도는 같은 필터를 사용하며 위치 없는 학교도 상세정보를 볼 수 있습니다. `시군 통계` 탭에는 기존 지표·순위·추이·폐교 목록과 데이터 출처가 있습니다. 1024px 미만에서는 지도를 유지하고 패널을 하단에서 열며, WebGL 사용 불가·지도 오류일 때만 표로 대체합니다.
 
 ## 요구 버전
 
@@ -45,7 +47,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 1. Vercel 대시보드에서 "Add New Project" → 이 저장소(GitHub)를 import 합니다.
 2. 빌드 설정은 기본값을 그대로 씁니다 — Framework Preset이 자동으로 "Next.js"로 인식되고, Build Command(`next build` = `npm run build`)·Output Directory·Install Command(`npm ci`) 모두 손댈 필요가 없습니다. Node.js 버전은 Vercel이 `package.json`의 `engines.node`(프로젝트 설정에서도 지정 가능)를 기준으로 선택합니다 — `.nvmrc`는 로컬 `nvm use` 전용이며 Vercel은 이를 읽지 않습니다.
-3. 환경변수는 `NEXT_PUBLIC_VWORLD_KEY`(선택)와 `NEXT_PUBLIC_MAP_FX`(선택, 아래 참고) 2개입니다 — 지표·경계·학교 데이터는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고 런타임에 외부 API 키나 서버 비밀값을 쓰지 않지만, 배경 지도(브이월드 타일)를 켜려면 이 키가 필요합니다. 없어도 앱은 정상 동작합니다 — "배경 지도" 컨트롤이 아예 표시되지 않고 나머지 기능은 그대로입니다. 배경 지도는 끄기 · 위성(기본, 밝은 워시) · 일반(채도 낮춤) 3단이며 선택은 브라우저에 저장됩니다(`jbmap.basemap`). 화면 전체는 라이트 테마입니다.
+3. 환경변수는 `NEXT_PUBLIC_VWORLD_KEY`(선택)와 `NEXT_PUBLIC_MAP_FX`(선택, 아래 참고) 2개입니다 — 지표·경계·학교 데이터는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고 런타임에 외부 API 키나 서버 비밀값을 쓰지 않지만, 배경 지도(브이월드 타일)를 켜려면 이 키가 필요합니다. 없어도 앱은 정상 동작합니다 — "지도 모드" 컨트롤이 표시되지 않고 나머지 기능은 그대로입니다. 지도는 평면(기본) · 입체 위성 2단이며 선택은 `jbmap.mapMode.v1`에 저장됩니다. 기존 `jbmap.basemap` 설정은 새 기본 모드에 영향을 주지 않습니다. 화면 전체는 라이트 테마입니다.
    - 발급: [브이월드 오픈API](https://www.vworld.kr/dev/v4dv_openapireferrer_s001.do)에서 무료로 키를 발급받고, 사용할 배포 도메인(예: `xxx.vercel.app`, 커스텀 도메인)을 인증키 관리에 등록합니다.
    - Vercel 프로젝트 설정 → Environment Variables 에 `NEXT_PUBLIC_VWORLD_KEY`를 추가합니다(Production/Preview 모두 필요하면 각각 등록). `vercel env add NEXT_PUBLIC_VWORLD_KEY production` 로도 등록할 수 있습니다.
    - 로컬 개발은 `.env.local`(`.gitignore`됨 — 커밋되지 않음)에 같은 키를 넣으면 됩니다.
@@ -85,4 +87,4 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 - **다문화(이주배경) 학생 지표** — KESS 통계표(`[주제별] 이주배경(유형별) 학생수`)는 존재하지만, 공개 출처에서 시군 단위로 분해된 데이터를 확보하지 못해 1차 범위에서 제외했습니다.
 - **연도 슬라이더** — 특정 연도를 직접 골라보는 UI는 1차 범위에 포함되지 않았습니다. 연도별 추이는 시군 선택 시 RegionPanel의 스파크라인으로 확인할 수 있습니다.
-- **배경 타일 지도** — 1차 범위에서는 제외했으나(deck.gl 레이어만으로 화면 구성), 2차(2026-09-21)에서 브이월드(VWorld) midnight WMTS 타일을 배경으로 도입했고, 이어진 밝은 디오라마 개편에서 위성(`Satellite` + 밝은 흰색 워시, 기본) · 일반(`Base`, 채도 낮춤) · 끄기 3단으로 바꿨습니다(우측 상단 "배경 지도" 컨트롤, `NEXT_PUBLIC_VWORLD_KEY` 필요 — 위 "배포 (Vercel)" 3번 항목 참고).
+- **배경 타일 지도** — 브이월드 일반지도(`Base`, 원래 색상과 해상도)를 기본으로 제공하고, `입체 위성`은 기존 `Satellite` 영상과 실제 지형을 표시합니다. `NEXT_PUBLIC_VWORLD_KEY`가 필요합니다.
