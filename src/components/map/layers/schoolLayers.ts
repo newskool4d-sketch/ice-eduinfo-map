@@ -1,4 +1,3 @@
-import { terrainExtension } from "./terrainLayer";
 import { ColumnLayer, TextLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
 import {
@@ -228,7 +227,6 @@ export function makeSchoolsLayer(
 
 export interface SchoolLabelsLayerOptions {
   collisionEnabled?: boolean;
-  terrainEnabled?: boolean;
   highlightedId?: string | null;
   elevationOf: (regionCode: string) => number;
   /** students -> column height(m) — the SAME accessor DeckMap hands makeSchoolsLayer (see its own doc comment), used by legacy columns; the live school map passes zero. */
@@ -313,7 +311,6 @@ export function makeSchoolLabelsLayer(
     // ever change here.
     extensions: [
       ...(opts.collisionEnabled === false ? [] : [COLLISION_FILTER_EXTENSION]),
-      ...(opts.terrainEnabled ? [terrainExtension] : []),
     ],
     collisionEnabled: opts.collisionEnabled ?? true,
     collisionGroup: "labels",

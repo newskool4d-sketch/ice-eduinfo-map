@@ -11,7 +11,7 @@ import {
 import DeckGL from "@deck.gl/react";
 import type { DeckGLRef } from "@deck.gl/react";
 import { Deck, MapView, WebMercatorViewport } from "@deck.gl/core";
-import type { Effect, LayersList, PickingInfo } from "@deck.gl/core";
+import type { LayersList, PickingInfo } from "@deck.gl/core";
 import { LightGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
@@ -21,22 +21,11 @@ import {
   REGION_CODES,
   type RegionCode,
 } from "@/lib/geo/regions";
-import {
-  lightingEffect,
-  lightingEffectNoShadow,
-} from "@/components/map/lighting";
-import { createPostProcessEffects } from "@/components/map/effects";
-import { applyDeckDepthPatch } from "@/components/map/deckDepthPatch";
-import { isMapFxOff } from "@/components/map/mapFx";
 import { declutterLabels, type LabelCandidate } from "./declutterLabels";
-import { readMapMode, writeMapMode, type MapDisplayMode } from "./mapModePref";
 import type { School } from "@/lib/schools/types";
 import { readEmdPref, writeEmdPref } from "@/components/map/emdPref";
 import { CONTROLLER, VIEW_LIMITS } from "@/components/map/camera";
-import {
-  makeBasemapLayer,
-  makeBasemapWashLayer,
-} from "@/components/map/layers/basemapLayer";
+import { makeBasemapLayer } from "@/components/map/layers/basemapLayer";
 import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import {
@@ -68,15 +57,6 @@ import {
   makeFlatRegionsLayer,
   makeFlatSchoolsLayer,
 } from "@/components/map/layers/flatMapLayers";
-import {
-  makeTerrainLayer,
-  makeTerrainWashLayer,
-} from "@/components/map/layers/terrainLayer";
-
-// Task 2 fix round 1 — give deck.gl's post-processing render buffers a depth
-// attachment (see deckDepthPatch.ts); module scope so the prototype is
-// patched before the first <DeckGL> ever constructs a DeckRenderer.
-applyDeckDepthPatch();
 
 /** School names appear at neighbourhood scale, independently of region selection. */
 const SCHOOL_LABEL_MIN_ZOOM = 11;
@@ -127,13 +107,6 @@ function recordE2eEvent(event: JbmapEvent) {
   (window.__jbmap.events ??= []).push(event);
 }
 
-// Task A — 비상 스위치 (mapFx.ts's isMapFxOff): a build-time-fixed constant,
-// same pattern as `E2E` above — read once at module scope, not per-render,
-// and deliberately INDEPENDENT of `E2E` (e2e runs with visual fx ON by
-// default; NEXT_PUBLIC_MAP_FX is a separate, manually-set escape hatch).
-const MAP_FX_OFF = isMapFxOff();
-
-// Task C — same module-scope-constant pattern as `E2E`/`MAP_FX_OFF` above:
 // NEXT_PUBLIC_* vars are inlined into the client bundle at build time, so
 // this never changes at runtime — no point re-reading it per render. Empty
 // string (Next.js's own behavior for an unset NEXT_PUBLIC_* var at runtime,
@@ -192,12 +165,9 @@ export default function DeckMap({
   interactionBlocked = false,
 }: DeckMapProps) {
   const bundle = useBundle();
-  const [mode, setMode] = useState<MapDisplayMode>(() => readMapMode());
   const [showSchoolNames, setShowSchoolNames] = useState(true);
   const selectedSchool =
     bundle.schools.schools.find((s) => s.id === highlightedSchoolId) ?? null;
-  const basemapMode = mode === "terrain" ? "satellite" : "base";
-  const terrainEnabled = mode === "terrain";
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef | null>(null);
   const mapReadyRef = useRef(false);
@@ -221,7 +191,6 @@ export default function DeckMap({
     bundle.regions,
     selectedCode,
     reduceMotion,
-    mode,
     selectedSchool,
     schoolFocusNonce,
   );
@@ -606,24 +575,6 @@ export default function DeckMap({
     [overview],
   );
 
-  // Task A — 발표 모드: a session-only (not persisted) toggle, surfaced via
-  // MapOverlay's "발표 모드" button (see `overlayItems` below). It is the ONLY
-  // mode with a post-processing chain (tilt-shift + FXAA, effects.ts) — the
-  // default mode renders straight to the canvas (2026-09-22 성능 조정).
-  // Resets to off on every fresh page load, by design.
-  const [presentation, setPresentation] = useState(false);
-
-  // A single saved mode keeps camera, imagery and terrain in sync.
-  const handleModeChange = useCallback((next: MapDisplayMode) => {
-    writeMapMode(next);
-    setMode(next);
-    setPresentation(false);
-  }, []);
-
-  // Task E — 읍면동 경계: persisted (localStorage via emdPref.ts, same
-  // lazy-initializer pattern as basemapMode/basemapPref.ts just above)
-  // toggle, default ON. Unlike the basemap control, this one is never gated
-  // on an external key — it always renders.
   const [emdEnabled, setEmdEnabled] = useState(() => readEmdPref());
   const handleEmdToggle = useCallback(() => {
     setEmdEnabled((prev) => {
@@ -633,41 +584,8 @@ export default function DeckMap({
     });
   }, []);
 
-  // Task A — `effects` (NOT `layers`): the lighting effect (shadow on/off
-  // per the NEXT_PUBLIC_MAP_FX=off emergency switch) plus the post-process
-  // chain (vibrance/brightnessContrast/vignette/[tiltShift]/fxaa). Memoized
-  // so the ARRAY and every `PostProcessEffect` instance inside it stay
-  // referentially stable across a re-render that doesn't touch
-  // presentation/fx — deck.gl's EffectManager does a depth-1 comparison
-  // (effect-manager.js) and would otherwise treat every render as "effects
-  // changed" and rebuild the whole post-process FBO chain each time.
-  // `lightingEffect`/`lightingEffectNoShadow` are themselves already module
-  // constants (lighting.ts) — only picking BETWEEN them varies here.
-  const effects = useMemo<Effect[]>(
-    () =>
-      mode === "road"
-        ? []
-        : [
-            MAP_FX_OFF ? lightingEffectNoShadow : lightingEffect,
-            ...createPostProcessEffects({ presentation, fxOff: MAP_FX_OFF }),
-          ],
-    [presentation, mode],
-  );
-
   const overlayItems = useMemo<MapOverlayItem[]>(() => {
     const items: MapOverlayItem[] = [];
-    if (VWORLD_KEY)
-      items.push({
-        kind: "segmented",
-        id: "map-mode",
-        label: "지도 모드",
-        value: mode,
-        options: [
-          { value: "road", label: "평면 지도" },
-          { value: "terrain", label: "입체 위성" },
-        ],
-        onChange: (value) => handleModeChange(value as MapDisplayMode),
-      });
     items.push({
       id: "school-names",
       label: "학교명",
@@ -680,42 +598,13 @@ export default function DeckMap({
       pressed: emdEnabled,
       onToggle: handleEmdToggle,
     });
-    if (mode === "terrain" && !MAP_FX_OFF)
-      items.push({
-        id: "presentation",
-        label: "발표 모드",
-        pressed: presentation,
-        onToggle: () => setPresentation((value) => !value),
-      });
     return items;
-  }, [
-    mode,
-    handleModeChange,
-    showSchoolNames,
-    emdEnabled,
-    handleEmdToggle,
-    presentation,
-  ]);
+  }, [showSchoolNames, emdEnabled, handleEmdToggle]);
 
   const basemapOn = !!VWORLD_KEY;
-  const terrainOn =
-    !!VWORLD_KEY && basemapMode === "satellite" && terrainEnabled;
-  const terrainLayer = useMemo(
-    () => (VWORLD_KEY && terrainOn ? makeTerrainLayer(VWORLD_KEY) : null),
-    [terrainOn],
-  );
-
-  // Road imagery is shown without a wash or post-processing.
   const basemapLayer = useMemo(
-    () => (VWORLD_KEY ? makeBasemapLayer(VWORLD_KEY, basemapMode) : null),
-    [basemapMode],
-  );
-  const basemapWashLayer = useMemo(
-    () =>
-      VWORLD_KEY && mode === "terrain"
-        ? makeBasemapWashLayer(basemapMode)
-        : null,
-    [basemapMode, mode],
+    () => (VWORLD_KEY ? makeBasemapLayer(VWORLD_KEY, "base") : null),
+    [],
   );
 
   // Only ever fetches while emdEnabled AND a 시군 is selected (see
@@ -727,19 +616,14 @@ export default function DeckMap({
     const transitionDuration = 0;
     const layerList: LayersList = [
       basemapLayer,
-      basemapWashLayer,
-      terrainLayer,
-      terrainOn ? makeTerrainWashLayer() : null,
       makeFlatRegionsLayer(
         bundle.regions,
         selectedCode,
         handleRegionClick,
-        terrainOn,
       ),
       emdEnabled && selectedCode && emdFc
         ? makeEmdBoundaryLayer(emdFc, {
             elevation: 1,
-            terrainEnabled: terrainOn,
             triggerKey: indicatorId,
             transitionDuration,
           })
@@ -748,7 +632,6 @@ export default function DeckMap({
         positionedSchools,
         highlightedSchoolId,
         handleSchoolClick,
-        terrainOn,
       ),
     ];
     if (fontReady) {
@@ -756,7 +639,6 @@ export default function DeckMap({
       layerList.push(
         makeSchoolLabelsLayer(visibleLabels.schools, {
           collisionEnabled: false,
-          terrainEnabled: terrainOn,
           highlightedId: highlightedSchoolId,
           elevationOf: () => 0,
           heightOf: () => 0,
@@ -769,7 +651,6 @@ export default function DeckMap({
         }),
         makeRegionLabelLayer(visibleLabels.regions, {
           collisionEnabled: false,
-          terrainEnabled: terrainOn,
           elevationOf: () => 0,
           textOf: labelTextOf,
           triggerKey: indicatorId,
@@ -784,9 +665,6 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
-    basemapWashLayer,
-    terrainLayer,
-    terrainOn,
     bundle.regions,
     selectedCode,
     handleRegionClick,
@@ -907,12 +785,7 @@ export default function DeckMap({
           ref={deckRef}
           initialViewState={cameraViewState}
           views={views}
-          controller={
-            mode === "road"
-              ? { ...CONTROLLER, maxBounds: undefined }
-              : CONTROLLER
-          }
-          effects={effects}
+          controller={{ ...CONTROLLER, maxBounds: undefined }}
           layers={layers}
           widgets={widgets}
           getTooltip={getTooltip}
@@ -929,29 +802,9 @@ export default function DeckMap({
           useDevicePixels={Math.min(window.devicePixelRatio || 1, 1.5)}
         />
       )}
-      {/* 2026-09-22 성능 조정 — the faint vignette that used to be a luma.gl
-          post-processing pass (radius 0.9 / amount 0.15) is now a static CSS
-          radial gradient: zero GPU cost, no offscreen buffers, and it lets the
-          default mode skip post-processing entirely (canvas MSAA instead of
-          FXAA — see effects.ts). pointer-events: none keeps picking/drag intact. */}
-      {mode === "terrain" && (
-        <div
-          aria-hidden
-          data-testid="map-vignette"
-          className="pointer-events-none absolute inset-0 z-[5]"
-          style={{
-            background:
-              "radial-gradient(ellipse 85% 75% at 50% 50%, transparent 60%, rgba(28, 35, 49, 0.12) 100%)",
-          }}
-        />
-      )}
       <MapOverlay
         items={overlayItems}
-        attribution={
-          basemapOn
-            ? `${BASEMAP_ATTRIBUTION}${terrainOn ? " · 지형 Mapzen · SRTM/GMTED 자료 USGS" : ""}`
-            : undefined
-        }
+        attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
       />
       {contextLost && (
         <div

@@ -11,7 +11,6 @@ import {
 import { FlyToInterpolator } from "@deck.gl/core";
 import { unionBbox } from "@/lib/geo/geo";
 import { fitOverview, fitRegion } from "./camera";
-import type { MapDisplayMode } from "./mapModePref";
 import type { RegionsFeatureCollection } from "@/lib/data/types";
 import type { School } from "@/lib/schools/types";
 
@@ -27,7 +26,6 @@ export function useCamera(
   regions: RegionsFeatureCollection,
   selectedCode: string | null,
   reduceMotion: boolean,
-  mode: MapDisplayMode = "terrain",
   selectedSchool: School | null = null,
   focusNonce = 0,
 ) {
@@ -39,7 +37,6 @@ export function useCamera(
   const [reselectNonce, setReselectNonce] = useState(0);
   const latest = useRef<CameraViewState | null>(null);
   const previous = useRef<{
-    mode: MapDisplayMode;
     code: string | null;
     focus: number;
     reselect: number;
@@ -75,10 +72,10 @@ export function useCamera(
             unionBbox(regions.features),
             regions.features.map((f) => f.properties.labelPoint),
             size,
-            mode,
+            "road",
           )
         : null,
-    [size, regions, mode],
+    [size, regions],
   );
 
   useEffect(() => {
@@ -86,27 +83,17 @@ export function useCamera(
     const before = previous.current;
     const current = latest.current;
     let target: OverviewViewState | CameraViewState | null = null;
-    if (before && before.mode !== mode && current) {
-      target = {
-        ...overview,
-        longitude: current.longitude,
-        latitude: current.latitude,
-        zoom: Math.min(current.zoom, mode === "road" ? 18 : 14),
-      };
-    } else if (
+    if (
       (!before || before.focus !== focusNonce) &&
       selectedSchool?.lat != null &&
       selectedSchool.lng != null
     ) {
-      const maxZoom = mode === "road" ? 18 : 14;
+      const maxZoom = 18;
       target = {
         ...overview,
         longitude: selectedSchool.lng,
         latitude: selectedSchool.lat,
-        zoom: Math.min(
-          maxZoom,
-          Math.max(current?.zoom ?? 0, mode === "road" ? 15 : 14),
-        ),
+        zoom: Math.min(maxZoom, Math.max(current?.zoom ?? 0, 15)),
       };
     } else if (
       !before ||
@@ -117,11 +104,10 @@ export function useCamera(
         (f) => f.properties.code === selectedCode,
       );
       target = region
-        ? fitRegion(region.properties.bbox, size, { mode, maxElevation: 2000 })
+        ? fitRegion(region.properties.bbox, size, { mode: "road" })
         : overview;
     }
     previous.current = {
-      mode,
       code: selectedCode,
       focus: focusNonce,
       reselect: reselectNonce,
@@ -130,8 +116,7 @@ export function useCamera(
     const next: CameraViewState = {
       ...target,
       transitionInterpolator: new FlyToInterpolator({ speed: 1.5 }),
-      transitionDuration:
-        reduceMotion || !current || before?.mode !== mode ? 0 : 550,
+      transitionDuration: reduceMotion || !current ? 0 : 550,
       _nonce: ++sequence.current,
     };
     latest.current = next;
@@ -144,7 +129,6 @@ export function useCamera(
     selectedSchool,
     focusNonce,
     reselectNonce,
-    mode,
     reduceMotion,
   ]);
 

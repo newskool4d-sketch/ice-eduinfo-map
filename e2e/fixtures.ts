@@ -10,21 +10,7 @@ const PNG_1X1_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 const PNG_1X1 = Buffer.from(PNG_1X1_BASE64, "base64");
 
-/**
- * Shared Playwright fixture: EVERY spec must import `test`/`expect` from
- * here (not `@playwright/test` directly) so this VWorld tile stub applies
- * uniformly. It's not just for e2e/basemap.spec.ts — `playwright.config.ts`
- * sets `NEXT_PUBLIC_VWORLD_KEY: 'e2e-test'` for the whole webServer, so the
- * 3-way basemap control (끄기 · 위성 · 일반, default 위성) renders a real
- * TileLayer, and thus fires real tile requests, on EVERY page load across
- * the whole suite. A resource load
- * failure — a real network call to api.vworld.kr racing/timing out, or any
- * non-2xx response — surfaces as a Playwright console 'error' event even
- * though `makeBasemapLayer`'s `onTileError` itself is a no-op, which would
- * break the 8 other specs' `expect(consoleErrors).toEqual([])` assertions
- * (see task-C-brief.md). Routing here, once, keeps that stub applied
- * everywhere without every spec having to remember it individually.
- */
+/** Stub road tiles so browser tests do not depend on VWorld availability or keys. */
 export const test = base.extend<object>({
   page: async ({ page }, use) => {
     await page.route("**/api.vworld.kr/**", (route) =>
@@ -35,9 +21,6 @@ export const test = base.extend<object>({
         body: PNG_1X1,
       }),
     );
-    await page.route("**/api/terrain/**", route => route.fulfill({
-      contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAADHElEQVR4nO3UoQEAIADDsJ3O53AGohHxVd3ZLtC03wHAPwYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQYAYQ9QmxZywEi7rgAAAABJRU5ErkJggg==", "base64"),
-    }));
     // Playwright's own fixture-callback convention — this `use` is the
     // fixture-teardown callback (Playwright's `TestFixture` param), not a
     // React hook; eslint-plugin-react-hooks flags it purely because of the

@@ -2,7 +2,7 @@
 
 전북 학교를 평면 도로지도에서 검색하고, 14개 시군의 교육통계를 함께 살펴보는 Next.js 대시보드입니다.
 
-기본은 북쪽이 위인 평면 도로지도이며 `입체 위성`으로 전환할 수 있습니다. 평면 지도 확대 상한은 18, 입체 위성은 14입니다. 학교 점은 반경 5px, 학교 이름은 11px로 고정하며 줌 11부터 화면에 보이는 학교 이름을 겹치지 않게 표시합니다. 입체 지형은 Mapzen Terrain Tiles(AWS Open Data)의 Terrarium 고도 타일과 브이월드 위성영상을 사용합니다.
+북쪽이 위인 평면 도로지도를 사용하며 최대 18단계까지 확대할 수 있습니다. 학교 점은 반경 5px, 학교 이름은 11px로 고정하며 줌 11부터 화면에 보이는 학교 이름을 겹치지 않게 표시합니다.
 
 왼쪽 `학교 탐색`에서 학교명·시군·학교급을 조합해 검색합니다. 목록과 지도는 같은 필터를 사용하며 위치 없는 학교도 상세정보를 볼 수 있습니다. `시군 통계` 탭에는 기존 지표·순위·추이·폐교 목록과 데이터 출처가 있습니다. 1024px 미만에서는 지도를 유지하고 패널을 하단에서 열며, WebGL 사용 불가·지도 오류일 때만 표로 대체합니다.
 
@@ -47,13 +47,12 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 1. Vercel 대시보드에서 "Add New Project" → 이 저장소(GitHub)를 import 합니다.
 2. 빌드 설정은 기본값을 그대로 씁니다 — Framework Preset이 자동으로 "Next.js"로 인식되고, Build Command(`next build` = `npm run build`)·Output Directory·Install Command(`npm ci`) 모두 손댈 필요가 없습니다. Node.js 버전은 Vercel이 `package.json`의 `engines.node`(프로젝트 설정에서도 지정 가능)를 기준으로 선택합니다 — `.nvmrc`는 로컬 `nvm use` 전용이며 Vercel은 이를 읽지 않습니다.
-3. 환경변수는 `NEXT_PUBLIC_VWORLD_KEY`(선택)와 `NEXT_PUBLIC_MAP_FX`(선택, 아래 참고) 2개입니다 — 지표·경계·학교 데이터는 `public/data/*.json`/`*.geojson`(정적 파일, 빌드 시점에 이미 저장소에 커밋되어 있음)만 읽고 런타임에 외부 API 키나 서버 비밀값을 쓰지 않지만, 배경 지도(브이월드 타일)를 켜려면 이 키가 필요합니다. 없어도 앱은 정상 동작합니다 — "지도 모드" 컨트롤이 표시되지 않고 나머지 기능은 그대로입니다. 지도는 평면(기본) · 입체 위성 2단이며 선택은 `jbmap.mapMode.v1`에 저장됩니다. 기존 `jbmap.basemap` 설정은 새 기본 모드에 영향을 주지 않습니다. 화면 전체는 라이트 테마입니다.
+3. 배경 도로지도를 표시하려면 `NEXT_PUBLIC_VWORLD_KEY`를 설정합니다. 키가 없어도 학교·경계·통계 기능은 동작합니다. 지표·경계·학교 데이터는 저장소의 `public/data/` 정적 파일을 사용합니다. 지도는 평면 도로지도 하나만 제공하며 이전 지도 모드 설정은 읽지 않습니다.
    - 발급: [브이월드 오픈API](https://www.vworld.kr/dev/v4dv_openapireferrer_s001.do)에서 무료로 키를 발급받고, 사용할 배포 도메인(예: `xxx.vercel.app`, 커스텀 도메인)을 인증키 관리에 등록합니다.
    - Vercel 프로젝트 설정 → Environment Variables 에 `NEXT_PUBLIC_VWORLD_KEY`를 추가합니다(Production/Preview 모두 필요하면 각각 등록). `vercel env add NEXT_PUBLIC_VWORLD_KEY production` 로도 등록할 수 있습니다.
    - 로컬 개발은 `.env.local`(`.gitignore`됨 — 커밋되지 않음)에 같은 키를 넣으면 됩니다.
    - 잘못되었거나 도메인이 등록되지 않은 키는 지도에서 조용히 실패합니다(타일이 안 보일 뿐, 에러가 뜨지 않음) — 브이월드는 잘못된 키에도 200 응답(XML 에러 본문)을 주기 때문입니다. 화면을 직접 확인해 키가 유효한지 판단하세요.
    - (`NEXT_PUBLIC_E2E` 는 Playwright e2e 전용으로 `playwright.config.ts` 가 테스트 실행 시에만 주입하며, 배포본에는 전혀 관여하지 않습니다.)
-   - `NEXT_PUBLIC_MAP_FX=off`: 발표 모드의 후처리 체인(틸트시프트·FXAA)을 끄는 비상 스위치(기본 미설정). 기본 모드는 후처리 없이 캔버스 MSAA 로 그리고, 비네팅은 CSS 오버레이라 이 설정과 무관합니다. 그림자는 항상 꺼져 있습니다.
 4. Deploy를 누르면 끝입니다. 이후 `main`(또는 배포 대상 브랜치)에 푸시할 때마다 Vercel이 자동으로 재배포합니다.
 5. 데이터를 갱신했다면(아래 "데이터 갱신 절차" 참고) 재빌드된 `public/data/**` 를 포함한 커밋을 푸시하는 것만으로 배포본에도 반영됩니다 — 별도의 배포 시점 데이터 빌드 단계는 없습니다(파이프라인은 로컬/CI에서 미리 실행해 결과 JSON을 커밋하는 방식).
 
@@ -76,8 +75,7 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 - **한국교육시설안전원 초중등학교위치 표준데이터** (data.go.kr) — 학교 점 위치(위도/경도). 시군 선택 시 지도 우측 패널과 화면 하단에 "위치 기준 YYYY-MM-DD" 로 기준일을 표기합니다. 전국 데이터셋 특성상 초·중·고등학교만 포함되어 있고 특수학교 위치는 제공되지 않습니다(자세한 내용은 `data/interim/schools-match-report.json` 참고). 이는 매칭 실패가 아니라 원천 데이터 자체의 구조적 공백이므로, 특수학교도 `public/data/schools.json` 에 좌표 없이(`lat`/`lng: null`, `locationMissingReason` 설명 포함) 실리며 매칭률·검증 대상에서는 제외됩니다 — 지도에는 점으로 그리지 않고, 우측 패널 학교 목록에는 "위치 없음" 배지로 표시됩니다.
 - **전북특별자치도교육청 폐교재산 현황** (공공데이터포털) — 폐교 지표(폐교 수/미활용 폐교 수/최근 10년 폐교 수)와 RegionPanel의 폐교 목록의 원천. 원천 파일의 게시(갱신)일이 데이터 기준일과 다른 경우 Footer에 "기준일 …(게시 …)" 형식으로 둘 다 표기합니다.
 - **통계청 SGIS 기반 행정동 경계** (vuski/admdongkor, `HangJeongDong_ver20260701.geojson`) — 시군 경계·라벨 위치의 원천. [vuski/admdongkor](https://github.com/vuski/admdongkor) 저장소는 **CC BY 4.0** 라이선스로 배포되며, 이 프로젝트는 그 경계 데이터를 단순화·가공해 `public/data/regions.geojson`/`neighbors.geojson`(`npm run data:regions`)과, 선택한 시군의 하위 읍면동 경계선용 `public/data/emd/<시군코드>.geojson` 14개(`npm run data:emd`)로 다시 배포합니다 — 출처 표기(CC BY 4.0이 요구하는 저작자 표시)는 화면 하단 Footer와 이 문서에 명시합니다.
-- **배경지도: 국토교통부 브이월드(VWorld) 오픈API** (`Satellite` 위성 · `Base` 일반 WMTS 타일) — 지도 화면 우측 상단 "배경 지도" 컨트롤(끄기 · 위성 · 일반)에서 위성/일반을 고르면 표시되는 배경 타일의 원천. 브이월드 오픈API 이용약관에 따라 출처를 표기합니다(지도 오버레이 안의 "배경지도 © 국토교통부 브이월드(VWorld)" 문구). 브라우저에서 브이월드 WMTS 엔드포인트를 직접 호출하며(CORS `access-control-allow-origin: *` 확인됨), 별도의 서버 프록시는 두지 않습니다.
-- **입체 지형: Mapzen Terrain Tiles** ([AWS Open Data](https://registry.opendata.aws/terrain-tiles/)) — Terrarium 고도 타일에 브이월드 위성 사진을 입힙니다. 한국 지역의 고도 자료에는 SRTM/GMTED 자료가 포함되며, 지도 오버레이에 `지형 Mapzen · SRTM/GMTED 자료 USGS` 출처를 표시합니다. 고도 타일은 CORS 제약 때문에 `/api/terrain/`을 통해 서버에서 캐시해 전달합니다.
+- **배경지도: 국토교통부 브이월드(VWorld) 오픈API** (`Base` 일반 WMTS 타일) — 브라우저에서 직접 호출하며 지도에 출처를 표시합니다.
 
 `xlsx` 패키지(devDependency)는 KESS `.xlsx` 원본을 읽는 데이터 파이프라인 전용(`scripts/pipeline/parse-kess.ts` 등)이며, 브라우저로 번들되지 않습니다 — 알려진 보안 권고(advisory)가 있으나 런타임 노출 범위 밖이라 별도 조치 없이 유지합니다.
 
@@ -87,4 +85,4 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 - **다문화(이주배경) 학생 지표** — KESS 통계표(`[주제별] 이주배경(유형별) 학생수`)는 존재하지만, 공개 출처에서 시군 단위로 분해된 데이터를 확보하지 못해 1차 범위에서 제외했습니다.
 - **연도 슬라이더** — 특정 연도를 직접 골라보는 UI는 1차 범위에 포함되지 않았습니다. 연도별 추이는 시군 선택 시 RegionPanel의 스파크라인으로 확인할 수 있습니다.
-- **배경 타일 지도** — 브이월드 일반지도(`Base`, 원래 색상과 해상도)를 기본으로 제공하고, `입체 위성`은 기존 `Satellite` 영상과 실제 지형을 표시합니다. `NEXT_PUBLIC_VWORLD_KEY`가 필요합니다.
+- **배경 타일 지도** — 브이월드 일반지도(`Base`, 원래 색상과 해상도)를 제공합니다. `NEXT_PUBLIC_VWORLD_KEY`가 필요합니다.

@@ -1,48 +1,25 @@
 import { expect, test } from "./fixtures";
 
-test("평면 지도가 기본이고 모드 전환은 중심을 유지하며 선택을 기억한다", async ({
-  page,
-}) => {
+test("이전 입체 설정이 있어도 평면 지도만 표시하고 지형을 요청하지 않는다", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("jbmap.mapMode.v1", "terrain");
+    localStorage.setItem("jbmap.basemap", "satellite");
+  });
   let terrainRequests = 0;
-  page.on("request", (req) => {
-    if (req.url().includes("/api/terrain/")) terrainRequests++;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/terrain/")) terrainRequests++;
   });
   await page.goto("/");
-  await expect(page.locator('[data-map-ready="true"]')).toBeAttached({
-    timeout: 20000,
-  });
-  const road = page.getByRole("radio", { name: "평면 지도" });
-  const terrain = page.getByRole("radio", { name: "입체 위성" });
-  await expect(road).toHaveAttribute("aria-checked", "true");
-  const view = () =>
-    page.evaluate(() => {
-      const v =
-        window.__jbmap!.deck.getViewports()[0] as import("@deck.gl/core").WebMercatorViewport;
-      return {
-        pitch: v.pitch,
-        zoom: v.zoom,
-        longitude: v.longitude,
-        latitude: v.latitude,
-      };
-    });
-  const before = await view();
-  expect(before.pitch).toBe(0);
-  expect(terrainRequests).toBe(0);
-  await terrain.click();
-  await expect.poll(async () => (await view()).pitch).toBe(56);
-  const after = await view();
-  expect(after.longitude).toBeCloseTo(before.longitude, 4);
-  expect(after.latitude).toBeCloseTo(before.latitude, 4);
-  await page.reload();
-  await expect(page.locator('[data-map-ready="true"]')).toBeAttached({
-    timeout: 20000,
-  });
-  await expect(terrain).toHaveAttribute("aria-checked", "true");
-  await road.click();
-  await expect.poll(async () => (await view()).pitch).toBe(0);
-  await page.reload();
-  await expect(page.locator('[data-map-ready="true"]')).toBeAttached({
-    timeout: 20000,
-  });
-  await expect(road).toHaveAttribute("aria-checked", "true");
+  for (let visit = 0; visit < 2; visit++) {
+    await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
+    await expect(page.getByRole("radiogroup", { name: "지도 모드" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "발표 모드" })).toHaveCount(0);
+    expect(await page.evaluate(() => (window.__jbmap!.deck.getViewports()[0] as import("@deck.gl/core").WebMercatorViewport).pitch)).toBe(0);
+    await page.getByRole("searchbox", { name: "학교명 검색" }).fill("전주초등학교");
+    await page.locator('[data-testid^="school-row-"]').first().click();
+    await expect(page.getByRole("heading", { name: "전주초등학교" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__jbmap!.deck.getViewports()[0].zoom)).toBeCloseTo(15, 2);
+    expect(terrainRequests).toBe(0);
+    if (visit === 0) await page.reload();
+  }
 });

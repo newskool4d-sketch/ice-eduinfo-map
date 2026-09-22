@@ -63,13 +63,6 @@ test.describe("접근성", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog", { name: "조건별 맵 선택" })).not.toBeVisible();
 
-    // 2b) 배경 지도 세그먼트 (Task 3, spec §7): the radiogroup uses a roving
-    // tabindex, so its ONE Tab stop is the checked radio (위성 by default —
-    // playwright.config.ts sets NEXT_PUBLIC_VWORLD_KEY for the e2e server,
-    // so the control renders). Reachability only, not an exact position
-    // (same bounded helper as the other steps). ArrowRight then moves the
-    // selection to the next option (일반) and focuses it — the WAI-ARIA
-    // radiogroup keyboard pattern.
     await page.getByRole("tab", { name: "학교 탐색" }).focus();
     await page.keyboard.press("ArrowRight");
     await expect(page.getByRole("tab", { name: "시군 통계" })).toHaveAttribute("aria-selected", "true");
@@ -78,11 +71,10 @@ test.describe("접근성", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: "전주시" })).toBeVisible();
     await page.getByLabel("전북 학교 위치 지도").focus();
-    const basemapGroup = page.getByRole("radiogroup", { name: "지도 모드" });
-    const roadRadio = basemapGroup.getByRole("radio", { name: "평면 지도" });
-    expect(await tabUntilFocused(page, roadRadio, 10)).toBe(true);
-    await page.keyboard.press("ArrowRight");
-    await expect(basemapGroup.getByRole("radio", { name: "입체 위성" })).toHaveAttribute("aria-checked", "true");
+    const schoolNames = page.getByRole("button", { name: "학교명", exact: true });
+    expect(await tabUntilFocused(page, schoolNames, 10)).toBe(true);
+    await page.keyboard.press("Enter");
+    await expect(schoolNames).toHaveAttribute("aria-pressed", "false");
     expect(consoleErrors).toEqual([]);
   });
 

@@ -1,7 +1,9 @@
 import { FlyToInterpolator, WebMercatorViewport } from "@deck.gl/core";
 
-import type { MapDisplayMode } from "./mapModePref";
 import type { Bbox } from "@/lib/geo/geo";
+
+// Preserve the geometry helpers used by legacy camera tests; the app uses road only.
+type MapDisplayMode = "road" | "terrain";
 
 export const OVERVIEW_PITCH = 56;
 // 사용자 요구(2026-09-21): 지도는 항상 북쪽이 위 — 회전 없음. bearing 은 0 으로 고정되고

@@ -4,8 +4,6 @@ import {
   type CollisionFilterExtensionProps,
 } from "@deck.gl/extensions";
 
-import { terrainExtension } from "./terrainLayer";
-
 // Task B — module-scope constant (same pattern as regionLayers.ts's
 // `REGION_MATERIAL`/lighting.ts's `lightingEffect`): a fresh
 // `new CollisionFilterExtension()` on every render would be equally safe —
@@ -32,7 +30,6 @@ export interface RegionLabel {
 
 export interface RegionLabelLayerOptions {
   collisionEnabled?: boolean;
-  terrainEnabled?: boolean;
   /** Same injection point as `makeRegionsLayer`'s `elevationOf`, so labels float just above their region's top face. */
   elevationOf: (code: string) => number;
   textOf: (code: string) => string;
@@ -66,7 +63,7 @@ export interface RegionLabelLayerOptions {
   transitionDuration?: number;
 }
 
-/** Fixed-size region labels with optional terrain anchoring. */
+/** Fixed-size region labels anchored to the map. */
 export function makeRegionLabelLayer(
   labels: RegionLabel[],
   opts: RegionLabelLayerOptions,
@@ -79,7 +76,7 @@ export function makeRegionLabelLayer(
     {
       id: "region-labels",
       data: labels,
-      // Anchor to ground; TerrainExtension supplies real elevation in terrain mode.
+      // Anchor to ground; labels stay on the flat map.
       getPosition: (d): [number, number, number] => [
         d.position[0],
         d.position[1],
@@ -140,7 +137,6 @@ export function makeRegionLabelLayer(
         ...(opts.collisionEnabled === false
           ? []
           : [COLLISION_FILTER_EXTENSION]),
-        ...(opts.terrainEnabled ? [terrainExtension] : []),
       ],
       collisionEnabled: opts.collisionEnabled ?? true,
       collisionGroup: "labels",
