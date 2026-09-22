@@ -409,7 +409,7 @@ function main(): void {
         `${matchReport.matchedCount}/${matchReport.totalKessIncluded} = ` +
         `${(matchReport.matchRate * 100).toFixed(2)}% (exact ${matchReport.byStage.exact}, suffix ${matchReport.byStage.suffix}, alias ${matchReport.byStage.alias}) — ` +
         `미매칭 ${matchReport.unmatchedKess.length}, 위치 자료 없는 학교급(특수) ${matchReport.noLocationSource.length}건 ` +
-        `(좌표 없이 포함), 위치 전용 ${matchReport.locationOnly.length}, 시군 배정 실패 ${matchReport.regionParseFailures.length}\n`,
+        `(공식 학교 지도 위치 보완 별도), 위치 전용 ${matchReport.locationOnly.length}, 시군 배정 실패 ${matchReport.regionParseFailures.length}\n`,
     );
   }
 

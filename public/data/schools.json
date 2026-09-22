@@ -11894,16 +11894,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.94187,
+      "lng": 127.005389,
       "regionCode": "52140",
       "students": 103,
       "classes": 19,
       "teachers": 36,
       "studentsPerClass": 5.42,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450061771"
+      "kediCode": "450061771",
+      "locationSource": {
+        "address": "전북특별자치도 익산시 서동로46길 41 전북맹아학교",
+        "url": "https://school.jbedu.kr/jbb/M010207/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.94187&lng=127.005389&name=전북맹아학교"
+      }
     },
     {
       "id": "kedi:450062350",
@@ -11911,16 +11917,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.8205235,
+      "lng": 127.0902331,
       "regionCode": "52110",
       "students": 170,
       "classes": 27,
       "teachers": 58,
       "studentsPerClass": 6.3,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450062350"
+      "kediCode": "450062350",
+      "locationSource": {
+        "address": "전북특별자치도 전주시 완산구 효자로 39",
+        "url": "https://school.jbedu.kr/sunhwa/M010208/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.8205235&lng=127.0902331&name=전주선화학교"
+      }
     },
     {
       "id": "kedi:450063186",
@@ -11928,16 +11940,22 @@
       "level": "special",
       "status": "신설",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.81079660695987,
+      "lng": 127.63115222565196,
       "regionCode": "52740",
       "students": 16,
       "classes": 7,
       "teachers": 20,
       "studentsPerClass": 2.29,
       "small": true,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063186"
+      "kediCode": "450063186",
+      "locationSource": {
+        "address": "전북특별자치도 장수군 계북면 장무로 1326",
+        "url": "https://school.jbedu.kr/deogyusam/MABACAI/index.do",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map.do?lat=35.81079660695987&lng=127.63115222565196&name=덕유샘학교"
+      }
     },
     {
       "id": "kedi:450063225",
@@ -11945,16 +11963,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.9660841,
+      "lng": 126.6900925,
       "regionCode": "52130",
       "students": 206,
       "classes": 33,
       "teachers": 68,
       "studentsPerClass": 6.24,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063225"
+      "kediCode": "450063225",
+      "locationSource": {
+        "address": "전북특별자치도 군산시 상나운1길 37 (나운동, 군산명화학교)",
+        "url": "https://school.jbedu.kr/myounghwa/M010211/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.9660841&lng=126.6900925&name=군산명화학교"
+      }
     },
     {
       "id": "kedi:450063226",
@@ -11962,16 +11986,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.5482012,
+      "lng": 126.8335306,
       "regionCode": "52180",
       "students": 89,
       "classes": 20,
       "teachers": 44,
       "studentsPerClass": 4.45,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063226"
+      "kediCode": "450063226",
+      "locationSource": {
+        "address": "전북특별자치도 정읍시 정읍남로 1146",
+        "url": "https://school.jbedu.kr/dasom/M010209/index.do",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map.do?lat=35.5482012&lng=126.8335306&name=다솜학교"
+      }
     },
     {
       "id": "kedi:450063227",
@@ -11979,16 +12009,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.42504813,
+      "lng": 127.4415888,
       "regionCode": "52190",
       "students": 69,
       "classes": 16,
       "teachers": 35,
       "studentsPerClass": 4.31,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063227"
+      "kediCode": "450063227",
+      "locationSource": {
+        "address": "전북특별자치도 남원시 이백면 이백로 315",
+        "url": "https://school.jbedu.kr/hanul/M010209/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.42504813&lng=127.4415888&name=한울학교"
+      }
     },
     {
       "id": "kedi:450063362",
@@ -11996,16 +12032,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.8373171,
+      "lng": 127.1459554,
       "regionCode": "52110",
       "students": 25,
       "classes": 9,
       "teachers": 24,
       "studentsPerClass": 2.78,
       "small": true,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063362"
+      "kediCode": "450063362",
+      "locationSource": {
+        "address": "전북특별자치도 전주시 덕진구 모래내6길 26-16",
+        "url": "https://school.jbedu.kr/yoohwa/M010206/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.8373171&lng=127.1459554&name=전주유화학교"
+      }
     },
     {
       "id": "kedi:450063475",
@@ -12013,16 +12055,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.8190236,
+      "lng": 127.0867335,
       "regionCode": "52110",
       "students": 186,
       "classes": 33,
       "teachers": 69,
       "studentsPerClass": 5.64,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063475"
+      "kediCode": "450063475",
+      "locationSource": {
+        "address": "전북특별자치도 전주시 완산구 효자로 28-20",
+        "url": "https://school.jbedu.kr/eunhwa/M010210/index.do",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map.do?lat=35.8190236&lng=127.0867335&name=전주은화학교"
+      }
     },
     {
       "id": "kedi:450063714",
@@ -12030,16 +12078,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.8104832,
+      "lng": 127.0928581,
       "regionCode": "52110",
       "students": 149,
       "classes": 24,
       "teachers": 42,
       "studentsPerClass": 6.21,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063714"
+      "kediCode": "450063714",
+      "locationSource": {
+        "address": "전북특별자치도 전주시 완산구 천잠로 275",
+        "url": "https://school.jbedu.kr/dongamchadol/M010308/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.8104832&lng=127.0928581&name=동암차돌학교"
+      }
     },
     {
       "id": "kedi:450063828",
@@ -12047,16 +12101,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.99051,
+      "lng": 127.23962,
       "regionCode": "52710",
       "students": 130,
       "classes": 22,
       "teachers": 37,
       "studentsPerClass": 5.91,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063828"
+      "kediCode": "450063828",
+      "locationSource": {
+        "address": "전북특별자치도 완주군 고산면 대아저수로 157-11",
+        "url": "https://school.jbedu.kr/jbpr/M010211/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.99051&lng=127.23962&name=전북푸른학교"
+      }
     },
     {
       "id": "kedi:450063885",
@@ -12064,16 +12124,22 @@
       "level": "special",
       "status": "기존",
       "branch": false,
-      "lat": null,
-      "lng": null,
+      "lat": 35.9671712,
+      "lng": 127.030975,
       "regionCode": "52140",
       "students": 178,
       "classes": 31,
       "teachers": 49,
       "studentsPerClass": 5.74,
       "small": false,
-      "locationMissingReason": "특수학교는 위치 표준데이터(2026-03-20)에 없음",
-      "kediCode": "450063885"
+      "kediCode": "450063885",
+      "locationSource": {
+        "address": "전북특별자치도 익산시 덕기길 77",
+        "url": "https://school.jbedu.kr/hyehwa/M011606/",
+        "verifiedAt": "2026-09-22",
+        "method": "학교 공식 홈페이지 찾아오시는 길의 WGS84 지도 좌표",
+        "mapUrl": "https://school.jbedu.kr/_mdl/tplMap/map?lat=35.9671712&lng=127.030975&name=전북혜화학교"
+      }
     }
   ]
 }

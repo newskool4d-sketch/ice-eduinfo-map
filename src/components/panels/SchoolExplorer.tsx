@@ -80,6 +80,15 @@ export function SchoolDetail({
           </div>
         ))}
       </dl>
+      {school.locationSource && (
+        <div className="mt-3 text-xs text-ink-muted">
+          <p>{school.locationSource.address}</p>
+          <a href={school.locationSource.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">
+            학교 공식 위치 안내
+          </a>
+          <span> · 확인 {school.locationSource.verifiedAt}</span>
+        </div>
+      )}
       {school.lat === null && (
         <p className="mt-3 text-xs text-ink-muted">
           위치 자료 없음 · 지도에 표시할 수 없습니다.

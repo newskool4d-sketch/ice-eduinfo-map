@@ -10,6 +10,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { supplementSchoolLocations, type VerifiedSchoolLocation } from "./lib/school-locations";
 import type { SchoolRow } from "./lib/kess-xlsx";
 import {
   buildMatchReport,
@@ -115,15 +116,21 @@ async function main(): Promise<void> {
   // fix-round-1 ruling: a KESS row whose 학교급 the location source doesn't
   // cover at all (currently: 특수학교, see sources.ts's LOCATION_SOURCE_LEVELS)
   // is not a matching failure — still include it in schools.json, just
-  // without coordinates, rather than silently dropping it from the map data
-  // entirely.
+  // initially without coordinates, then apply independently verified school
+  // map locations. Keep base-source matching coverage separate.
   const { noLocationSource } = partitionUnmatched(result.unmatchedKess);
   const locationMissingReason = `특수학교는 위치 표준데이터(${locationReferenceDate})에 없음`;
 
-  const schools: School[] = [
-    ...result.matched.map(buildSchoolRecord),
-    ...noLocationSource.map((kess) => buildNoLocationSchoolRecord(kess, locationMissingReason)),
-  ].sort((a, b) => a.id.localeCompare(b.id));
+  const supplementalLocations = JSON.parse(
+    readFileSync(path.join(ROOT, "data/manual/special-school-locations.json"), "utf8"),
+  ) as VerifiedSchoolLocation[];
+  const schools: School[] = supplementSchoolLocations(
+    [
+      ...result.matched.map(buildSchoolRecord),
+      ...noLocationSource.map((kess) => buildNoLocationSchoolRecord(kess, locationMissingReason)),
+    ],
+    supplementalLocations,
+  ).sort((a, b) => a.id.localeCompare(b.id));
 
   const schoolsFile = {
     referenceDate: { location: locationReferenceDate, stats: kessInterim.referenceDate },
@@ -153,8 +160,8 @@ async function main(): Promise<void> {
       `시군 배정 실패 ${report.regionParseFailures.length}, 모호 ${report.ambiguous.length}`,
   );
   console.log(
-    `[build-schools] 위치 자료 없는 학교급(전북 특수학교) ${noLocationSource.length}건은 좌표 없이 ` +
-      `schools.json 에 포함(locationMissingReason 설정) — 매칭률 분모에서는 제외.`,
+    `[build-schools] 공식 학교 지도 위치 보완 ${schools.filter((s) => s.locationSource).length}건, ` +
+      `좌표 없음 ${schools.filter((s) => s.lat === null).length}건 — 원본 CSV 매칭률과 별도 관리.`,
   );
   if (report.unmatchedKess.length > 0) {
     console.warn(

@@ -67,7 +67,7 @@ test("교육문제에서 지정 현황·관련 학교·URL을 함께 탐색하�
   expect(errors).toEqual([]);
 });
 
-test("특수학교는 좌표 없이도 집계와 목록에 포함하고 일반학교 특수학급과 분리한다", async ({
+test("특수학교는 지도·집계·목록에 포함하고 일반학교 특수학급과 분리한다", async ({
   page,
 }) => {
   await page.goto(
@@ -82,7 +82,7 @@ test("특수학교는 좌표 없이도 집계와 목록에 포함하고 일반�
   ).toBeVisible();
   await page.getByRole("button", { name: "특수학교 수", exact: true }).click();
   await expect(page.getByTestId("issue-school-count")).toHaveText(
-    "목록 11개 · 지도 표시 가능 0개",
+    "목록 11개 · 지도 표시 가능 11개",
   );
   await page.locator('button[data-testid^="issue-school-"]').first().click();
   await expect(page.getByRole("region", { name: "선택한 학교" })).toBeVisible();
@@ -96,7 +96,7 @@ test("특수학교는 좌표 없이도 집계와 목록에 포함하고 일반�
       ? (layer.props.data as unknown[]).length
       : -1;
   });
-  expect(dots).toBe(0);
+  expect(dots).toBe(11);
 });
 
 test("교육문제 자료 실패는 기존 검색에 영향을 주지 않고 재시도할 수 있다", async ({

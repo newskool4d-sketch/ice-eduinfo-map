@@ -16,7 +16,7 @@ export interface School {
   status: string;
   /** true for 분교장. */
   branch: boolean;
-  /** null only for a school whose 학교급 the location source doesn't cover at all (see `locationMissingReason`) — never null for a genuine match. */
+  /** null when neither the standard source nor verified school maps provide a location. */
   lat: number | null;
   lng: number | null;
   regionCode: string;
@@ -30,9 +30,18 @@ export interface School {
    * Set (and lat/lng both null) only when this school's 학교급 isn't covered
    * by LOCATION_SOURCE_LEVELS at all (currently: 특수학교 — the location
    * source has zero rows for that level nationwide, not a per-school
-   * matching failure). Absent for every school with real coordinates.
+   * matching failure), and no verified supplement exists. Absent for every
+   * school with real coordinates.
    */
   locationMissingReason?: string;
+  /** Individually verified supplemental location, independent of statistics date. */
+  locationSource?: {
+    address: string;
+    url: string;
+    verifiedAt: string;
+    method: string;
+    mapUrl: string;
+  };
 }
 
 export interface SchoolSourceInfo {

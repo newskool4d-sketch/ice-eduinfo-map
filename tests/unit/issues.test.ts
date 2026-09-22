@@ -76,7 +76,7 @@ describe("policy-linked education issues", () => {
       "special-schools",
     );
     expect(specialized.schools).toHaveLength(11);
-    expect(specialized.schools.every((s) => s.lat === null)).toBe(true);
+    expect(specialized.schools.every((s) => s.lat !== null && s.lng !== null)).toBe(true);
   });
   it("matches existing main-school counts including suspended schools but excluding branches", () => {
     const small = buildIssueModel(bundle, data, regional(), "small-share");
