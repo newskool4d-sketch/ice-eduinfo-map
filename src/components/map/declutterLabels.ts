@@ -1,4 +1,6 @@
 export interface LabelCandidate<T> {
+  /** Alternative placements of one label share a key; only the first fit is shown. */
+  key?: string;
   value: T;
   position: [number, number] | [number, number, number];
   text: string;
@@ -15,13 +17,16 @@ export function declutterLabels<T>(
     project(position: number[]): number[];
   },
   measure: (text: string, size: number) => number,
+  occupied: { left: number; right: number; top: number; bottom: number }[] = [],
 ): T[] {
   const boxes: { left: number; right: number; top: number; bottom: number }[] =
-    [];
+    [...occupied];
   const visible: T[] = [];
+  const placedKeys = new Set<string>();
   for (const candidate of [...candidates].sort(
     (a, b) => b.priority - a.priority,
   )) {
+    if (candidate.key && placedKeys.has(candidate.key)) continue;
     const [x, y] = viewport.project(candidate.position);
     if (
       !Number.isFinite(x) ||
@@ -54,6 +59,7 @@ export function declutterLabels<T>(
       continue;
     boxes.push(box);
     visible.push(candidate.value);
+    if (candidate.key) placedKeys.add(candidate.key);
   }
   return visible;
 }

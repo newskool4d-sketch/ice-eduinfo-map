@@ -67,9 +67,15 @@ import {
 import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
 import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
 import { useCamera } from "@/components/map/useCamera";
+import { unionBbox } from "@/lib/geo/geo";
+import { containsRegionLabel, incheonUrbanBounds } from "./incheonViews";
+import { clusterSchools, type SchoolCluster } from "./schoolClusters";
+import { makeSchoolClusterLayers } from "./layers/schoolClusterLayers";
+import ClusterSchoolDialog from "./ClusterSchoolDialog";
 import { useEmdBoundaries } from "@/components/map/useEmdBoundaries";
 import { useFontGate } from "@/components/map/useFontGate";
 import { useRegionKeyboardNav } from "@/components/map/useRegionKeyboardNav";
+import { useDesign } from "@/components/design/DesignProvider";
 import { useBundle } from "@/lib/data/DataProvider";
 import { indicatorById } from "@/lib/indicators/registry";
 import {
@@ -210,9 +216,12 @@ export default function DeckMap({
   const [schoolChart, setSchoolChart] = useQueryState(
     "schoolChart",
     parseAsStringLiteral(["auto", "columns", "dots"] as const)
-      .withDefault("auto")
+      .withDefault(ACTIVE_PROFILE.id === "incheon" ? "dots" : "auto")
       .withOptions({ history: "push", shallow: true }),
   );
+  const { colorMode, textSize } = useDesign();
+  const incheon = ACTIVE_PROFILE.id === "incheon";
+  const dark = incheon && colorMode === "dark";
   const { scene, setScene, enabled: buildingsEnabled } = useScene();
   const [mobile, setMobile] = useState(
     () => window.matchMedia("(max-width: 767px)").matches,
@@ -246,6 +255,9 @@ export default function DeckMap({
     [],
   );
   const [showSchoolNames, setShowSchoolNames] = useState(true);
+  const [groupSchools, setGroupSchools] = useState(true);
+  const [clusterChoice, setClusterChoice] = useState<SchoolCluster | null>(null);
+  const [mapHint, setMapHint] = useState("");
   const selectedSchool =
     bundle.schools.schools.find((s) => s.id === highlightedSchoolId) ?? null;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -275,7 +287,7 @@ export default function DeckMap({
   // (not `regionsMain`) is deliberately what's handed in — `properties.bbox`
   // already spans a region's FULL original geometry (mainland + islands), so
   // the camera never clips an island out of frame.
-  const { overview, cameraViewState, reselect, rememberViewState } = useCamera(
+  const { overview, cameraViewState, reselect, rememberViewState, focusBounds } = useCamera(
     containerRef,
     bundle.regions,
     selectedCode,
@@ -285,6 +297,7 @@ export default function DeckMap({
     scene,
     mobile,
   );
+  const urbanBounds = useMemo(() => incheon ? incheonUrbanBounds(bundle.regions) : null, [incheon, bundle.regions]);
 
   // Task 6, Section A.2 — WebGL context loss: deck.gl's own internal
   // handling (Deck#_onWebGLContextLost) calls onError(new Error('WebGL
@@ -522,6 +535,16 @@ export default function DeckMap({
   );
   const columnsVisible =
     scene === "city" && schoolChart === "columns" && chartMetric !== null;
+  const clustering = incheon && groupSchools && schoolChart === "dots" && !metricModel.specialEducation;
+  const schoolGroups = useMemo(() => {
+    if (!clustering || !labelViewport) return { individuals: positionedSchools, clusters: [] };
+    // Keep the target schools visible in colour for the small-school indicator.
+    const targets = indicatorId === "small_schools" ? positionedSchools.filter(s => (metricModel.value(s) ?? 0) > 0) : [];
+    const targetIds = new Set(targets.map(s => s.id));
+    const grouped = clusterSchools(positionedSchools.filter(s => !targetIds.has(s.id)), (point) => labelViewport.project(point), highlightedSchoolId, textSize === "large" ? 50 : 46);
+    return { ...grouped, individuals: [...grouped.individuals, ...targets] };
+  }, [clustering, labelViewport, positionedSchools, highlightedSchoolId, textSize, indicatorId, metricModel]);
+  const visibleSchools = schoolGroups.individuals;
   const heightOfSchool = useCallback(
     (school: School) =>
       columnsVisible && chartMetric
@@ -537,15 +560,35 @@ export default function DeckMap({
   const schoolLabelsVisible =
     showSchoolNames && (zoom >= SCHOOL_LABEL_MIN_ZOOM || !!highlightedSchoolId);
   const handleSchoolClick = useCallback(
-    (id: string) => onHighlightSchool(id, "map"),
-    [onHighlightSchool],
+    (id: string) => {
+      const school = positionedSchools.find(s => s.id === id);
+      const samePosition = school && incheon ? positionedSchools.filter(s => s.lng === school.lng && s.lat === school.lat) : [];
+      if (school && samePosition.length > 1) {
+        setClusterChoice({ id: `location:${id}`, position: [school.lng, school.lat], schools: samePosition,
+          bounds: [school.lng, school.lat, school.lng, school.lat] });
+      } else onHighlightSchool(id, "map");
+    },
+    [onHighlightSchool, positionedSchools, incheon],
   );
+  const handleClusterClick = useCallback((cluster: SchoolCluster) => {
+    const current = labelViewport;
+    const [west, south, east, north] = cluster.bounds;
+    const a = current?.project([west, south]);
+    const b = current?.project([east, north]);
+    // At the same address, further zoom cannot separate the schools.
+    if ((current?.zoom ?? zoom) >= 17.5 || (a && b && Math.hypot(a[0] - b[0], a[1] - b[1]) < 1)) {
+      setClusterChoice(cluster);
+    } else {
+      focusBounds(cluster.bounds, Math.min(18, (current?.zoom ?? zoom) + 2));
+      setMapHint(`${cluster.schools.length}개 학교·분교 위치를 확대했습니다.`);
+    }
+  }, [focusBounds, zoom, labelViewport]);
 
   const nearbySchoolId = useCallback((x: number, y: number, viewport?: Viewport) => {
     if (!viewport) return null;
     const radius = mobile ? 14 : 9;
     let closest: { id: string; distance: number } | null = null;
-    for (const school of positionedSchools) {
+    for (const school of visibleSchools) {
       const [schoolX, schoolY] = viewport.project([school.lng, school.lat]);
       const distance = Math.hypot(schoolX - x, schoolY - y);
       if (distance <= radius && (!closest || distance < closest.distance)) {
@@ -553,23 +596,31 @@ export default function DeckMap({
       }
     }
     return closest?.id ?? null;
-  }, [mobile, positionedSchools]);
+  }, [mobile, visibleSchools]);
 
   const visibleLabels = useMemo(() => {
     if (!labelViewport || !fontReady)
-      return { schools: positionedSchools, regions: labels };
+      return { schools: visibleSchools, regions: labels };
     type Entry =
       | { kind: "school"; value: (typeof positionedSchools)[number] }
       | { kind: "region"; value: (typeof labels)[number] };
-    const candidates: LabelCandidate<Entry>[] = labels.map((value) => ({
-      value: { kind: "region", value },
-      position: value.position,
-      text: labelTextOf(value.code),
-      size: 14,
-      priority: value.code === selectedCode ? 900 : 800,
-    }));
+    const candidates: LabelCandidate<Entry>[] = labels.flatMap((value) => {
+      const [x, y] = labelViewport.project(value.position);
+      const region = bundle.regions.features.find(f => f.properties.code === value.code);
+      const offsets = schoolGroups.clusters.length ? [[0, 0], [0, -54], [0, 54], [-64, 0], [64, 0], [-54, -54], [54, 54]] : [[0, 0]];
+      return offsets.flatMap(([dx, dy], index) => {
+        const position = labelViewport.unproject([x + dx, y + dy]).slice(0, 2) as [number, number];
+        if (index > 0 && (!region || !containsRegionLabel(region, position))) return [];
+        return [{
+          key: value.code,
+          value: { kind: "region" as const, value: { ...value, position } },
+          position, text: labelTextOf(value.code), size: 14,
+          priority: (value.code === selectedCode ? 900 : 800) - index,
+        }];
+      });
+    });
     if (schoolLabelsVisible)
-      for (const value of positionedSchools.filter(
+      for (const value of visibleSchools.filter(
         (s) => zoom >= SCHOOL_LABEL_MIN_ZOOM || s.id === highlightedSchoolId,
       ))
         candidates.push({
@@ -583,11 +634,16 @@ export default function DeckMap({
               : Math.min(700, (value.students ?? 0) / 10),
         });
     const context = document.createElement("canvas").getContext("2d");
+    const occupied = schoolGroups.clusters.map(cluster => {
+      const [x, y] = labelViewport.project(cluster.position);
+      const radius = textSize === "large" ? 25 : 23;
+      return { left: x - radius, right: x + radius, top: y - radius, bottom: y + radius };
+    });
     const placed = declutterLabels(candidates, labelViewport, (text, size) => {
       if (!context) return text.length * size;
       context.font = `600 ${size}px ${fontFamily}`;
       return context.measureText(text).width;
-    });
+    }, occupied);
     return {
       schools: placed.flatMap((entry) =>
         entry.kind === "school" ? [entry.value] : [],
@@ -599,7 +655,7 @@ export default function DeckMap({
   }, [
     labelViewport,
     fontReady,
-    positionedSchools,
+    visibleSchools,
     labels,
     labelTextOf,
     fontFamily,
@@ -608,6 +664,8 @@ export default function DeckMap({
     schoolLabelsVisible,
     zoom,
     heightOfSchool,
+    schoolGroups.clusters, textSize,
+    bundle.regions,
   ]);
 
   const getRegionTooltip = useMemo(() => makeTooltip(linesOf), [linesOf]);
@@ -626,7 +684,9 @@ export default function DeckMap({
   // School dots have plain School objects; boundaries have GeoJSON properties.
   const getTooltip = useCallback(
     (info: Parameters<typeof getRegionTooltip>[0]) =>
-      info.layer?.id === "issue-resources"
+      info.layer?.id === "school-clusters"
+        ? info.object ? { text: `${(info.object as SchoolCluster).schools.length}개 학교·분교 위치\n클릭하여 확대하거나 학교 선택` } : null
+      : info.layer?.id === "issue-resources"
         ? info.object ? { text: `${(info.object as IssueResource).name}\n${(info.object as IssueResource).address ?? ""}` } : null
       : info.layer?.id?.startsWith("schools") ||
       info.layer?.id === "school-columns"
@@ -735,7 +795,7 @@ export default function DeckMap({
   // Escape-to-deselect live in useRegionKeyboardNav now (split out of this
   // file with no intended behavior change).
   const { handleWrapperKeyDown } = useRegionKeyboardNav({
-    disabled: interactionBlocked,
+    disabled: interactionBlocked || !!clusterChoice,
     orderedCodes,
     selectedCode,
     onSelect,
@@ -818,6 +878,11 @@ export default function DeckMap({
       pressed: showSchoolNames,
       onToggle: () => setShowSchoolNames((value) => !value),
     });
+    if (incheon && schoolChart === "dots") items.push({
+      id: "school-clusters", label: "겹친 학교 묶기", pressed: groupSchools,
+      onToggle: () => setGroupSchools((value) => !value),
+      title: "숫자 원은 묶인 학교·분교의 위치 수입니다. 확대하면 개별 학교로 나뉩니다.",
+    });
     items.push({
       id: "emd",
       label: "읍면동 경계",
@@ -826,6 +891,7 @@ export default function DeckMap({
     });
     return items;
   }, [
+    incheon, groupSchools,
     showSchoolNames,
     emdEnabled,
     handleEmdToggle,
@@ -875,12 +941,12 @@ export default function DeckMap({
         getFillColor: (f) =>
           (metricModel.kind === "region" || metricModel.regionOverlay)
             ? metricModel.regionColor(f.properties.code)
-            : [255, 255, 255, 0],
-        getLineColor: (f) => f.properties.code === selectedCode ? [28,35,49,255] : f.properties.code === compareCode ? [153,66,182,255] : [85,100,118,110],
+            : incheon ? dark ? [30, 61, 78, 210] : [255, 255, 255, 210] : [255, 255, 255, 0],
+        getLineColor: (f) => f.properties.code === selectedCode ? dark ? [90,220,240,255] : [0,105,170,255] : f.properties.code === compareCode ? [153,66,182,255] : dark ? [108,158,181,180] : [85,100,118,110],
         getLineWidth: (f) => f.properties.code === selectedCode || f.properties.code === compareCode ? 3 : 1,
         updateTriggers: {
-          getFillColor: [metricModel],
-          getLineColor: [selectedCode, compareCode],
+          getFillColor: [metricModel, dark, incheon],
+          getLineColor: [selectedCode, compareCode, dark],
           getLineWidth: [selectedCode, compareCode],
         },
       }),
@@ -896,9 +962,9 @@ export default function DeckMap({
           ).clone({
             id: "region-boundaries",
             filled: false,
-            getLineColor: (f) => f.properties.code === selectedCode ? [28,35,49,255] : f.properties.code === compareCode ? [153,66,182,255] : [85,100,118,110],
+            getLineColor: (f) => f.properties.code === selectedCode ? dark ? [90,220,240,255] : [0,105,170,255] : f.properties.code === compareCode ? [153,66,182,255] : dark ? [108,158,181,180] : [85,100,118,110],
             getLineWidth: (f) => f.properties.code === selectedCode || f.properties.code === compareCode ? 3 : 1,
-            updateTriggers: { getLineColor: [selectedCode, compareCode], getLineWidth: [selectedCode, compareCode] },
+            updateTriggers: { getLineColor: [selectedCode, compareCode, dark], getLineWidth: [selectedCode, compareCode] },
             pickable: false,
             parameters: { depthCompare: "always", depthWriteEnabled: false },
           })
@@ -920,14 +986,15 @@ export default function DeckMap({
             getFillColor: metricModel.color,
             updateTriggers: {
               getElevation: [heightOfSchool],
-              getFillColor: [metricModel],
+              getFillColor: [metricModel, dark, incheon],
             },
           })
         : null,
+      ...(schoolGroups.clusters.length ? makeSchoolClusterLayers(schoolGroups.clusters, handleClusterClick, dark, textSize === "large") : []),
       makeFlatSchoolsLayer(
         metricModel.specialEducation
-          ? positionedSchools.filter((s) => s.level !== "special")
-          : positionedSchools,
+          ? visibleSchools.filter((s) => s.level !== "special")
+          : visibleSchools,
         highlightedSchoolId,
         handleSchoolClick,
       ).clone({
@@ -935,7 +1002,7 @@ export default function DeckMap({
           const c = metricModel.color(s);
           return issueModel && selectedCode && s.regionCode !== selectedCode && s.regionCode !== compareCode ? [c[0],c[1],c[2],65] : c;
         },
-        getLineColor: (s) => s.id === highlightedSchoolId ? [28,35,49,255] : emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0 ? [222,110,39,255] : [255,255,255,255],
+        getLineColor: (s) => s.id === highlightedSchoolId ? dark ? [90,220,240,255] : [28,35,49,255] : emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0 ? [222,110,39,255] : [255,255,255,255],
         getLineWidth: (s) => s.id === highlightedSchoolId || (emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0) ? 3 : 1.5,
         getRadius:
           schoolChart === "auto" &&
@@ -950,12 +1017,12 @@ export default function DeckMap({
                         Math.max(1, metricModel.maximum),
                     ),
                 )
-            : 5,
+            : (s) => incheon && (s.id === highlightedSchoolId || (indicatorId === "small_schools" && (metricModel.value(s) ?? 0) > 0)) ? 7 : 5,
         radiusMaxPixels: 18,
         updateTriggers: {
           getFillColor: [metricModel, selectedCode, compareCode, issueModel],
-          getRadius: [metricModel, schoolChart, densityVisible],
-          getLineColor: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts],
+          getRadius: [metricModel, schoolChart, densityVisible, incheon, indicatorId, highlightedSchoolId],
+          getLineColor: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts, dark],
           getLineWidth: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts],
         },
       }),
@@ -1025,6 +1092,7 @@ export default function DeckMap({
     return layerList;
   }, [
     basemapLayer,
+    dark, incheon,
     metricModel,
     compareCode, emphasizeZero, schoolFacts,
     densityVisible,
@@ -1041,6 +1109,7 @@ export default function DeckMap({
     emdFc,
     indicatorId,
     positionedSchools,
+    visibleSchools, schoolGroups.clusters, handleClusterClick, textSize,
     highlightedSchoolId,
     handleSchoolClick,
     fontReady,
@@ -1174,8 +1243,13 @@ export default function DeckMap({
           x: event.clientX - bounds.left,
           y: event.clientY - bounds.top,
           radius: mobile ? 14 : 9,
-          layerIds: ["schools", "school-columns", "schools-special"],
+          layerIds: ["schools", "school-columns", "schools-special", "school-clusters"],
         });
+        if (hit?.layer?.id === "school-clusters" && hit.object) {
+          handleClusterClick(hit.object as SchoolCluster);
+          event.stopPropagation();
+          return;
+        }
         const schoolId = (hit?.object as { id?: string } | undefined)?.id;
         if (!schoolId) return;
         handleSchoolClick(schoolId);
@@ -1217,10 +1291,20 @@ export default function DeckMap({
           )}
         />
       )}
+      {incheon && <nav className="ice-map-shortcuts" aria-label="지도 범위 바로가기">
+        <button type="button" disabled={!urbanBounds} title="내륙 8개 구 보기 · 제물포·미추홀·연수·남동·부평·계양·서해·검단"
+          onClick={() => { if (urbanBounds) focusBounds(urbanBounds); setMapHint("도심 · 내륙 8개 구로 이동했습니다."); }}>도심</button>
+        <button type="button" title="강화·옹진·영종 등 섬 지역을 포함한 인천 전체 보기"
+          onClick={() => { focusBounds(unionBbox(bundle.regions.features)); setMapHint("섬 지역을 포함한 인천 전체로 이동했습니다."); }}>인천 전체</button>
+      </nav>}
+      {clusterChoice && <ClusterSchoolDialog cluster={clusterChoice} onClose={() => setClusterChoice(null)} onSelect={(id) => onHighlightSchool(id, "map")} />}
       <MetricLegend
         metric={metricModel}
         density={densityVisible}
         schoolSelected={!!highlightedSchoolId}
+        mobile={mobile}
+        clustered={schoolGroups.clusters.length > 0}
+        targetsSeparate={indicatorId === "small_schools"}
         densityUnavailable={
           schoolChart === "auto" &&
           metricModel.kind === "density" &&
@@ -1323,6 +1407,7 @@ export default function DeckMap({
       )}
       <div aria-live="polite" className="sr-only">
         {announcement}
+        {mapHint}
       </div>
     </div>
   );

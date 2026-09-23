@@ -7,6 +7,8 @@
     "node": "22.x"
   },
   "scripts": {
+    "profile:inspect": "tsx scripts/pipeline/inspect-profile.ts",
+    "data:incheon": "tsx scripts/pipeline/build-incheon.ts --profile=incheon",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -24,7 +26,8 @@
     "data:validate": "tsx scripts/pipeline/validate.ts",
     "data:build": "tsx scripts/pipeline/build.ts",
     "data:issues": "tsx scripts/pipeline/build-education-issues.ts",
-    "social:build": "node scripts/generate-social-assets.mjs"
+    "social:build": "node scripts/generate-social-assets.mjs",
+    "data:activate:incheon": "tsx scripts/pipeline/activate-incheon.ts"
   },
   "dependencies": {
     "@deck.gl/aggregation-layers": "9.4.0",

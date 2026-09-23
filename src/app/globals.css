@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./incheon.css";
 
 /* 라이트 테마 토큰 — src/lib/theme.ts 의 THEME 와 값이 같아야 한다
    (tests/unit/theme.test.ts 가 검사). Tailwind v4 는 이 변수들로

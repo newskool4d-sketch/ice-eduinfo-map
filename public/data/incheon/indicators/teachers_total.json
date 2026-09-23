@@ -1,0 +1,300 @@
+{
+  "id": "teachers_total",
+  "year": 2026,
+  "referenceDate": "2026-04-01",
+  "source": {
+    "name": "한국교육개발원 KESS 2026 학교별 주요통계",
+    "url": "https://kess.kedi.re.kr/contents/dataset",
+    "year": 2026
+  },
+  "rows": [
+    {
+      "regionCode": "28125",
+      "value": 1274
+    },
+    {
+      "regionCode": "28125",
+      "level": "elem",
+      "value": 393
+    },
+    {
+      "regionCode": "28125",
+      "level": "mid",
+      "value": 269
+    },
+    {
+      "regionCode": "28125",
+      "level": "high",
+      "value": 612
+    },
+    {
+      "regionCode": "28125",
+      "level": "special",
+      "value": 0
+    },
+    {
+      "regionCode": "28155",
+      "value": 1279
+    },
+    {
+      "regionCode": "28155",
+      "level": "elem",
+      "value": 546
+    },
+    {
+      "regionCode": "28155",
+      "level": "mid",
+      "value": 302
+    },
+    {
+      "regionCode": "28155",
+      "level": "high",
+      "value": 431
+    },
+    {
+      "regionCode": "28155",
+      "level": "special",
+      "value": 0
+    },
+    {
+      "regionCode": "28177",
+      "value": 2772
+    },
+    {
+      "regionCode": "28177",
+      "level": "elem",
+      "value": 1088
+    },
+    {
+      "regionCode": "28177",
+      "level": "mid",
+      "value": 594
+    },
+    {
+      "regionCode": "28177",
+      "level": "high",
+      "value": 978
+    },
+    {
+      "regionCode": "28177",
+      "level": "special",
+      "value": 112
+    },
+    {
+      "regionCode": "28185",
+      "value": 3860
+    },
+    {
+      "regionCode": "28185",
+      "level": "elem",
+      "value": 1658
+    },
+    {
+      "regionCode": "28185",
+      "level": "mid",
+      "value": 1018
+    },
+    {
+      "regionCode": "28185",
+      "level": "high",
+      "value": 1096
+    },
+    {
+      "regionCode": "28185",
+      "level": "special",
+      "value": 88
+    },
+    {
+      "regionCode": "28200",
+      "value": 3724
+    },
+    {
+      "regionCode": "28200",
+      "level": "elem",
+      "value": 1463
+    },
+    {
+      "regionCode": "28200",
+      "level": "mid",
+      "value": 1039
+    },
+    {
+      "regionCode": "28200",
+      "level": "high",
+      "value": 1051
+    },
+    {
+      "regionCode": "28200",
+      "level": "special",
+      "value": 171
+    },
+    {
+      "regionCode": "28237",
+      "value": 3599
+    },
+    {
+      "regionCode": "28237",
+      "level": "elem",
+      "value": 1543
+    },
+    {
+      "regionCode": "28237",
+      "level": "mid",
+      "value": 901
+    },
+    {
+      "regionCode": "28237",
+      "level": "high",
+      "value": 998
+    },
+    {
+      "regionCode": "28237",
+      "level": "special",
+      "value": 157
+    },
+    {
+      "regionCode": "28245",
+      "value": 1986
+    },
+    {
+      "regionCode": "28245",
+      "level": "elem",
+      "value": 764
+    },
+    {
+      "regionCode": "28245",
+      "level": "mid",
+      "value": 539
+    },
+    {
+      "regionCode": "28245",
+      "level": "high",
+      "value": 590
+    },
+    {
+      "regionCode": "28245",
+      "level": "special",
+      "value": 93
+    },
+    {
+      "regionCode": "28275",
+      "value": 3044
+    },
+    {
+      "regionCode": "28275",
+      "level": "elem",
+      "value": 1383
+    },
+    {
+      "regionCode": "28275",
+      "level": "mid",
+      "value": 852
+    },
+    {
+      "regionCode": "28275",
+      "level": "high",
+      "value": 809
+    },
+    {
+      "regionCode": "28275",
+      "level": "special",
+      "value": 0
+    },
+    {
+      "regionCode": "28290",
+      "value": 2497
+    },
+    {
+      "regionCode": "28290",
+      "level": "elem",
+      "value": 1178
+    },
+    {
+      "regionCode": "28290",
+      "level": "mid",
+      "value": 658
+    },
+    {
+      "regionCode": "28290",
+      "level": "high",
+      "value": 554
+    },
+    {
+      "regionCode": "28290",
+      "level": "special",
+      "value": 107
+    },
+    {
+      "regionCode": "28710",
+      "value": 673
+    },
+    {
+      "regionCode": "28710",
+      "level": "elem",
+      "value": 279
+    },
+    {
+      "regionCode": "28710",
+      "level": "mid",
+      "value": 168
+    },
+    {
+      "regionCode": "28710",
+      "level": "high",
+      "value": 226
+    },
+    {
+      "regionCode": "28710",
+      "level": "special",
+      "value": 0
+    },
+    {
+      "regionCode": "28720",
+      "value": 212
+    },
+    {
+      "regionCode": "28720",
+      "level": "elem",
+      "value": 75
+    },
+    {
+      "regionCode": "28720",
+      "level": "mid",
+      "value": 50
+    },
+    {
+      "regionCode": "28720",
+      "level": "high",
+      "value": 87
+    },
+    {
+      "regionCode": "28720",
+      "level": "special",
+      "value": 0
+    },
+    {
+      "regionCode": "28000",
+      "value": 24920
+    },
+    {
+      "regionCode": "28000",
+      "level": "elem",
+      "value": 10370
+    },
+    {
+      "regionCode": "28000",
+      "level": "mid",
+      "value": 6390
+    },
+    {
+      "regionCode": "28000",
+      "level": "high",
+      "value": 7432
+    },
+    {
+      "regionCode": "28000",
+      "level": "special",
+      "value": 728
+    }
+  ]
+}

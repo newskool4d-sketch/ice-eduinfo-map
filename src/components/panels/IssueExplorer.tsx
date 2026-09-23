@@ -106,6 +106,9 @@ export default function IssueExplorer({
 }) {
   const query = useMapQuery();
   const definition = issueById(issueId);
+  if (!ACTIVE_PROFILE.capabilities.educationIssues || !POLICY_SOURCE) {
+    return <p className="text-sm text-ink-muted">이 지역의 교육정책 자료는 제공하지 않습니다.</p>;
+  }
   if (!definition || !model)
     return (
       <div className="space-y-4">

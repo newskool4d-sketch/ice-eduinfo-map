@@ -69,12 +69,12 @@ export function IssueDetails({ bundle, data, model, region }: {
     </section>;
   }
   if (model.issue.id === "closed-assets") {
-    const rows = bundle.closedSchools.rows.filter(r => !region || r.regionCode === region);
+    const rows = (bundle.closedSchools?.rows ?? []).filter(r => !region || r.regionCode === region);
     const unused = rows.filter(r => r.usage === "미활용");
     return <section aria-label="폐교재산 목록" className="space-y-3">
       <p className="text-sm font-semibold">수록 {rows.length}건 · 미활용 {unused.length}건 · {rows.length ? `${(unused.length / rows.length * 100).toFixed(1)}%` : "비율 해당 없음"}</p>
       <label className="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" checked={allAssets} onChange={e => setAllAssets(e.target.checked)} />활용 중인 재산도 함께 보기</label>
-      <p className="text-xs text-ink-muted">자료 기준 {bundle.closedSchools.referenceDate} · 게시 {bundle.closedSchools.publishedAt}. 주소만 제공하며 개별 위치는 지도에 표시하지 않습니다.</p>
+      <p className="text-xs text-ink-muted">자료 기준 {bundle.closedSchools?.referenceDate} · 게시 {bundle.closedSchools?.publishedAt}. 주소만 제공하며 개별 위치는 지도에 표시하지 않습니다.</p>
       {(allAssets ? rows : unused).length === 0 && <p className="text-sm">해당 조건의 폐교재산이 없습니다.</p>}
       <ul className="space-y-2">{(allAssets ? rows : unused).map((row, index) => <li key={`${row.regionCode}-${row.name}-${index}`} className="rounded-lg border border-line p-3 text-xs leading-relaxed">
         <h4 className="text-sm font-semibold">{row.name} · {row.usage}</h4>

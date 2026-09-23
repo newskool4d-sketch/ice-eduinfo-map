@@ -11,6 +11,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import { CLOSED_SCHOOLS_AGGREGATE_FILE, INDICATORS } from "../../src/lib/indicators/registry";
 import type {
   IndicatorFile,
@@ -38,8 +39,9 @@ import {
   REGION_TABLE,
 } from "./sources";
 
-const INTERIM_DIR = path.resolve(import.meta.dirname, "../../data/interim");
-const PUBLIC_DATA_DIR = path.resolve(import.meta.dirname, "../../public/data");
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
+const INTERIM_DIR = PROFILE_PATHS.interim;
+const PUBLIC_DATA_DIR = PROFILE_PATHS.publicData;
 const INDICATORS_DIR = path.join(PUBLIC_DATA_DIR, "indicators");
 const SERIES_DIR = path.join(PUBLIC_DATA_DIR, "series");
 

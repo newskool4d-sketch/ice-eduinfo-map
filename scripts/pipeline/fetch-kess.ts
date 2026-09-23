@@ -6,10 +6,12 @@
  * indicators.ts only use whichever years actually downloaded.
  */
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import { downloadIfMissing } from "./lib/download";
 import { KESS_FILE_IDS, kessDownloadUrl } from "./sources";
 
-const RAW_DIR = path.resolve(import.meta.dirname, "../../data/raw");
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
+const RAW_DIR = PROFILE_PATHS.raw;
 
 async function main(): Promise<void> {
   const years = Object.keys(KESS_FILE_IDS)

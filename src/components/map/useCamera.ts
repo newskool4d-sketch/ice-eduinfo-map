@@ -9,8 +9,8 @@ import {
   type RefObject,
 } from "react";
 import { FlyToInterpolator } from "@deck.gl/core";
-import { unionBbox } from "@/lib/geo/geo";
-import { fitOverview, fitRegion } from "./camera";
+import { unionBbox, type Bbox } from "@/lib/geo/geo";
+import { fitOverview, fitRegion, fitViewToPoints } from "./camera";
 import { scenePitch, type Scene } from "./scene";
 import type { RegionsFeatureCollection } from "@/lib/data/types";
 import type { School } from "@/lib/schools/types";
@@ -56,6 +56,7 @@ export function useCamera(
     reselect: number;
     scene: Scene;
     mobile: boolean;
+    sizeKey: string;
   } | null>(null);
   const sequence = useRef(0);
   const reselect = useCallback(() => setReselectNonce((n) => n + 1), []);
@@ -97,10 +98,12 @@ export function useCamera(
   useEffect(() => {
     if (!size || !overview) return;
     const before = previous.current;
+    const sizeKey = `${size.width}:${size.height}`;
+    const resized = before?.sizeKey !== sizeKey;
     const current = latest.current;
     let target: OverviewViewState | CameraViewState | null = null;
     if (
-      (!before || before.focus !== focusNonce || before.schoolId !== (selectedSchool?.id ?? null)) &&
+      (!before || resized || before.focus !== focusNonce || before.schoolId !== (selectedSchool?.id ?? null)) &&
       selectedSchool?.lat != null &&
       selectedSchool.lng != null
     ) {
@@ -112,7 +115,7 @@ export function useCamera(
         zoom: Math.min(maxZoom, Math.max(current?.zoom ?? 0, 16)),
       };
     } else if (
-      !before ||
+      !before || resized ||
       before.code !== selectedCode ||
       before.reselect !== reselectNonce
     ) {
@@ -125,7 +128,7 @@ export function useCamera(
     }
     if (!target && current && (before?.scene !== scene || before?.mobile !== mobile)) target = current;
     previous.current = {
-      scene, mobile,
+      scene, mobile, sizeKey,
       schoolId: selectedSchool?.id ?? null,
       code: selectedCode,
       focus: focusNonce,
@@ -154,5 +157,24 @@ export function useCamera(
     scene, mobile,
   ]);
 
-  return { overview, cameraViewState, reselect, rememberViewState };
+  /** Camera shortcuts leave the user's school, indicator and filters intact. */
+  const focusBounds = useCallback((bounds: Bbox, maxZoom = 18) => {
+    if (!size || !overview) return;
+    const [west, south, east, north] = bounds;
+    const points: [number, number][] = [[west, south], [east, north], [west, north], [east, south]];
+    const options = { bearing: 0, padding: Math.min(80, size.width / 5, size.height / 5), minZoom: overview.minZoom, maxZoom };
+    let target = fitViewToPoints(points, size, { ...options, pitch: 0 });
+    target = fitViewToPoints(points, size, { ...options, pitch: scenePitch(scene, target.zoom, mobile) });
+    const next: CameraViewState = {
+      ...overview, ...target,
+      pitch: scenePitch(scene, target.zoom, mobile), bearing: 0,
+      transitionInterpolator: new SceneFlyToInterpolator(scene, mobile),
+      transitionDuration: reduceMotion ? 0 : 550,
+      _nonce: ++sequence.current,
+    };
+    latest.current = next;
+    setCameraViewState(next);
+  }, [size, overview, scene, mobile, reduceMotion]);
+
+  return { overview, cameraViewState, reselect, rememberViewState, focusBounds };
 }

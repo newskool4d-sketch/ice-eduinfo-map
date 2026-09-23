@@ -83,6 +83,7 @@ export function issueValue(
     return data.designations[code as RegionCode] ?? null;
   if (metric === "student-change" || metric === "decline-small") return studentChange(bundle, code);
   if (metric === "unused-count" || metric === "unused-share") {
+    if (!bundle.closedSchools) return null;
     const assets = bundle.closedSchools.rows.filter(r => code === PROVINCE_CODE || r.regionCode === code);
     const unused = assets.filter(r => r.usage === "미활용").length;
     return metric === "unused-count" ? unused : assets.length ? unused / assets.length * 100 : null;
@@ -266,7 +267,7 @@ export function buildIssueModel(
   const source = isResourceMetric(metric)
     ? data.resourceSources?.[metric] ?? data.resourceSources?.[RESOURCE_METRIC_ISSUES[metric]]
     : metric.startsWith("unused-")
-    ? { ...bundle.closedSchools.source, referenceDate: bundle.closedSchools.referenceDate }
+    ? bundle.closedSchools ? { ...bundle.closedSchools.source, referenceDate: bundle.closedSchools.referenceDate } : undefined
     : data.sources[metric === "designation" ? 0 : 1];
   return {
     issue,

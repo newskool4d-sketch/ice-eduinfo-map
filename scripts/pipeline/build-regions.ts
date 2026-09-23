@@ -10,6 +10,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson";
@@ -19,6 +20,7 @@ import { isRegionCode, REGION_CODES, regionName } from "../../src/lib/geo/region
 import { ACTIVE_PROFILE } from "../../src/lib/profiles";
 import type { Bbox, RegionFeature } from "../../src/lib/geo/geo";
 
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
 
@@ -27,9 +29,9 @@ export const SOURCE_URL =
 // Exported — Task E's build-emd.ts reads the SAME raw national file (it
 // needs the finer 읍면동 granularity this file dissolves away) and must
 // never drift to a second copy of this path.
-export const RAW_PATH = path.join(ROOT, "data/raw/admdongkor-ver20260701.geojson");
-const REGIONS_OUTPUT_PATH = path.join(ROOT, "public/data/regions.geojson");
-const NEIGHBORS_OUTPUT_PATH = path.join(ROOT, "public/data/neighbors.geojson");
+export const RAW_PATH = path.join(PROFILE_PATHS.raw, "admdongkor-ver20260701.geojson");
+const REGIONS_OUTPUT_PATH = path.join(PROFILE_PATHS.publicData, "regions.geojson");
+const NEIGHBORS_OUTPUT_PATH = path.join(PROFILE_PATHS.publicData, "neighbors.geojson");
 // Task 6, Section C.2 — 라벨 겹침 완화: manual per-region pixel nudges,
 // hand-tuned by screenshot comparison (see task-6-report.md). Optional —
 // missing entirely, or missing a given code, both just mean "[0, 0]" (see

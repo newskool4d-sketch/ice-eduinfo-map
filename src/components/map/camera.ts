@@ -1,3 +1,4 @@
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 import { FlyToInterpolator, WebMercatorViewport } from "@deck.gl/core";
 
 import type { Bbox } from "@/lib/geo/geo";
@@ -11,7 +12,7 @@ export const OVERVIEW_PITCH = 56;
 export const OVERVIEW_BEARING = 0;
 
 export const VIEW_LIMITS = {
-  minZoom: 7.5,
+  minZoom: ACTIVE_PROFILE.id === "incheon" ? 5 : 7.5,
   maxZoom: 14,
   minPitch: 0,
   maxPitch: 72,
@@ -32,10 +33,10 @@ export const CONTROLLER = {
   doubleClickZoom: false,
   keyboard: false,
   inertia: 300,
-  maxBounds: [
+  maxBounds: (ACTIVE_PROFILE.id === "incheon" ? [[124.3, 37.0], [127.3, 38.3]] : [
     [125.6, 34.7],
     [128.7, 36.7],
-  ] as [[number, number], [number, number]],
+  ]) as [[number, number], [number, number]],
   rubberBand: true,
 };
 

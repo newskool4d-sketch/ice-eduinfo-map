@@ -4,6 +4,11 @@ import { EDUCATION_ISSUES, POLICY_SOURCE } from "./jeonbuk/issues";
 /** The reference profile. Copy this file to start a new provincial map. */
 export const jeonbukProfile: RegionProfile = {
   id: "jeonbuk",
+  pipelineReady: true,
+  capabilities: {
+    coreStatistics: true, schoolLocations: true, closedSchools: true,
+    educationIssues: true, neighborSilhouettes: true, historicalTrends: true,
+  },
   province: { name: "전북특별자치도", shortName: "전북", aggregateCode: "52000" },
   regions: [
     { code: "52110", name: "전주시" }, { code: "52130", name: "군산시" },
@@ -22,6 +27,10 @@ export const jeonbukProfile: RegionProfile = {
     kessSidoNames: ["전북"], educationOfficeCodes: ["8321000"],
     addressPrefixes: ["전북특별자치도", "전라북도"],
   },
-  files: { manualDir: "data/manual", closedSchoolsCsvPrefix: "전북특별자치도교육청_폐교재산 현황_" },
+  files: {
+    manualDir: "data/manual", rawDir: "data/raw", interimDir: "data/interim",
+    publicDataDir: "public/data", publicDataUrl: "/data",
+    closedSchoolsCsvPrefix: "전북특별자치도교육청_폐교재산 현황_",
+  },
   policy: { source: POLICY_SOURCE, issues: EDUCATION_ISSUES },
 };

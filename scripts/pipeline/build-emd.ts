@@ -21,7 +21,8 @@
 // feature lands in — it is never written to the emitted `properties`.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pipelinePaths } from "./paths";
+import { pathToFileURL } from "node:url";
 
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from "geojson";
 
@@ -35,9 +36,8 @@ import {
   SGG_CD_FROM_SGG_CMD,
 } from "./build-regions";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, "../..");
-const EMD_OUTPUT_DIR = path.join(ROOT, "public/data/emd");
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
+const EMD_OUTPUT_DIR = path.join(PROFILE_PATHS.publicData, "emd");
 
 const EMD_FILE_MAX_BYTES = 300 * 1024;
 

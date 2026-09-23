@@ -1,0 +1,58 @@
+{
+  "profileId": "incheon",
+  "statisticsDate": "2026-04-01",
+  "geographyDate": "2026-07-01",
+  "expectedRecords": 562,
+  "files": {
+    "kess": {
+      "path": "data/raw/incheon/verified-20260923/kess-2026.download",
+      "sha256": "5c198da8b32085c2cb6966dde5e9f9c7ce7da1567362f5a6df18ff928520685e",
+      "bytes": 18472276,
+      "workspaceEvidence": "docs/planning/incheon-v1/evidence/kess-2026.download"
+    },
+    "observations": {
+      "path": "data/raw/incheon/verified-20260923/kess-core-records.json",
+      "sha256": "92574e912eb132bef4404533d646421e889fe656b816c29594797a74bf0675b6",
+      "bytes": 296944,
+      "workspaceEvidence": "docs/planning/incheon-v1/evidence/followup/kess-core-records.json"
+    },
+    "locations": {
+      "path": "data/raw/incheon/verified-20260923/school-location-links.json",
+      "sha256": "f77080d88838a941060c836d86a5b94e3f3572b257ff022f366cf18b7aafe059",
+      "bytes": 868204,
+      "workspaceEvidence": "docs/planning/incheon-v1/evidence/followup/school-location-links.json"
+    },
+    "boundary": {
+      "path": "data/raw/incheon/verified-20260923/boundary-20260701.geojson",
+      "sha256": "c01ef44a0eb00978662ba7a6240ccb1da287fb52abd85104a1758969d391132f",
+      "bytes": 34648875,
+      "workspaceEvidence": "docs/planning/incheon-v1/evidence/followup/boundary-20260701.geojson"
+    },
+    "studentComparison": {
+      "path": "data/raw/incheon/verified-20260923/student-reconciliation.json",
+      "sha256": "40f813feee540aadd2ca2f073245f8a8d6a5d9079ef503c7d719c8814e16fcff",
+      "bytes": 345932,
+      "workspaceEvidence": "docs/planning/incheon-v1/evidence/followup/student-reconciliation.json"
+    },
+    "teacherComparison": {
+      "path": "data/raw/incheon/verified-20260923/teacher-comparison.json",
+      "sha256": "a3a73fd290c0affeb87bcc592e243f63b1f3905b901ae6ef5cf4b94fbf712c75",
+      "bytes": 233752,
+      "workspaceEvidence": "docs/planning/incheon-v1/evidence/followup/teacher-comparison.json"
+    },
+    "crosswalk": {
+      "path": "data/raw/incheon/verified-20260923/03-region-crosswalk.json",
+      "sha256": "c4686456612028d90efe8e4a2278f3d7f854fe646424939724800162ccb607c4",
+      "bytes": 56978,
+      "workspaceEvidence": "docs/planning/incheon-v1/03-region-crosswalk.json"
+    },
+    "sourceManifest": {
+      "path": "data/raw/incheon/verified-20260923/02-source-manifest.json",
+      "sha256": "ac984a6816e006ccb23ca76cd5edcde4a0050939c6011ec95d701a6d552d3a60",
+      "bytes": 18281,
+      "workspaceEvidence": "docs/planning/incheon-v1/02-source-manifest.json"
+    }
+  },
+  "sourceVerification": "docs/planning/incheon-v1/08-followup-verification.json",
+  "qualityStatus": "PARTIAL"
+}

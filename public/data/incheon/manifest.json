@@ -1,0 +1,104 @@
+{
+  "profileId": "incheon",
+  "buildId": "1c2acb671ced-07f2a7c8",
+  "latestYear": 2026,
+  "statisticsDate": "2026-04-01",
+  "geographyDate": "2026-07-01",
+  "builtAt": "2026-09-23T07:51:17.179Z",
+  "sources": [
+    {
+      "name": "KESS 2026 학교별 주요통계",
+      "url": "https://kess.kedi.re.kr/contents/dataset",
+      "referenceDate": "2026-04-01"
+    },
+    {
+      "name": "전국 학교 위치 표준데이터",
+      "url": "https://www.data.go.kr/data/15159184/fileData.do",
+      "referenceDate": "2026-03-20"
+    },
+    {
+      "name": "학교알리미 보완 좌표 (열람일, 좌표 기준일 미확인)",
+      "url": "https://www.schoolinfo.go.kr/",
+      "referenceDate": "2026-09-23"
+    },
+    {
+      "name": "vuski/admdongkor 행정동 경계",
+      "url": "https://github.com/vuski/admdongkor/tree/master/ver20260701",
+      "referenceDate": "2026-07-01"
+    }
+  ],
+  "capabilities": {
+    "coreStatistics": true,
+    "schoolLocations": true,
+    "closedSchools": false,
+    "educationIssues": false,
+    "neighborSilhouettes": false,
+    "historicalTrends": false
+  },
+  "indicators": {
+    "students_total": {
+      "years": [
+        2026
+      ]
+    },
+    "schools_total": {
+      "years": [
+        2026
+      ]
+    },
+    "classes_total": {
+      "years": [
+        2026
+      ]
+    },
+    "students_per_class": {
+      "years": [
+        2026
+      ]
+    },
+    "teachers_total": {
+      "years": [
+        2026
+      ]
+    },
+    "students_per_teacher": {
+      "years": [
+        2026
+      ]
+    },
+    "small_schools": {
+      "years": [
+        2026
+      ]
+    },
+    "small_school_share": {
+      "years": [
+        2026
+      ]
+    }
+  },
+  "history": {
+    "years": [
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "levels": [
+      "elem",
+      "mid",
+      "high",
+      "special"
+    ],
+    "regionBasis": "source-april-10-regions",
+    "file": "history.json",
+    "qualityStatus": "PARTIAL"
+  },
+  "quality": {
+    "status": "PARTIAL",
+    "independentTeacherControl": "미검증",
+    "studentDifferentSchoolRecords": 91,
+    "note": "4월 통계를 7월 행정구역으로 재집계. 원자료 차이 보존; 좌표의 과거 시점은 미확인."
+  }
+}

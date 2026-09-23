@@ -49,6 +49,7 @@ export default function TopBar({ bundle, onExploreIssues }: TopBarProps) {
   const kpiFile = bundle?.indicators[KPI_INDICATOR_IDS[0]];
 
   return (
+    <div className="shrink-0">
     <header className="relative z-40 flex h-14 shrink-0 items-center gap-2 sm:gap-4 border-b border-line bg-paper px-4">
       <span className="shrink-0 text-base font-semibold text-ink">{ACTIVE_PROFILE.province.shortName}교육지도</span>
 
@@ -74,5 +75,11 @@ export default function TopBar({ bundle, onExploreIssues }: TopBarProps) {
         </span>
       </div>
     </header>
+    {ACTIVE_PROFILE.validation && <div role="note" className="shrink-0 border-b border-line bg-amber-50 px-4 py-2 text-xs text-ink" data-testid="data-quality-note">
+      통계 {ACTIVE_PROFILE.validation.referenceDate} · 경계 2026-07-01 · 검증 {ACTIVE_PROFILE.validation.status}.
+      학생수는 KESS 기준(교육청 자료와 91개 학교 차이), 교원은 정규·기간제 합계(휴직 포함, 강사 제외)로 독립 총계 미확보.
+      좌표는 서로 다른 기준일의 자료를 연결했습니다. 폐교·연도별 추이는 제공 준비 중입니다.
+    </div>}
+    </div>
   );
 }

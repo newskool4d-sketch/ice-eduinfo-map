@@ -130,8 +130,8 @@ describe("loadBundle", () => {
     expect(bundle.manifest.latestYear).toBe(2026);
     expect(bundle.schools.schools.length).toBe(REGION_CODES.length);
     expect(bundle.schools.referenceDate.location).toBe("2026-03-20");
-    expect(bundle.closedSchools.rows.length).toBe(REGION_CODES.length);
-    expect(bundle.closedSchools.referenceDate).toBe("2026-07-16");
+    expect(bundle.closedSchools!.rows.length).toBe(REGION_CODES.length);
+    expect(bundle.closedSchools!.referenceDate).toBe("2026-07-16");
     for (const id of INDICATOR_IDS) {
       expect(bundle.indicators[id]).toBeTruthy();
       expect(bundle.indicators[id].id).toBe(id);
@@ -302,15 +302,15 @@ describe("assertBundle", () => {
   it("throws when a closed-schools row's regionCode is outside the 14 시군", async () => {
     const bundle = await validBundle();
     bundle.closedSchools = {
-      ...bundle.closedSchools,
-      rows: [{ ...bundle.closedSchools.rows[0], regionCode: "99999" }],
+      ...bundle.closedSchools!,
+      rows: [{ ...bundle.closedSchools!.rows[0], regionCode: "99999" }],
     };
     expect(() => assertBundle(bundle)).toThrow(/regionCode/);
   });
 
   it("does not throw when closed-schools.json has 0 rows (a legitimate, if surprising, all-zero dataset)", async () => {
     const bundle = await validBundle();
-    bundle.closedSchools = { ...bundle.closedSchools, rows: [] };
+    bundle.closedSchools = { ...bundle.closedSchools!, rows: [] };
     expect(() => assertBundle(bundle)).not.toThrow();
   });
 

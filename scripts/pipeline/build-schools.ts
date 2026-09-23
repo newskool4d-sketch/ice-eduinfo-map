@@ -9,6 +9,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 
 import { supplementSchoolLocations, type VerifiedSchoolLocation } from "./lib/school-locations";
 import type { SchoolRow } from "./lib/kess-xlsx";
@@ -25,10 +26,11 @@ import {
 import { KESS_STATS_SOURCE, LOCATION_CSV_PREFIX, LOCATION_SOURCE, referenceDateFromFilename } from "./sources";
 import { ACTIVE_PROFILE } from "../../src/lib/profiles";
 
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
 const ROOT = path.resolve(import.meta.dirname, "../..");
-const RAW_DIR = path.join(ROOT, "data/raw");
-const INTERIM_DIR = path.join(ROOT, "data/interim");
-const PUBLIC_DATA_DIR = path.join(ROOT, "public/data");
+const RAW_DIR = PROFILE_PATHS.raw;
+const INTERIM_DIR = PROFILE_PATHS.interim;
+const PUBLIC_DATA_DIR = PROFILE_PATHS.publicData;
 const ALIASES_PATH = path.join(ROOT, ACTIVE_PROFILE.files.manualDir, "school-aliases.json");
 const KESS_INTERIM_PATH = path.join(INTERIM_DIR, "kess-2026.json");
 

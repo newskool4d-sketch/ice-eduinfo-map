@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import { fileURLToPath } from "node:url";
 import type { SchoolsFile } from "../../src/lib/schools/types";
 import type { SchoolRow } from "./lib/kess-xlsx";
@@ -9,17 +10,18 @@ import { ACTIVE_PROFILE } from "../../src/lib/profiles";
 import { INCLUDED_STATUSES } from "./sources";
 import { assertIssueData } from "../../src/lib/issues/validate";
 
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
 const root = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
 const read = async (file: string) =>
-  JSON.parse(await readFile(path.join(root, file), "utf8"));
-const schools: SchoolsFile = await read("public/data/schools.json");
+  JSON.parse(await readFile(path.resolve(root, file), "utf8"));
+const schools: SchoolsFile = await read(path.join(PROFILE_PATHS.publicData, "schools.json"));
 const year = Number(schools.referenceDate.stats.slice(0, 4));
 const kess: { year: number; referenceDate: string; rows: SchoolRow[] } =
-  await read(`data/interim/kess-${year}.json`);
-const manifest = await read("public/data/manifest.json");
+  await read(path.join(PROFILE_PATHS.interim, `kess-${year}.json`));
+const manifest = await read(path.join(PROFILE_PATHS.publicData, "manifest.json"));
 if (
   manifest.latestYear !== year ||
   kess.year !== year ||
@@ -86,7 +88,7 @@ const data: EducationIssuesFile = {
 };
 assertIssueData(data, schools);
 await writeFile(
-  path.join(root, "public/data/education-issues.json"),
+  path.join(PROFILE_PATHS.publicData, "education-issues.json"),
   JSON.stringify(data, null, 2) + "\n",
 );
 console.log(

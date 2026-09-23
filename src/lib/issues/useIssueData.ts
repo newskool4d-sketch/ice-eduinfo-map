@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { SchoolsFile } from "../schools/types";
 import { assertIssueData } from "./validate";
 import type { EducationIssuesFile } from "./types";
+import { ACTIVE_PROFILE } from "../profiles";
 
 type State =
   | { status: "idle" | "loading" }
@@ -12,7 +13,7 @@ export function useIssueData(enabled: boolean, schools: SchoolsFile) {
   const [requested, setRequested] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<State>({ status: "idle" });
-  if (enabled && !requested) setRequested(true);
+  if (enabled && ACTIVE_PROFILE.capabilities.educationIssues && !requested) setRequested(true);
   const retry = useCallback(() => {
     setState({ status: "loading" });
     setAttempt((n) => n + 1);
@@ -20,7 +21,7 @@ export function useIssueData(enabled: boolean, schools: SchoolsFile) {
   useEffect(() => {
     if (!requested) return;
     const controller = new AbortController();
-    fetch("/data/education-issues.json", {
+    fetch(`${ACTIVE_PROFILE.files.publicDataUrl}/education-issues.json`, {
       signal: controller.signal,
       cache: "no-cache",
     })

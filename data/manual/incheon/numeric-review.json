@@ -1,0 +1,6385 @@
+{
+  "status": "PARTIAL",
+  "checkedRecords": 562,
+  "studentDifferences": 91,
+  "teacherComponentPassed": 562,
+  "gradeSumChecks": {
+    "records": 552,
+    "kessPassed": 552,
+    "icePassed": 552
+  },
+  "sourceHashes": {
+    "kess": "5c198da8b32085c2cb6966dde5e9f9c7ce7da1567362f5a6df18ff928520685e",
+    "ice": "2a60c029fa3a16c1d31cb2eb4c0673b7b9db8ebc7d9b320e81abb61aa34026cd"
+  },
+  "iceCurrentDownloadUnchanged": true,
+  "independentTeacherAggregate": "not_acquired",
+  "differenceCausesConfirmed": 0,
+  "differenceDistribution": {
+    "1": 63,
+    "2": 20,
+    "15": 1,
+    "6": 1,
+    "3": 4,
+    "4": 1,
+    "68": 1
+  },
+  "largestDifferences": [
+    {
+      "schoolId": "kedi:233031495",
+      "name": "인천은송중학교",
+      "level": "중학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 749,
+      "iceStudents": 681,
+      "differenceKessMinusIce": 68,
+      "kessCell": "학교별 주요통계!AN4664",
+      "iceCell": "중학교!Z125",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 센트럴로 464(송도동)",
+      "iceAddress": "연수구 센트럴로 464(송도동 313-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 265,
+          "ice": 265,
+          "difference": 0,
+          "kessFemale": 123,
+          "iceFemale": 124,
+          "kessCell": "학교별 주요통계!AQ4664",
+          "iceCell": "중학교!T125"
+        },
+        {
+          "grade": 2,
+          "kess": 328,
+          "ice": 328,
+          "difference": 0,
+          "kessFemale": 149,
+          "iceFemale": 149,
+          "kessCell": "학교별 주요통계!AT4664",
+          "iceCell": "중학교!V125"
+        },
+        {
+          "grade": 3,
+          "kess": 156,
+          "ice": 88,
+          "difference": 68,
+          "kessFemale": 68,
+          "iceFemale": 68,
+          "kessCell": "학교별 주요통계!AW4664",
+          "iceCell": "중학교!X125"
+        }
+      ],
+      "gradeDifferencesSum": 68,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021543",
+      "name": "인천하늘초등학교",
+      "level": "초등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 1353,
+      "iceStudents": 1338,
+      "differenceKessMinusIce": 15,
+      "kessCell": "학교별 주요통계!AN4219",
+      "iceCell": "초등학교!AH71",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 은하수로 294(중산동. 영종하늘초등학교)",
+      "iceAddress": "중구 은하수로294(중산동 1880-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 235,
+          "ice": 232,
+          "difference": 3,
+          "kessFemale": 118,
+          "iceFemale": 117,
+          "kessCell": "학교별 주요통계!AQ4219",
+          "iceCell": "초등학교!V71"
+        },
+        {
+          "grade": 2,
+          "kess": 233,
+          "ice": 230,
+          "difference": 3,
+          "kessFemale": 110,
+          "iceFemale": 108,
+          "kessCell": "학교별 주요통계!AT4219",
+          "iceCell": "초등학교!X71"
+        },
+        {
+          "grade": 3,
+          "kess": 240,
+          "ice": 236,
+          "difference": 4,
+          "kessFemale": 112,
+          "iceFemale": 111,
+          "kessCell": "학교별 주요통계!AW4219",
+          "iceCell": "초등학교!Z71"
+        },
+        {
+          "grade": 4,
+          "kess": 219,
+          "ice": 218,
+          "difference": 1,
+          "kessFemale": 124,
+          "iceFemale": 124,
+          "kessCell": "학교별 주요통계!AZ4219",
+          "iceCell": "초등학교!AB71"
+        },
+        {
+          "grade": 5,
+          "kess": 226,
+          "ice": 224,
+          "difference": 2,
+          "kessFemale": 122,
+          "iceFemale": 121,
+          "kessCell": "학교별 주요통계!BC4219",
+          "iceCell": "초등학교!AD71"
+        },
+        {
+          "grade": 6,
+          "kess": 200,
+          "ice": 198,
+          "difference": 2,
+          "kessFemale": 103,
+          "iceFemale": 102,
+          "kessCell": "학교별 주요통계!BF4219",
+          "iceCell": "초등학교!AF71"
+        }
+      ],
+      "gradeDifferencesSum": 15,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021041",
+      "name": "인천새봄초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 486,
+      "iceStudents": 492,
+      "differenceKessMinusIce": -6,
+      "kessCell": "학교별 주요통계!AN4571",
+      "iceCell": "초등학교!AH199",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 앵고개로104번길 34(동춘동. 인천새봄초등학교)",
+      "iceAddress": "연수구 앵고개로104번길 34(동춘동 752-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 70,
+          "ice": 71,
+          "difference": -1,
+          "kessFemale": 30,
+          "iceFemale": 30,
+          "kessCell": "학교별 주요통계!AQ4571",
+          "iceCell": "초등학교!V199"
+        },
+        {
+          "grade": 2,
+          "kess": 84,
+          "ice": 84,
+          "difference": 0,
+          "kessFemale": 38,
+          "iceFemale": 39,
+          "kessCell": "학교별 주요통계!AT4571",
+          "iceCell": "초등학교!X199"
+        },
+        {
+          "grade": 3,
+          "kess": 72,
+          "ice": 71,
+          "difference": 1,
+          "kessFemale": 37,
+          "iceFemale": 37,
+          "kessCell": "학교별 주요통계!AW4571",
+          "iceCell": "초등학교!Z199"
+        },
+        {
+          "grade": 4,
+          "kess": 92,
+          "ice": 94,
+          "difference": -2,
+          "kessFemale": 51,
+          "iceFemale": 53,
+          "kessCell": "학교별 주요통계!AZ4571",
+          "iceCell": "초등학교!AB199"
+        },
+        {
+          "grade": 5,
+          "kess": 85,
+          "ice": 88,
+          "difference": -3,
+          "kessFemale": 47,
+          "iceFemale": 48,
+          "kessCell": "학교별 주요통계!BC4571",
+          "iceCell": "초등학교!AD199"
+        },
+        {
+          "grade": 6,
+          "kess": 83,
+          "ice": 84,
+          "difference": -1,
+          "kessFemale": 36,
+          "iceFemale": 38,
+          "kessCell": "학교별 주요통계!BF4571",
+          "iceCell": "초등학교!AF199"
+        }
+      ],
+      "gradeDifferencesSum": -6,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    }
+  ],
+  "records": [
+    {
+      "schoolId": "kedi:230041135",
+      "name": "계산고등학교",
+      "level": "고등학교",
+      "sourceRegion": "계양구",
+      "kessStudents": 542,
+      "iceStudents": 543,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN3952",
+      "iceCell": "고등학교!Z99",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 계양구 주부토로 588(계산동.계산고등학교)",
+      "iceAddress": "계양구 주부토로 588(계산동 907)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 176,
+          "ice": 176,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AQ3952",
+          "iceCell": "고등학교!T99"
+        },
+        {
+          "grade": 2,
+          "kess": 178,
+          "ice": 178,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AT3952",
+          "iceCell": "고등학교!V99"
+        },
+        {
+          "grade": 3,
+          "kess": 188,
+          "ice": 189,
+          "difference": -1,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AW3952",
+          "iceCell": "고등학교!X99"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041140",
+      "name": "계산여자고등학교",
+      "level": "고등학교",
+      "sourceRegion": "계양구",
+      "kessStudents": 454,
+      "iceStudents": 455,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN3953",
+      "iceCell": "고등학교!Z100",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 계양구 계산새로 131(용종동)",
+      "iceAddress": "계양구 계산새로131(용종동228-2)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 160,
+          "ice": 161,
+          "difference": -1,
+          "kessFemale": 160,
+          "iceFemale": 161,
+          "kessCell": "학교별 주요통계!AQ3953",
+          "iceCell": "고등학교!T100"
+        },
+        {
+          "grade": 2,
+          "kess": 134,
+          "ice": 134,
+          "difference": 0,
+          "kessFemale": 134,
+          "iceFemale": 134,
+          "kessCell": "학교별 주요통계!AT3953",
+          "iceCell": "고등학교!V100"
+        },
+        {
+          "grade": 3,
+          "kess": 160,
+          "ice": 160,
+          "difference": 0,
+          "kessFemale": 160,
+          "iceFemale": 160,
+          "kessCell": "학교별 주요통계!AW3953",
+          "iceCell": "고등학교!X100"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041235",
+      "name": "인천중산고등학교",
+      "level": "고등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 1062,
+      "iceStudents": 1064,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN3967",
+      "iceCell": "고등학교!Z50",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 은하수로 142(중산동)",
+      "iceAddress": "중구 은하수로 142",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 345,
+          "ice": 347,
+          "difference": -2,
+          "kessFemale": 175,
+          "iceFemale": 175,
+          "kessCell": "학교별 주요통계!AQ3967",
+          "iceCell": "고등학교!T50"
+        },
+        {
+          "grade": 2,
+          "kess": 374,
+          "ice": 374,
+          "difference": 0,
+          "kessFemale": 190,
+          "iceFemale": 190,
+          "kessCell": "학교별 주요통계!AT3967",
+          "iceCell": "고등학교!V50"
+        },
+        {
+          "grade": 3,
+          "kess": 343,
+          "ice": 343,
+          "difference": 0,
+          "kessFemale": 185,
+          "iceFemale": 185,
+          "kessCell": "학교별 주요통계!AW3967",
+          "iceCell": "고등학교!X50"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041300",
+      "name": "인천송천고등학교",
+      "level": "고등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 693,
+      "iceStudents": 692,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN3973",
+      "iceCell": "고등학교!Z122",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 앵고개로815번길 59(논현동)",
+      "iceAddress": "남동구 앵고개로815번길 59(논현동 738-4)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 248,
+          "ice": 248,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ3973",
+          "iceCell": "고등학교!T122"
+        },
+        {
+          "grade": 2,
+          "kess": 234,
+          "ice": 234,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AT3973",
+          "iceCell": "고등학교!V122"
+        },
+        {
+          "grade": 3,
+          "kess": 211,
+          "ice": 210,
+          "difference": 1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW3973",
+          "iceCell": "고등학교!X122"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041301",
+      "name": "인천초은고등학교",
+      "level": "고등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 869,
+      "iceStudents": 870,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN3974",
+      "iceCell": "고등학교!Z171",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 청라에메랄드로 42(연희동. 초은고등학교)",
+      "iceAddress": "서구 청라에메랄드로 42(청라동 193-2)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 325,
+          "ice": 325,
+          "difference": 0,
+          "kessFemale": 325,
+          "iceFemale": 325,
+          "kessCell": "학교별 주요통계!AQ3974",
+          "iceCell": "고등학교!T171"
+        },
+        {
+          "grade": 2,
+          "kess": 245,
+          "ice": 246,
+          "difference": -1,
+          "kessFemale": 245,
+          "iceFemale": 246,
+          "kessCell": "학교별 주요통계!AT3974",
+          "iceCell": "고등학교!V171"
+        },
+        {
+          "grade": 3,
+          "kess": 299,
+          "ice": 299,
+          "difference": 0,
+          "kessFemale": 299,
+          "iceFemale": 299,
+          "kessCell": "학교별 주요통계!AW3974",
+          "iceCell": "고등학교!X171"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041305",
+      "name": "인천영종고등학교",
+      "level": "고등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 861,
+      "iceStudents": 862,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN3978",
+      "iceCell": "고등학교!Z49",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 영종대로278번길 34(운서동)",
+      "iceAddress": "중구 영종대로 278번길 34",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 255,
+          "ice": 255,
+          "difference": 0,
+          "kessFemale": 133,
+          "iceFemale": 130,
+          "kessCell": "학교별 주요통계!AQ3978",
+          "iceCell": "고등학교!T49"
+        },
+        {
+          "grade": 2,
+          "kess": 293,
+          "ice": 293,
+          "difference": 0,
+          "kessFemale": 144,
+          "iceFemale": 142,
+          "kessCell": "학교별 주요통계!AT3978",
+          "iceCell": "고등학교!V49"
+        },
+        {
+          "grade": 3,
+          "kess": 313,
+          "ice": 314,
+          "difference": -1,
+          "kessFemale": 160,
+          "iceFemale": 161,
+          "kessCell": "학교별 주요통계!AW3978",
+          "iceCell": "고등학교!X49"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041450",
+      "name": "인천여자고등학교",
+      "level": "고등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 798,
+      "iceStudents": 799,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN3989",
+      "iceCell": "고등학교!Z141",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 비류대로506번길 14(연수동) 인천여자고등학교",
+      "iceAddress": "연수구 비류대로 506번길 14(연수동 534-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 304,
+          "ice": 305,
+          "difference": -1,
+          "kessFemale": 304,
+          "iceFemale": 305,
+          "kessCell": "학교별 주요통계!AQ3989",
+          "iceCell": "고등학교!T141"
+        },
+        {
+          "grade": 2,
+          "kess": 247,
+          "ice": 247,
+          "difference": 0,
+          "kessFemale": 247,
+          "iceFemale": 247,
+          "kessCell": "학교별 주요통계!AT3989",
+          "iceCell": "고등학교!V141"
+        },
+        {
+          "grade": 3,
+          "kess": 247,
+          "ice": 247,
+          "difference": 0,
+          "kessFemale": 247,
+          "iceFemale": 247,
+          "kessCell": "학교별 주요통계!AW3989",
+          "iceCell": "고등학교!X141"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041623",
+      "name": "광성고등학교",
+      "level": "고등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 435,
+      "iceStudents": 433,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN3999",
+      "iceCell": "고등학교!Z62",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 참외전로244번길 47(도원동)",
+      "iceAddress": "중구 참외전로244번길 47(도원동 12-73)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 141,
+          "ice": 141,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ3999",
+          "iceCell": "고등학교!T62"
+        },
+        {
+          "grade": 2,
+          "kess": 141,
+          "ice": 140,
+          "difference": 1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AT3999",
+          "iceCell": "고등학교!V62"
+        },
+        {
+          "grade": 3,
+          "kess": 153,
+          "ice": 152,
+          "difference": 1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW3999",
+          "iceCell": "고등학교!X62"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041669",
+      "name": "동산고등학교",
+      "level": "고등학교",
+      "sourceRegion": "동구",
+      "kessStudents": 455,
+      "iceStudents": 454,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4004",
+      "iceCell": "고등학교!Z29",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 동구 동산로 58. 동산고등학교 (송림동)",
+      "iceAddress": "동구 동산로 58(송림동 97-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 155,
+          "ice": 155,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ4004",
+          "iceCell": "고등학교!T29"
+        },
+        {
+          "grade": 2,
+          "kess": 154,
+          "ice": 153,
+          "difference": 1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AT4004",
+          "iceCell": "고등학교!V29"
+        },
+        {
+          "grade": 3,
+          "kess": 146,
+          "ice": 146,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW4004",
+          "iceCell": "고등학교!X29"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041681",
+      "name": "인일여자고등학교",
+      "level": "고등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 574,
+      "iceStudents": 573,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4005",
+      "iceCell": "고등학교!Z47",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 참외전로72번길 10(전동)",
+      "iceAddress": "중구 참외전로72번길 10(전동 25-4)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 181,
+          "ice": 180,
+          "difference": 1,
+          "kessFemale": 181,
+          "iceFemale": 180,
+          "kessCell": "학교별 주요통계!AQ4005",
+          "iceCell": "고등학교!T47"
+        },
+        {
+          "grade": 2,
+          "kess": 194,
+          "ice": 194,
+          "difference": 0,
+          "kessFemale": 194,
+          "iceFemale": 194,
+          "kessCell": "학교별 주요통계!AT4005",
+          "iceCell": "고등학교!V47"
+        },
+        {
+          "grade": 3,
+          "kess": 199,
+          "ice": 199,
+          "difference": 0,
+          "kessFemale": 199,
+          "iceFemale": 199,
+          "kessCell": "학교별 주요통계!AW4005",
+          "iceCell": "고등학교!X47"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041738",
+      "name": "박문여자고등학교",
+      "level": "고등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 903,
+      "iceStudents": 904,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4009",
+      "iceCell": "고등학교!Z153",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 송도과학로51번길 16(송도동. 박문여자고등학교)",
+      "iceAddress": "연수구 송도과학로51번길 16(송도동 162-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 315,
+          "ice": 315,
+          "difference": 0,
+          "kessFemale": 315,
+          "iceFemale": 315,
+          "kessCell": "학교별 주요통계!AQ4009",
+          "iceCell": "고등학교!T153"
+        },
+        {
+          "grade": 2,
+          "kess": 302,
+          "ice": 303,
+          "difference": -1,
+          "kessFemale": 302,
+          "iceFemale": 303,
+          "kessCell": "학교별 주요통계!AT4009",
+          "iceCell": "고등학교!V153"
+        },
+        {
+          "grade": 3,
+          "kess": 286,
+          "ice": 286,
+          "difference": 0,
+          "kessFemale": 286,
+          "iceFemale": 286,
+          "kessCell": "학교별 주요통계!AW4009",
+          "iceCell": "고등학교!X153"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230041995",
+      "name": "신송고등학교",
+      "level": "고등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 1008,
+      "iceStudents": 1007,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4029",
+      "iceCell": "고등학교!Z137",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": false,
+      "kessAddress": "인천광역시 연수구 신송로6번길 56(송도동)신송고등학교",
+      "iceAddress": "인천 연수구 신송로 6번길(송도동2-11)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 390,
+          "ice": 390,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ4029",
+          "iceCell": "고등학교!T137"
+        },
+        {
+          "grade": 2,
+          "kess": 319,
+          "ice": 318,
+          "difference": 1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AT4029",
+          "iceCell": "고등학교!V137"
+        },
+        {
+          "grade": 3,
+          "kess": 299,
+          "ice": 299,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW4029",
+          "iceCell": "고등학교!X137"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230044467",
+      "name": "인천예술고등학교",
+      "level": "고등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 472,
+      "iceStudents": 471,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4037",
+      "iceCell": "고등학교!Z125",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 구월로115번길 36(간석동)",
+      "iceAddress": "남동구 구월로 115번길 36(간석동 417-3번지) ",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 157,
+          "ice": 156,
+          "difference": 1,
+          "kessFemale": 127,
+          "iceFemale": 125,
+          "kessCell": "학교별 주요통계!AQ4037",
+          "iceCell": "고등학교!T125"
+        },
+        {
+          "grade": 2,
+          "kess": 158,
+          "ice": 158,
+          "difference": 0,
+          "kessFemale": 121,
+          "iceFemale": 121,
+          "kessCell": "학교별 주요통계!AT4037",
+          "iceCell": "고등학교!V125"
+        },
+        {
+          "grade": 3,
+          "kess": 157,
+          "ice": 157,
+          "difference": 0,
+          "kessFemale": 126,
+          "iceFemale": 126,
+          "kessCell": "학교별 주요통계!AW4037",
+          "iceCell": "고등학교!X125"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230052043",
+      "name": "계산공업고등학교",
+      "level": "고등학교",
+      "sourceRegion": "계양구",
+      "kessStudents": 434,
+      "iceStudents": 432,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4042",
+      "iceCell": "고등학교!Z110",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 계양구 도두리로 47(계산동)",
+      "iceAddress": "계양구 도두리로 47(계산동 1084-6)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 175,
+          "ice": 173,
+          "difference": 2,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ4042",
+          "iceCell": "고등학교!T110"
+        },
+        {
+          "grade": 2,
+          "kess": 129,
+          "ice": 129,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AT4042",
+          "iceCell": "고등학교!V110"
+        },
+        {
+          "grade": 3,
+          "kess": 130,
+          "ice": 130,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW4042",
+          "iceCell": "고등학교!X110"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:230052145",
+      "name": "부평공업고등학교",
+      "level": "고등학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 383,
+      "iceStudents": 384,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4045",
+      "iceCell": "고등학교!Z83",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 주부토로 194부평공업고등학교(갈산동)",
+      "iceAddress": "부평구 주부토로 194(갈산동 360-2)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 162,
+          "ice": 163,
+          "difference": -1,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AQ4045",
+          "iceCell": "고등학교!T83"
+        },
+        {
+          "grade": 2,
+          "kess": 126,
+          "ice": 126,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AT4045",
+          "iceCell": "고등학교!V83"
+        },
+        {
+          "grade": 3,
+          "kess": 95,
+          "ice": 95,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AW4045",
+          "iceCell": "고등학교!X83"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021188",
+      "name": "인천대화초등학교",
+      "level": "초등학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 289,
+      "iceStudents": 288,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4178",
+      "iceCell": "초등학교!AH9",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 석정로301번길 13(도화동. 대화초등학교)",
+      "iceAddress": "미추홀구 석정로301번길 13(도화동 105-11)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 23,
+          "ice": 23,
+          "difference": 0,
+          "kessFemale": 19,
+          "iceFemale": 19,
+          "kessCell": "학교별 주요통계!AQ4178",
+          "iceCell": "초등학교!V9"
+        },
+        {
+          "grade": 2,
+          "kess": 38,
+          "ice": 38,
+          "difference": 0,
+          "kessFemale": 23,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AT4178",
+          "iceCell": "초등학교!X9"
+        },
+        {
+          "grade": 3,
+          "kess": 51,
+          "ice": 51,
+          "difference": 0,
+          "kessFemale": 26,
+          "iceFemale": 26,
+          "kessCell": "학교별 주요통계!AW4178",
+          "iceCell": "초등학교!Z9"
+        },
+        {
+          "grade": 4,
+          "kess": 51,
+          "ice": 51,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!AZ4178",
+          "iceCell": "초등학교!AB9"
+        },
+        {
+          "grade": 5,
+          "kess": 52,
+          "ice": 51,
+          "difference": 1,
+          "kessFemale": 25,
+          "iceFemale": 25,
+          "kessCell": "학교별 주요통계!BC4178",
+          "iceCell": "초등학교!AD9"
+        },
+        {
+          "grade": 6,
+          "kess": 74,
+          "ice": 74,
+          "difference": 0,
+          "kessFemale": 36,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!BF4178",
+          "iceCell": "초등학교!AF9"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021204",
+      "name": "인천도화초등학교",
+      "level": "초등학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 785,
+      "iceStudents": 784,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4179",
+      "iceCell": "초등학교!AH10",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 경인로 242(도화동. 도화초등학교)",
+      "iceAddress": "미추홀구 경인로 242(도화동 541-5)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 116,
+          "ice": 115,
+          "difference": 1,
+          "kessFemale": 48,
+          "iceFemale": 47,
+          "kessCell": "학교별 주요통계!AQ4179",
+          "iceCell": "초등학교!V10"
+        },
+        {
+          "grade": 2,
+          "kess": 112,
+          "ice": 112,
+          "difference": 0,
+          "kessFemale": 47,
+          "iceFemale": 47,
+          "kessCell": "학교별 주요통계!AT4179",
+          "iceCell": "초등학교!X10"
+        },
+        {
+          "grade": 3,
+          "kess": 136,
+          "ice": 136,
+          "difference": 0,
+          "kessFemale": 68,
+          "iceFemale": 68,
+          "kessCell": "학교별 주요통계!AW4179",
+          "iceCell": "초등학교!Z10"
+        },
+        {
+          "grade": 4,
+          "kess": 137,
+          "ice": 137,
+          "difference": 0,
+          "kessFemale": 70,
+          "iceFemale": 70,
+          "kessCell": "학교별 주요통계!AZ4179",
+          "iceCell": "초등학교!AB10"
+        },
+        {
+          "grade": 5,
+          "kess": 144,
+          "ice": 144,
+          "difference": 0,
+          "kessFemale": 83,
+          "iceFemale": 83,
+          "kessCell": "학교별 주요통계!BC4179",
+          "iceCell": "초등학교!AD10"
+        },
+        {
+          "grade": 6,
+          "kess": 140,
+          "ice": 140,
+          "difference": 0,
+          "kessFemale": 67,
+          "iceFemale": 67,
+          "kessCell": "학교별 주요통계!BF4179",
+          "iceCell": "초등학교!AF10"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021272",
+      "name": "백령초등학교",
+      "level": "초등학교",
+      "sourceRegion": "옹진군",
+      "kessStudents": 41,
+      "iceStudents": 42,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4183",
+      "iceCell": "초등학교!AH44",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 옹진군 백령면 백령로316번길 91(백령면. 백령초등학교)",
+      "iceAddress": "옹진군 백령면 백령로 316번길 91(진촌리 1047)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 7,
+          "ice": 7,
+          "difference": 0,
+          "kessFemale": 1,
+          "iceFemale": 1,
+          "kessCell": "학교별 주요통계!AQ4183",
+          "iceCell": "초등학교!V44"
+        },
+        {
+          "grade": 2,
+          "kess": 10,
+          "ice": 10,
+          "difference": 0,
+          "kessFemale": 5,
+          "iceFemale": 5,
+          "kessCell": "학교별 주요통계!AT4183",
+          "iceCell": "초등학교!X44"
+        },
+        {
+          "grade": 3,
+          "kess": 1,
+          "ice": 1,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AW4183",
+          "iceCell": "초등학교!Z44"
+        },
+        {
+          "grade": 4,
+          "kess": 6,
+          "ice": 7,
+          "difference": -1,
+          "kessFemale": 2,
+          "iceFemale": 3,
+          "kessCell": "학교별 주요통계!AZ4183",
+          "iceCell": "초등학교!AB44"
+        },
+        {
+          "grade": 5,
+          "kess": 10,
+          "ice": 10,
+          "difference": 0,
+          "kessFemale": 5,
+          "iceFemale": 5,
+          "kessCell": "학교별 주요통계!BC4183",
+          "iceCell": "초등학교!AD44"
+        },
+        {
+          "grade": 6,
+          "kess": 7,
+          "ice": 7,
+          "difference": 0,
+          "kessFemale": 6,
+          "iceFemale": 6,
+          "kessCell": "학교별 주요통계!BF4183",
+          "iceCell": "초등학교!AF44"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021295",
+      "name": "인천별빛초등학교",
+      "level": "초등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 1351,
+      "iceStudents": 1350,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4187",
+      "iceCell": "초등학교!AH57",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 은하수로 402. 인천별빛초등학교 (운남동)",
+      "iceAddress": "중구 은하수로 402(운남동 1766-4)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 180,
+          "ice": 180,
+          "difference": 0,
+          "kessFemale": 95,
+          "iceFemale": 95,
+          "kessCell": "학교별 주요통계!AQ4187",
+          "iceCell": "초등학교!V57"
+        },
+        {
+          "grade": 2,
+          "kess": 223,
+          "ice": 223,
+          "difference": 0,
+          "kessFemale": 101,
+          "iceFemale": 101,
+          "kessCell": "학교별 주요통계!AT4187",
+          "iceCell": "초등학교!X57"
+        },
+        {
+          "grade": 3,
+          "kess": 216,
+          "ice": 215,
+          "difference": 1,
+          "kessFemale": 111,
+          "iceFemale": 110,
+          "kessCell": "학교별 주요통계!AW4187",
+          "iceCell": "초등학교!Z57"
+        },
+        {
+          "grade": 4,
+          "kess": 258,
+          "ice": 258,
+          "difference": 0,
+          "kessFemale": 133,
+          "iceFemale": 133,
+          "kessCell": "학교별 주요통계!AZ4187",
+          "iceCell": "초등학교!AB57"
+        },
+        {
+          "grade": 5,
+          "kess": 255,
+          "ice": 255,
+          "difference": 0,
+          "kessFemale": 135,
+          "iceFemale": 135,
+          "kessCell": "학교별 주요통계!BC4187",
+          "iceCell": "초등학교!AD57"
+        },
+        {
+          "grade": 6,
+          "kess": 219,
+          "ice": 219,
+          "difference": 0,
+          "kessFemale": 97,
+          "iceFemale": 97,
+          "kessCell": "학교별 주요통계!BF4187",
+          "iceCell": "초등학교!AF57"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021308",
+      "name": "인천석암초등학교",
+      "level": "초등학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 876,
+      "iceStudents": 875,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4191",
+      "iceCell": "초등학교!AH14",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 주안동로 46(주안동. 석암초등학교)",
+      "iceAddress": "미추홀구 주안동로 46(주안동 55-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 117,
+          "ice": 113,
+          "difference": 4,
+          "kessFemale": 60,
+          "iceFemale": 57,
+          "kessCell": "학교별 주요통계!AQ4191",
+          "iceCell": "초등학교!V14"
+        },
+        {
+          "grade": 2,
+          "kess": 129,
+          "ice": 126,
+          "difference": 3,
+          "kessFemale": 72,
+          "iceFemale": 73,
+          "kessCell": "학교별 주요통계!AT4191",
+          "iceCell": "초등학교!X14"
+        },
+        {
+          "grade": 3,
+          "kess": 147,
+          "ice": 151,
+          "difference": -4,
+          "kessFemale": 71,
+          "iceFemale": 76,
+          "kessCell": "학교별 주요통계!AW4191",
+          "iceCell": "초등학교!Z14"
+        },
+        {
+          "grade": 4,
+          "kess": 162,
+          "ice": 163,
+          "difference": -1,
+          "kessFemale": 75,
+          "iceFemale": 74,
+          "kessCell": "학교별 주요통계!AZ4191",
+          "iceCell": "초등학교!AB14"
+        },
+        {
+          "grade": 5,
+          "kess": 165,
+          "ice": 166,
+          "difference": -1,
+          "kessFemale": 83,
+          "iceFemale": 83,
+          "kessCell": "학교별 주요통계!BC4191",
+          "iceCell": "초등학교!AD14"
+        },
+        {
+          "grade": 6,
+          "kess": 156,
+          "ice": 156,
+          "difference": 0,
+          "kessFemale": 75,
+          "iceFemale": 75,
+          "kessCell": "학교별 주요통계!BF4191",
+          "iceCell": "초등학교!AF14"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021380",
+      "name": "인천신흥초등학교",
+      "level": "초등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 303,
+      "iceStudents": 304,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4198",
+      "iceCell": "초등학교!AH62",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 제물량로 134(답동. 인천신흥초등학교)",
+      "iceAddress": "중구 제물량로 134(답동 6)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 43,
+          "ice": 43,
+          "difference": 0,
+          "kessFemale": 19,
+          "iceFemale": 18,
+          "kessCell": "학교별 주요통계!AQ4198",
+          "iceCell": "초등학교!V62"
+        },
+        {
+          "grade": 2,
+          "kess": 41,
+          "ice": 42,
+          "difference": -1,
+          "kessFemale": 23,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AT4198",
+          "iceCell": "초등학교!X62"
+        },
+        {
+          "grade": 3,
+          "kess": 44,
+          "ice": 44,
+          "difference": 0,
+          "kessFemale": 23,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AW4198",
+          "iceCell": "초등학교!Z62"
+        },
+        {
+          "grade": 4,
+          "kess": 55,
+          "ice": 55,
+          "difference": 0,
+          "kessFemale": 31,
+          "iceFemale": 31,
+          "kessCell": "학교별 주요통계!AZ4198",
+          "iceCell": "초등학교!AB62"
+        },
+        {
+          "grade": 5,
+          "kess": 63,
+          "ice": 63,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!BC4198",
+          "iceCell": "초등학교!AD62"
+        },
+        {
+          "grade": 6,
+          "kess": 57,
+          "ice": 57,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!BF4198",
+          "iceCell": "초등학교!AF62"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021452",
+      "name": "인천용현남초등학교",
+      "level": "초등학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 1116,
+      "iceStudents": 1117,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4207",
+      "iceCell": "초등학교!AH21",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 매소홀로 133(용현동. 인천용현남초등학교)",
+      "iceAddress": "미추홀구 매소홀로 133(용현동 627-449)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 170,
+          "ice": 171,
+          "difference": -1,
+          "kessFemale": 82,
+          "iceFemale": 82,
+          "kessCell": "학교별 주요통계!AQ4207",
+          "iceCell": "초등학교!V21"
+        },
+        {
+          "grade": 2,
+          "kess": 171,
+          "ice": 171,
+          "difference": 0,
+          "kessFemale": 83,
+          "iceFemale": 83,
+          "kessCell": "학교별 주요통계!AT4207",
+          "iceCell": "초등학교!X21"
+        },
+        {
+          "grade": 3,
+          "kess": 163,
+          "ice": 163,
+          "difference": 0,
+          "kessFemale": 83,
+          "iceFemale": 83,
+          "kessCell": "학교별 주요통계!AW4207",
+          "iceCell": "초등학교!Z21"
+        },
+        {
+          "grade": 4,
+          "kess": 199,
+          "ice": 199,
+          "difference": 0,
+          "kessFemale": 100,
+          "iceFemale": 100,
+          "kessCell": "학교별 주요통계!AZ4207",
+          "iceCell": "초등학교!AB21"
+        },
+        {
+          "grade": 5,
+          "kess": 219,
+          "ice": 219,
+          "difference": 0,
+          "kessFemale": 99,
+          "iceFemale": 99,
+          "kessCell": "학교별 주요통계!BC4207",
+          "iceCell": "초등학교!AD21"
+        },
+        {
+          "grade": 6,
+          "kess": 194,
+          "ice": 194,
+          "difference": 0,
+          "kessFemale": 101,
+          "iceFemale": 101,
+          "kessCell": "학교별 주요통계!BF4207",
+          "iceCell": "초등학교!AF21"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021460",
+      "name": "인천운서초등학교",
+      "level": "초등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 392,
+      "iceStudents": 393,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4208",
+      "iceCell": "초등학교!AH68",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 운서2로 57(운서동.인천운서초등학교)",
+      "iceAddress": "중구 운서2로 57(운서동 2895-13)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 42,
+          "ice": 42,
+          "difference": 0,
+          "kessFemale": 19,
+          "iceFemale": 19,
+          "kessCell": "학교별 주요통계!AQ4208",
+          "iceCell": "초등학교!V68"
+        },
+        {
+          "grade": 2,
+          "kess": 77,
+          "ice": 78,
+          "difference": -1,
+          "kessFemale": 33,
+          "iceFemale": 33,
+          "kessCell": "학교별 주요통계!AT4208",
+          "iceCell": "초등학교!X68"
+        },
+        {
+          "grade": 3,
+          "kess": 45,
+          "ice": 45,
+          "difference": 0,
+          "kessFemale": 15,
+          "iceFemale": 15,
+          "kessCell": "학교별 주요통계!AW4208",
+          "iceCell": "초등학교!Z68"
+        },
+        {
+          "grade": 4,
+          "kess": 61,
+          "ice": 61,
+          "difference": 0,
+          "kessFemale": 29,
+          "iceFemale": 30,
+          "kessCell": "학교별 주요통계!AZ4208",
+          "iceCell": "초등학교!AB68"
+        },
+        {
+          "grade": 5,
+          "kess": 80,
+          "ice": 80,
+          "difference": 0,
+          "kessFemale": 34,
+          "iceFemale": 34,
+          "kessCell": "학교별 주요통계!BC4208",
+          "iceCell": "초등학교!AD68"
+        },
+        {
+          "grade": 6,
+          "kess": 87,
+          "ice": 87,
+          "difference": 0,
+          "kessFemale": 40,
+          "iceFemale": 40,
+          "kessCell": "학교별 주요통계!BF4208",
+          "iceCell": "초등학교!AF68"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021492",
+      "name": "인천신광초등학교",
+      "level": "초등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 686,
+      "iceStudents": 687,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4213",
+      "iceCell": "초등학교!AH60",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 인중로 63(신흥동3가. 신광초등학교)",
+      "iceAddress": "중구 인중로 63(신흥동3가 7-8)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 86,
+          "ice": 86,
+          "difference": 0,
+          "kessFemale": 44,
+          "iceFemale": 44,
+          "kessCell": "학교별 주요통계!AQ4213",
+          "iceCell": "초등학교!V60"
+        },
+        {
+          "grade": 2,
+          "kess": 105,
+          "ice": 105,
+          "difference": 0,
+          "kessFemale": 53,
+          "iceFemale": 53,
+          "kessCell": "학교별 주요통계!AT4213",
+          "iceCell": "초등학교!X60"
+        },
+        {
+          "grade": 3,
+          "kess": 131,
+          "ice": 131,
+          "difference": 0,
+          "kessFemale": 69,
+          "iceFemale": 69,
+          "kessCell": "학교별 주요통계!AW4213",
+          "iceCell": "초등학교!Z60"
+        },
+        {
+          "grade": 4,
+          "kess": 123,
+          "ice": 123,
+          "difference": 0,
+          "kessFemale": 64,
+          "iceFemale": 64,
+          "kessCell": "학교별 주요통계!AZ4213",
+          "iceCell": "초등학교!AB60"
+        },
+        {
+          "grade": 5,
+          "kess": 124,
+          "ice": 124,
+          "difference": 0,
+          "kessFemale": 68,
+          "iceFemale": 68,
+          "kessCell": "학교별 주요통계!BC4213",
+          "iceCell": "초등학교!AD60"
+        },
+        {
+          "grade": 6,
+          "kess": 117,
+          "ice": 118,
+          "difference": -1,
+          "kessFemale": 68,
+          "iceFemale": 69,
+          "kessCell": "학교별 주요통계!BF4213",
+          "iceCell": "초등학교!AF60"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021543",
+      "name": "인천하늘초등학교",
+      "level": "초등학교",
+      "sourceRegion": "중구",
+      "kessStudents": 1353,
+      "iceStudents": 1338,
+      "differenceKessMinusIce": 15,
+      "kessCell": "학교별 주요통계!AN4219",
+      "iceCell": "초등학교!AH71",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 은하수로 294(중산동. 영종하늘초등학교)",
+      "iceAddress": "중구 은하수로294(중산동 1880-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 235,
+          "ice": 232,
+          "difference": 3,
+          "kessFemale": 118,
+          "iceFemale": 117,
+          "kessCell": "학교별 주요통계!AQ4219",
+          "iceCell": "초등학교!V71"
+        },
+        {
+          "grade": 2,
+          "kess": 233,
+          "ice": 230,
+          "difference": 3,
+          "kessFemale": 110,
+          "iceFemale": 108,
+          "kessCell": "학교별 주요통계!AT4219",
+          "iceCell": "초등학교!X71"
+        },
+        {
+          "grade": 3,
+          "kess": 240,
+          "ice": 236,
+          "difference": 4,
+          "kessFemale": 112,
+          "iceFemale": 111,
+          "kessCell": "학교별 주요통계!AW4219",
+          "iceCell": "초등학교!Z71"
+        },
+        {
+          "grade": 4,
+          "kess": 219,
+          "ice": 218,
+          "difference": 1,
+          "kessFemale": 124,
+          "iceFemale": 124,
+          "kessCell": "학교별 주요통계!AZ4219",
+          "iceCell": "초등학교!AB71"
+        },
+        {
+          "grade": 5,
+          "kess": 226,
+          "ice": 224,
+          "difference": 2,
+          "kessFemale": 122,
+          "iceFemale": 121,
+          "kessCell": "학교별 주요통계!BC4219",
+          "iceCell": "초등학교!AD71"
+        },
+        {
+          "grade": 6,
+          "kess": 200,
+          "ice": 198,
+          "difference": 2,
+          "kessFemale": 103,
+          "iceFemale": 102,
+          "kessCell": "학교별 주요통계!BF4219",
+          "iceCell": "초등학교!AF71"
+        }
+      ],
+      "gradeDifferencesSum": 15,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231021558",
+      "name": "인천학산초등학교",
+      "level": "초등학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 822,
+      "iceStudents": 823,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4223",
+      "iceCell": "초등학교!AH27",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 한나루로357번길 66(학익동. 학산초등학교)",
+      "iceAddress": "미추홀구 한나루로357번길 66(학익동 721-7)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 107,
+          "ice": 107,
+          "difference": 0,
+          "kessFemale": 49,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!AQ4223",
+          "iceCell": "초등학교!V27"
+        },
+        {
+          "grade": 2,
+          "kess": 123,
+          "ice": 123,
+          "difference": 0,
+          "kessFemale": 53,
+          "iceFemale": 53,
+          "kessCell": "학교별 주요통계!AT4223",
+          "iceCell": "초등학교!X27"
+        },
+        {
+          "grade": 3,
+          "kess": 133,
+          "ice": 133,
+          "difference": 0,
+          "kessFemale": 63,
+          "iceFemale": 63,
+          "kessCell": "학교별 주요통계!AW4223",
+          "iceCell": "초등학교!Z27"
+        },
+        {
+          "grade": 4,
+          "kess": 146,
+          "ice": 146,
+          "difference": 0,
+          "kessFemale": 77,
+          "iceFemale": 77,
+          "kessCell": "학교별 주요통계!AZ4223",
+          "iceCell": "초등학교!AB27"
+        },
+        {
+          "grade": 5,
+          "kess": 160,
+          "ice": 160,
+          "difference": 0,
+          "kessFemale": 85,
+          "iceFemale": 85,
+          "kessCell": "학교별 주요통계!BC4223",
+          "iceCell": "초등학교!AD27"
+        },
+        {
+          "grade": 6,
+          "kess": 153,
+          "ice": 154,
+          "difference": -1,
+          "kessFemale": 81,
+          "iceFemale": 82,
+          "kessCell": "학교별 주요통계!BF4223",
+          "iceCell": "초등학교!AF27"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231031400",
+      "name": "선화여자중학교",
+      "level": "중학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 429,
+      "iceStudents": 428,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4239",
+      "iceCell": "중학교!Z10",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 석정로 165. 선화여자중학교 (도화동)",
+      "iceAddress": "미추홀구 석정로 165(도화동 193-12)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 97,
+          "ice": 97,
+          "difference": 0,
+          "kessFemale": 97,
+          "iceFemale": 97,
+          "kessCell": "학교별 주요통계!AQ4239",
+          "iceCell": "중학교!T10"
+        },
+        {
+          "grade": 2,
+          "kess": 154,
+          "ice": 153,
+          "difference": 1,
+          "kessFemale": 154,
+          "iceFemale": 153,
+          "kessCell": "학교별 주요통계!AT4239",
+          "iceCell": "중학교!V10"
+        },
+        {
+          "grade": 3,
+          "kess": 178,
+          "ice": 178,
+          "difference": 0,
+          "kessFemale": 178,
+          "iceFemale": 178,
+          "kessCell": "학교별 주요통계!AW4239",
+          "iceCell": "중학교!X10"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231031475",
+      "name": "영종중학교",
+      "level": "중학교",
+      "sourceRegion": "중구",
+      "kessStudents": 902,
+      "iceStudents": 904,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4242",
+      "iceCell": "중학교!Z36",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 중구 남디로 92(운남동. 영종중학교)",
+      "iceAddress": "중구 남디로 92(운남동 1655-12)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 299,
+          "ice": 300,
+          "difference": -1,
+          "kessFemale": 159,
+          "iceFemale": 160,
+          "kessCell": "학교별 주요통계!AQ4242",
+          "iceCell": "중학교!T36"
+        },
+        {
+          "grade": 2,
+          "kess": 299,
+          "ice": 300,
+          "difference": -1,
+          "kessFemale": 148,
+          "iceFemale": 148,
+          "kessCell": "학교별 주요통계!AT4242",
+          "iceCell": "중학교!V36"
+        },
+        {
+          "grade": 3,
+          "kess": 304,
+          "ice": 304,
+          "difference": 0,
+          "kessFemale": 143,
+          "iceFemale": 143,
+          "kessCell": "학교별 주요통계!AW4242",
+          "iceCell": "중학교!X36"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231031520",
+      "name": "용현여자중학교",
+      "level": "중학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 767,
+      "iceStudents": 766,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4246",
+      "iceCell": "중학교!Z11",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 낙섬동로 28(용현동. 용현여자중학교)",
+      "iceAddress": "미추홀구 낙섬동로 28(용현동 627-38)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 256,
+          "ice": 256,
+          "difference": 0,
+          "kessFemale": 256,
+          "iceFemale": 256,
+          "kessCell": "학교별 주요통계!AQ4246",
+          "iceCell": "중학교!T11"
+        },
+        {
+          "grade": 2,
+          "kess": 257,
+          "ice": 256,
+          "difference": 1,
+          "kessFemale": 257,
+          "iceFemale": 256,
+          "kessCell": "학교별 주요통계!AT4246",
+          "iceCell": "중학교!V11"
+        },
+        {
+          "grade": 3,
+          "kess": 254,
+          "ice": 254,
+          "difference": 0,
+          "kessFemale": 254,
+          "iceFemale": 254,
+          "kessCell": "학교별 주요통계!AW4246",
+          "iceCell": "중학교!X11"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231031580",
+      "name": "제물포여자중학교",
+      "level": "중학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 356,
+      "iceStudents": 357,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4248",
+      "iceCell": "중학교!Z16",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 인주대로470번길 20(주안동. 제물포여자중학교)",
+      "iceAddress": "미추홀구 인주대로470번길 20(주안동 1529)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 86,
+          "ice": 86,
+          "difference": 0,
+          "kessFemale": 86,
+          "iceFemale": 86,
+          "kessCell": "학교별 주요통계!AQ4248",
+          "iceCell": "중학교!T16"
+        },
+        {
+          "grade": 2,
+          "kess": 137,
+          "ice": 137,
+          "difference": 0,
+          "kessFemale": 137,
+          "iceFemale": 137,
+          "kessCell": "학교별 주요통계!AT4248",
+          "iceCell": "중학교!V16"
+        },
+        {
+          "grade": 3,
+          "kess": 133,
+          "ice": 134,
+          "difference": -1,
+          "kessFemale": 133,
+          "iceFemale": 134,
+          "kessCell": "학교별 주요통계!AW4248",
+          "iceCell": "중학교!X16"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231031594",
+      "name": "화도진중학교",
+      "level": "중학교",
+      "sourceRegion": "동구",
+      "kessStudents": 337,
+      "iceStudents": 336,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4249",
+      "iceCell": "중학교!Z21",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 동구 화수로 64(화수동. 화도진중학교)",
+      "iceAddress": "동구 화수로 64(화수동 2-5)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 111,
+          "ice": 111,
+          "difference": 0,
+          "kessFemale": 53,
+          "iceFemale": 53,
+          "kessCell": "학교별 주요통계!AQ4249",
+          "iceCell": "중학교!T21"
+        },
+        {
+          "grade": 2,
+          "kess": 115,
+          "ice": 115,
+          "difference": 0,
+          "kessFemale": 54,
+          "iceFemale": 54,
+          "kessCell": "학교별 주요통계!AT4249",
+          "iceCell": "중학교!V21"
+        },
+        {
+          "grade": 3,
+          "kess": 111,
+          "ice": 110,
+          "difference": 1,
+          "kessFemale": 58,
+          "iceFemale": 57,
+          "kessCell": "학교별 주요통계!AW4249",
+          "iceCell": "중학교!X21"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:231031885",
+      "name": "인하대학교사범대학부속중학교",
+      "level": "중학교",
+      "sourceRegion": "미추홀구",
+      "kessStudents": 708,
+      "iceStudents": 707,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4257",
+      "iceCell": "중학교!Z18",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 미추홀구 재넘이길123번길 29(학익동. 인하사범대부속중고등학교)",
+      "iceAddress": "미추홀구 재넘이길123번길 29(학익동 306-30)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 190,
+          "ice": 190,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AQ4257",
+          "iceCell": "중학교!T18"
+        },
+        {
+          "grade": 2,
+          "kess": 258,
+          "ice": 258,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AT4257",
+          "iceCell": "중학교!V18"
+        },
+        {
+          "grade": 3,
+          "kess": 260,
+          "ice": 259,
+          "difference": 1,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AW4257",
+          "iceCell": "중학교!X18"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232021166",
+      "name": "인천구산초등학교",
+      "level": "초등학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 262,
+      "iceStudents": 263,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4360",
+      "iceCell": "초등학교!AH79",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 부개로 93(부개동. 인천구산초등학교)",
+      "iceAddress": "부평구 부개로 93(부개동 496-5번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 30,
+          "ice": 30,
+          "difference": 0,
+          "kessFemale": 14,
+          "iceFemale": 14,
+          "kessCell": "학교별 주요통계!AQ4360",
+          "iceCell": "초등학교!V79"
+        },
+        {
+          "grade": 2,
+          "kess": 35,
+          "ice": 36,
+          "difference": -1,
+          "kessFemale": 15,
+          "iceFemale": 16,
+          "kessCell": "학교별 주요통계!AT4360",
+          "iceCell": "초등학교!X79"
+        },
+        {
+          "grade": 3,
+          "kess": 34,
+          "ice": 34,
+          "difference": 0,
+          "kessFemale": 14,
+          "iceFemale": 14,
+          "kessCell": "학교별 주요통계!AW4360",
+          "iceCell": "초등학교!Z79"
+        },
+        {
+          "grade": 4,
+          "kess": 55,
+          "ice": 55,
+          "difference": 0,
+          "kessFemale": 24,
+          "iceFemale": 24,
+          "kessCell": "학교별 주요통계!AZ4360",
+          "iceCell": "초등학교!AB79"
+        },
+        {
+          "grade": 5,
+          "kess": 46,
+          "ice": 46,
+          "difference": 0,
+          "kessFemale": 20,
+          "iceFemale": 20,
+          "kessCell": "학교별 주요통계!BC4360",
+          "iceCell": "초등학교!AD79"
+        },
+        {
+          "grade": 6,
+          "kess": 62,
+          "ice": 62,
+          "difference": 0,
+          "kessFemale": 30,
+          "iceFemale": 30,
+          "kessCell": "학교별 주요통계!BF4360",
+          "iceCell": "초등학교!AF79"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232021188",
+      "name": "인천동암초등학교",
+      "level": "초등학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 299,
+      "iceStudents": 297,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4362",
+      "iceCell": "초등학교!AH84",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 동암남로35번길 4. 동암초등학교 (십정동.동암초등학교)",
+      "iceAddress": "부평구 동암남로35번길 4(십정동 501)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 48,
+          "ice": 47,
+          "difference": 1,
+          "kessFemale": 32,
+          "iceFemale": 31,
+          "kessCell": "학교별 주요통계!AQ4362",
+          "iceCell": "초등학교!V84"
+        },
+        {
+          "grade": 2,
+          "kess": 43,
+          "ice": 43,
+          "difference": 0,
+          "kessFemale": 23,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AT4362",
+          "iceCell": "초등학교!X84"
+        },
+        {
+          "grade": 3,
+          "kess": 49,
+          "ice": 49,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!AW4362",
+          "iceCell": "초등학교!Z84"
+        },
+        {
+          "grade": 4,
+          "kess": 58,
+          "ice": 57,
+          "difference": 1,
+          "kessFemale": 37,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!AZ4362",
+          "iceCell": "초등학교!AB84"
+        },
+        {
+          "grade": 5,
+          "kess": 48,
+          "ice": 48,
+          "difference": 0,
+          "kessFemale": 24,
+          "iceFemale": 24,
+          "kessCell": "학교별 주요통계!BC4362",
+          "iceCell": "초등학교!AD84"
+        },
+        {
+          "grade": 6,
+          "kess": 53,
+          "ice": 53,
+          "difference": 0,
+          "kessFemale": 27,
+          "iceFemale": 27,
+          "kessCell": "학교별 주요통계!BF4362",
+          "iceCell": "초등학교!AF84"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232021240",
+      "name": "인천부곡초등학교",
+      "level": "초등학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 831,
+      "iceStudents": 829,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4369",
+      "iceCell": "초등학교!AH91",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 마장로272번길 73(산곡동)",
+      "iceAddress": "부평구 마장로272번길 73(산곡동 148-5)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 92,
+          "ice": 91,
+          "difference": 1,
+          "kessFemale": 41,
+          "iceFemale": 40,
+          "kessCell": "학교별 주요통계!AQ4369",
+          "iceCell": "초등학교!V91"
+        },
+        {
+          "grade": 2,
+          "kess": 122,
+          "ice": 122,
+          "difference": 0,
+          "kessFemale": 61,
+          "iceFemale": 61,
+          "kessCell": "학교별 주요통계!AT4369",
+          "iceCell": "초등학교!X91"
+        },
+        {
+          "grade": 3,
+          "kess": 148,
+          "ice": 147,
+          "difference": 1,
+          "kessFemale": 68,
+          "iceFemale": 67,
+          "kessCell": "학교별 주요통계!AW4369",
+          "iceCell": "초등학교!Z91"
+        },
+        {
+          "grade": 4,
+          "kess": 149,
+          "ice": 149,
+          "difference": 0,
+          "kessFemale": 67,
+          "iceFemale": 67,
+          "kessCell": "학교별 주요통계!AZ4369",
+          "iceCell": "초등학교!AB91"
+        },
+        {
+          "grade": 5,
+          "kess": 156,
+          "ice": 156,
+          "difference": 0,
+          "kessFemale": 82,
+          "iceFemale": 82,
+          "kessCell": "학교별 주요통계!BC4369",
+          "iceCell": "초등학교!AD91"
+        },
+        {
+          "grade": 6,
+          "kess": 164,
+          "ice": 164,
+          "difference": 0,
+          "kessFemale": 68,
+          "iceFemale": 68,
+          "kessCell": "학교별 주요통계!BF4369",
+          "iceCell": "초등학교!AF91"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232021340",
+      "name": "인천삼산초등학교",
+      "level": "초등학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 472,
+      "iceStudents": 474,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4383",
+      "iceCell": "초등학교!AH105",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 후정동로 44(삼산동)",
+      "iceAddress": "부평구 후정동로 44(삼산동 58-2)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 55,
+          "ice": 55,
+          "difference": 0,
+          "kessFemale": 33,
+          "iceFemale": 33,
+          "kessCell": "학교별 주요통계!AQ4383",
+          "iceCell": "초등학교!V105"
+        },
+        {
+          "grade": 2,
+          "kess": 50,
+          "ice": 51,
+          "difference": -1,
+          "kessFemale": 26,
+          "iceFemale": 26,
+          "kessCell": "학교별 주요통계!AT4383",
+          "iceCell": "초등학교!X105"
+        },
+        {
+          "grade": 3,
+          "kess": 75,
+          "ice": 75,
+          "difference": 0,
+          "kessFemale": 29,
+          "iceFemale": 29,
+          "kessCell": "학교별 주요통계!AW4383",
+          "iceCell": "초등학교!Z105"
+        },
+        {
+          "grade": 4,
+          "kess": 92,
+          "ice": 92,
+          "difference": 0,
+          "kessFemale": 49,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!AZ4383",
+          "iceCell": "초등학교!AB105"
+        },
+        {
+          "grade": 5,
+          "kess": 104,
+          "ice": 105,
+          "difference": -1,
+          "kessFemale": 51,
+          "iceFemale": 51,
+          "kessCell": "학교별 주요통계!BC4383",
+          "iceCell": "초등학교!AD105"
+        },
+        {
+          "grade": 6,
+          "kess": 96,
+          "ice": 96,
+          "difference": 0,
+          "kessFemale": 43,
+          "iceFemale": 43,
+          "kessCell": "학교별 주요통계!BF4383",
+          "iceCell": "초등학교!AF105"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232021436",
+      "name": "인천신촌초등학교",
+      "level": "초등학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 331,
+      "iceStudents": 333,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4387",
+      "iceCell": "초등학교!AH107",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 경원대로 1215(십정동. 인천신촌초등학교)",
+      "iceAddress": "부평구 경원대로 1215(산곡동 186-346)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 52,
+          "ice": 52,
+          "difference": 0,
+          "kessFemale": 25,
+          "iceFemale": 25,
+          "kessCell": "학교별 주요통계!AQ4387",
+          "iceCell": "초등학교!V107"
+        },
+        {
+          "grade": 2,
+          "kess": 47,
+          "ice": 50,
+          "difference": -3,
+          "kessFemale": 22,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AT4387",
+          "iceCell": "초등학교!X107"
+        },
+        {
+          "grade": 3,
+          "kess": 51,
+          "ice": 52,
+          "difference": -1,
+          "kessFemale": 18,
+          "iceFemale": 19,
+          "kessCell": "학교별 주요통계!AW4387",
+          "iceCell": "초등학교!Z107"
+        },
+        {
+          "grade": 4,
+          "kess": 57,
+          "ice": 55,
+          "difference": 2,
+          "kessFemale": 25,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AZ4387",
+          "iceCell": "초등학교!AB107"
+        },
+        {
+          "grade": 5,
+          "kess": 64,
+          "ice": 65,
+          "difference": -1,
+          "kessFemale": 35,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!BC4387",
+          "iceCell": "초등학교!AD107"
+        },
+        {
+          "grade": 6,
+          "kess": 60,
+          "ice": 59,
+          "difference": 1,
+          "kessFemale": 29,
+          "iceFemale": 29,
+          "kessCell": "학교별 주요통계!BF4387",
+          "iceCell": "초등학교!AF107"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232021439",
+      "name": "인천길주초등학교",
+      "level": "초등학교",
+      "sourceRegion": "계양구",
+      "kessStudents": 430,
+      "iceStudents": 431,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4390",
+      "iceCell": "초등학교!AH127",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 계양구 용종로 90(용종동)",
+      "iceAddress": "계양구 용종로 90(용종동 227-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 62,
+          "ice": 62,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!AQ4390",
+          "iceCell": "초등학교!V127"
+        },
+        {
+          "grade": 2,
+          "kess": 58,
+          "ice": 58,
+          "difference": 0,
+          "kessFemale": 26,
+          "iceFemale": 26,
+          "kessCell": "학교별 주요통계!AT4390",
+          "iceCell": "초등학교!X127"
+        },
+        {
+          "grade": 3,
+          "kess": 65,
+          "ice": 66,
+          "difference": -1,
+          "kessFemale": 28,
+          "iceFemale": 29,
+          "kessCell": "학교별 주요통계!AW4390",
+          "iceCell": "초등학교!Z127"
+        },
+        {
+          "grade": 4,
+          "kess": 76,
+          "ice": 76,
+          "difference": 0,
+          "kessFemale": 40,
+          "iceFemale": 40,
+          "kessCell": "학교별 주요통계!AZ4390",
+          "iceCell": "초등학교!AB127"
+        },
+        {
+          "grade": 5,
+          "kess": 95,
+          "ice": 95,
+          "difference": 0,
+          "kessFemale": 49,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!BC4390",
+          "iceCell": "초등학교!AD127"
+        },
+        {
+          "grade": 6,
+          "kess": 74,
+          "ice": 74,
+          "difference": 0,
+          "kessFemale": 36,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!BF4390",
+          "iceCell": "초등학교!AF127"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232021602",
+      "name": "인천금마초등학교",
+      "level": "초등학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 231,
+      "iceStudents": 229,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4422",
+      "iceCell": "초등학교!AH81",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 일신로 88(구산동. 금마초등학교)",
+      "iceAddress": "부평구 일신로88(구산동 357)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 25,
+          "ice": 24,
+          "difference": 1,
+          "kessFemale": 8,
+          "iceFemale": 8,
+          "kessCell": "학교별 주요통계!AQ4422",
+          "iceCell": "초등학교!V81"
+        },
+        {
+          "grade": 2,
+          "kess": 34,
+          "ice": 34,
+          "difference": 0,
+          "kessFemale": 14,
+          "iceFemale": 14,
+          "kessCell": "학교별 주요통계!AT4422",
+          "iceCell": "초등학교!X81"
+        },
+        {
+          "grade": 3,
+          "kess": 43,
+          "ice": 42,
+          "difference": 1,
+          "kessFemale": 22,
+          "iceFemale": 21,
+          "kessCell": "학교별 주요통계!AW4422",
+          "iceCell": "초등학교!Z81"
+        },
+        {
+          "grade": 4,
+          "kess": 46,
+          "ice": 46,
+          "difference": 0,
+          "kessFemale": 24,
+          "iceFemale": 24,
+          "kessCell": "학교별 주요통계!AZ4422",
+          "iceCell": "초등학교!AB81"
+        },
+        {
+          "grade": 5,
+          "kess": 41,
+          "ice": 41,
+          "difference": 0,
+          "kessFemale": 19,
+          "iceFemale": 19,
+          "kessCell": "학교별 주요통계!BC4422",
+          "iceCell": "초등학교!AD81"
+        },
+        {
+          "grade": 6,
+          "kess": 42,
+          "ice": 42,
+          "difference": 0,
+          "kessFemale": 24,
+          "iceFemale": 24,
+          "kessCell": "학교별 주요통계!BF4422",
+          "iceCell": "초등학교!AF81"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232031017",
+      "name": "구산중학교",
+      "level": "중학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 750,
+      "iceStudents": 751,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4424",
+      "iceCell": "중학교!Z49",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 수변로 199(부개동. 구산중학교)",
+      "iceAddress": "부평구 수변로 199(부개동 497-4)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 217,
+          "ice": 216,
+          "difference": 1,
+          "kessFemale": 118,
+          "iceFemale": 119,
+          "kessCell": "학교별 주요통계!AQ4424",
+          "iceCell": "중학교!T49"
+        },
+        {
+          "grade": 2,
+          "kess": 262,
+          "ice": 264,
+          "difference": -2,
+          "kessFemale": 108,
+          "iceFemale": 109,
+          "kessCell": "학교별 주요통계!AT4424",
+          "iceCell": "중학교!V49"
+        },
+        {
+          "grade": 3,
+          "kess": 271,
+          "ice": 271,
+          "difference": 0,
+          "kessFemale": 134,
+          "iceFemale": 134,
+          "kessCell": "학교별 주요통계!AW4424",
+          "iceCell": "중학교!X49"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232031292",
+      "name": "부일중학교",
+      "level": "중학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 345,
+      "iceStudents": 343,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4431",
+      "iceCell": "중학교!Z54",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 영성로 3(삼산동. 부일중학교)",
+      "iceAddress": "부평구 영성로 3(삼산동 388-5)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 88,
+          "ice": 87,
+          "difference": 1,
+          "kessFemale": 41,
+          "iceFemale": 41,
+          "kessCell": "학교별 주요통계!AQ4431",
+          "iceCell": "중학교!T54"
+        },
+        {
+          "grade": 2,
+          "kess": 112,
+          "ice": 111,
+          "difference": 1,
+          "kessFemale": 70,
+          "iceFemale": 69,
+          "kessCell": "학교별 주요통계!AT4431",
+          "iceCell": "중학교!V54"
+        },
+        {
+          "grade": 3,
+          "kess": 145,
+          "ice": 145,
+          "difference": 0,
+          "kessFemale": 72,
+          "iceFemale": 72,
+          "kessCell": "학교별 주요통계!AW4431",
+          "iceCell": "중학교!X54"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232031467",
+      "name": "북인천여자중학교",
+      "level": "중학교",
+      "sourceRegion": "계양구",
+      "kessStudents": 386,
+      "iceStudents": 387,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4444",
+      "iceCell": "중학교!Z75",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 계양구 아나지로85번길 12(효성동)",
+      "iceAddress": "계양구 아나지로85번길 12(효성동 551)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 110,
+          "ice": 110,
+          "difference": 0,
+          "kessFemale": 110,
+          "iceFemale": 110,
+          "kessCell": "학교별 주요통계!AQ4444",
+          "iceCell": "중학교!T75"
+        },
+        {
+          "grade": 2,
+          "kess": 134,
+          "ice": 135,
+          "difference": -1,
+          "kessFemale": 134,
+          "iceFemale": 135,
+          "kessCell": "학교별 주요통계!AT4444",
+          "iceCell": "중학교!V75"
+        },
+        {
+          "grade": 3,
+          "kess": 142,
+          "ice": 142,
+          "difference": 0,
+          "kessFemale": 142,
+          "iceFemale": 142,
+          "kessCell": "학교별 주요통계!AW4444",
+          "iceCell": "중학교!X75"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232031478",
+      "name": "작전중학교",
+      "level": "중학교",
+      "sourceRegion": "계양구",
+      "kessStudents": 340,
+      "iceStudents": 341,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4455",
+      "iceCell": "중학교!Z85",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 계양구 주부토로448번길 16\\.작전중학교(작전동)",
+      "iceAddress": "계양구 주부토로448번길 16(작전동 85)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 112,
+          "ice": 112,
+          "difference": 0,
+          "kessFemale": 35,
+          "iceFemale": 35,
+          "kessCell": "학교별 주요통계!AQ4455",
+          "iceCell": "중학교!T85"
+        },
+        {
+          "grade": 2,
+          "kess": 99,
+          "ice": 99,
+          "difference": 0,
+          "kessFemale": 27,
+          "iceFemale": 27,
+          "kessCell": "학교별 주요통계!AT4455",
+          "iceCell": "중학교!V85"
+        },
+        {
+          "grade": 3,
+          "kess": 129,
+          "ice": 130,
+          "difference": -1,
+          "kessFemale": 65,
+          "iceFemale": 65,
+          "kessCell": "학교별 주요통계!AW4455",
+          "iceCell": "중학교!X85"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:232031549",
+      "name": "삼산중학교",
+      "level": "중학교",
+      "sourceRegion": "부평구",
+      "kessStudents": 912,
+      "iceStudents": 911,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4457",
+      "iceCell": "중학교!Z64",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 부평구 충선로 308(삼산동. 삼산중학교)",
+      "iceAddress": "부평구 충선로 308(삼산동 445-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 250,
+          "ice": 250,
+          "difference": 0,
+          "kessFemale": 132,
+          "iceFemale": 132,
+          "kessCell": "학교별 주요통계!AQ4457",
+          "iceCell": "중학교!T64"
+        },
+        {
+          "grade": 2,
+          "kess": 332,
+          "ice": 332,
+          "difference": 0,
+          "kessFemale": 156,
+          "iceFemale": 156,
+          "kessCell": "학교별 주요통계!AT4457",
+          "iceCell": "중학교!V64"
+        },
+        {
+          "grade": 3,
+          "kess": 330,
+          "ice": 329,
+          "difference": 1,
+          "kessFemale": 167,
+          "iceFemale": 167,
+          "kessCell": "학교별 주요통계!AW4457",
+          "iceCell": "중학교!X64"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021041",
+      "name": "인천새봄초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 486,
+      "iceStudents": 492,
+      "differenceKessMinusIce": -6,
+      "kessCell": "학교별 주요통계!AN4571",
+      "iceCell": "초등학교!AH199",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 앵고개로104번길 34(동춘동. 인천새봄초등학교)",
+      "iceAddress": "연수구 앵고개로104번길 34(동춘동 752-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 70,
+          "ice": 71,
+          "difference": -1,
+          "kessFemale": 30,
+          "iceFemale": 30,
+          "kessCell": "학교별 주요통계!AQ4571",
+          "iceCell": "초등학교!V199"
+        },
+        {
+          "grade": 2,
+          "kess": 84,
+          "ice": 84,
+          "difference": 0,
+          "kessFemale": 38,
+          "iceFemale": 39,
+          "kessCell": "학교별 주요통계!AT4571",
+          "iceCell": "초등학교!X199"
+        },
+        {
+          "grade": 3,
+          "kess": 72,
+          "ice": 71,
+          "difference": 1,
+          "kessFemale": 37,
+          "iceFemale": 37,
+          "kessCell": "학교별 주요통계!AW4571",
+          "iceCell": "초등학교!Z199"
+        },
+        {
+          "grade": 4,
+          "kess": 92,
+          "ice": 94,
+          "difference": -2,
+          "kessFemale": 51,
+          "iceFemale": 53,
+          "kessCell": "학교별 주요통계!AZ4571",
+          "iceCell": "초등학교!AB199"
+        },
+        {
+          "grade": 5,
+          "kess": 85,
+          "ice": 88,
+          "difference": -3,
+          "kessFemale": 47,
+          "iceFemale": 48,
+          "kessCell": "학교별 주요통계!BC4571",
+          "iceCell": "초등학교!AD199"
+        },
+        {
+          "grade": 6,
+          "kess": 83,
+          "ice": 84,
+          "difference": -1,
+          "kessFemale": 36,
+          "iceFemale": 38,
+          "kessCell": "학교별 주요통계!BF4571",
+          "iceCell": "초등학교!AF199"
+        }
+      ],
+      "gradeDifferencesSum": -6,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021133",
+      "name": "인천장서초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 1312,
+      "iceStudents": 1313,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4575",
+      "iceCell": "초등학교!AH183",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 서창남순환로 109(서창동)",
+      "iceAddress": "남동구 서창남순환로 109(서창동 678)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 181,
+          "ice": 182,
+          "difference": -1,
+          "kessFemale": 95,
+          "iceFemale": 95,
+          "kessCell": "학교별 주요통계!AQ4575",
+          "iceCell": "초등학교!V183"
+        },
+        {
+          "grade": 2,
+          "kess": 181,
+          "ice": 181,
+          "difference": 0,
+          "kessFemale": 86,
+          "iceFemale": 86,
+          "kessCell": "학교별 주요통계!AT4575",
+          "iceCell": "초등학교!X183"
+        },
+        {
+          "grade": 3,
+          "kess": 178,
+          "ice": 178,
+          "difference": 0,
+          "kessFemale": 73,
+          "iceFemale": 73,
+          "kessCell": "학교별 주요통계!AW4575",
+          "iceCell": "초등학교!Z183"
+        },
+        {
+          "grade": 4,
+          "kess": 259,
+          "ice": 259,
+          "difference": 0,
+          "kessFemale": 127,
+          "iceFemale": 127,
+          "kessCell": "학교별 주요통계!AZ4575",
+          "iceCell": "초등학교!AB183"
+        },
+        {
+          "grade": 5,
+          "kess": 259,
+          "ice": 259,
+          "difference": 0,
+          "kessFemale": 132,
+          "iceFemale": 132,
+          "kessCell": "학교별 주요통계!BC4575",
+          "iceCell": "초등학교!AD183"
+        },
+        {
+          "grade": 6,
+          "kess": 254,
+          "ice": 254,
+          "difference": 0,
+          "kessFemale": 111,
+          "iceFemale": 111,
+          "kessCell": "학교별 주요통계!BF4575",
+          "iceCell": "초등학교!AF183"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021198",
+      "name": "인천능허대초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 638,
+      "iceStudents": 637,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4585",
+      "iceCell": "초등학교!AH192",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 한진로 12(옥련동. 인천능허대초등학교)",
+      "iceAddress": "연수구 한진로 12(옥련동 442-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 69,
+          "ice": 69,
+          "difference": 0,
+          "kessFemale": 35,
+          "iceFemale": 35,
+          "kessCell": "학교별 주요통계!AQ4585",
+          "iceCell": "초등학교!V192"
+        },
+        {
+          "grade": 2,
+          "kess": 86,
+          "ice": 86,
+          "difference": 0,
+          "kessFemale": 50,
+          "iceFemale": 50,
+          "kessCell": "학교별 주요통계!AT4585",
+          "iceCell": "초등학교!X192"
+        },
+        {
+          "grade": 3,
+          "kess": 91,
+          "ice": 90,
+          "difference": 1,
+          "kessFemale": 42,
+          "iceFemale": 42,
+          "kessCell": "학교별 주요통계!AW4585",
+          "iceCell": "초등학교!Z192"
+        },
+        {
+          "grade": 4,
+          "kess": 111,
+          "ice": 111,
+          "difference": 0,
+          "kessFemale": 56,
+          "iceFemale": 56,
+          "kessCell": "학교별 주요통계!AZ4585",
+          "iceCell": "초등학교!AB192"
+        },
+        {
+          "grade": 5,
+          "kess": 129,
+          "ice": 129,
+          "difference": 0,
+          "kessFemale": 65,
+          "iceFemale": 65,
+          "kessCell": "학교별 주요통계!BC4585",
+          "iceCell": "초등학교!AD192"
+        },
+        {
+          "grade": 6,
+          "kess": 152,
+          "ice": 152,
+          "difference": 0,
+          "kessFemale": 70,
+          "iceFemale": 70,
+          "kessCell": "학교별 주요통계!BF4585",
+          "iceCell": "초등학교!AF192"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021205",
+      "name": "인천담방초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 309,
+      "iceStudents": 308,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4586",
+      "iceCell": "초등학교!AH160",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 매소홀로 1027(만수동. 담방초등학교)",
+      "iceAddress": "남동구 매소홀로 1027(만수동 1046)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 28,
+          "ice": 28,
+          "difference": 0,
+          "kessFemale": 12,
+          "iceFemale": 12,
+          "kessCell": "학교별 주요통계!AQ4586",
+          "iceCell": "초등학교!V160"
+        },
+        {
+          "grade": 2,
+          "kess": 33,
+          "ice": 33,
+          "difference": 0,
+          "kessFemale": 14,
+          "iceFemale": 14,
+          "kessCell": "학교별 주요통계!AT4586",
+          "iceCell": "초등학교!X160"
+        },
+        {
+          "grade": 3,
+          "kess": 56,
+          "ice": 55,
+          "difference": 1,
+          "kessFemale": 35,
+          "iceFemale": 34,
+          "kessCell": "학교별 주요통계!AW4586",
+          "iceCell": "초등학교!Z160"
+        },
+        {
+          "grade": 4,
+          "kess": 61,
+          "ice": 61,
+          "difference": 0,
+          "kessFemale": 31,
+          "iceFemale": 31,
+          "kessCell": "학교별 주요통계!AZ4586",
+          "iceCell": "초등학교!AB160"
+        },
+        {
+          "grade": 5,
+          "kess": 61,
+          "ice": 61,
+          "difference": 0,
+          "kessFemale": 29,
+          "iceFemale": 29,
+          "kessCell": "학교별 주요통계!BC4586",
+          "iceCell": "초등학교!AD160"
+        },
+        {
+          "grade": 6,
+          "kess": 70,
+          "ice": 70,
+          "difference": 0,
+          "kessFemale": 34,
+          "iceFemale": 34,
+          "kessCell": "학교별 주요통계!BF4586",
+          "iceCell": "초등학교!AF160"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021247",
+      "name": "인천송원초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 807,
+      "iceStudents": 809,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4590",
+      "iceCell": "초등학교!AH206",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 송도과학로51번길 60. 인천송원초등학교 (송도동)",
+      "iceAddress": "연수구 송도과학로 51번길 60",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 134,
+          "ice": 134,
+          "difference": 0,
+          "kessFemale": 67,
+          "iceFemale": 67,
+          "kessCell": "학교별 주요통계!AQ4590",
+          "iceCell": "초등학교!V206"
+        },
+        {
+          "grade": 2,
+          "kess": 114,
+          "ice": 114,
+          "difference": 0,
+          "kessFemale": 55,
+          "iceFemale": 55,
+          "kessCell": "학교별 주요통계!AT4590",
+          "iceCell": "초등학교!X206"
+        },
+        {
+          "grade": 3,
+          "kess": 134,
+          "ice": 134,
+          "difference": 0,
+          "kessFemale": 71,
+          "iceFemale": 71,
+          "kessCell": "학교별 주요통계!AW4590",
+          "iceCell": "초등학교!Z206"
+        },
+        {
+          "grade": 4,
+          "kess": 125,
+          "ice": 126,
+          "difference": -1,
+          "kessFemale": 65,
+          "iceFemale": 66,
+          "kessCell": "학교별 주요통계!AZ4590",
+          "iceCell": "초등학교!AB206"
+        },
+        {
+          "grade": 5,
+          "kess": 141,
+          "ice": 142,
+          "difference": -1,
+          "kessFemale": 63,
+          "iceFemale": 64,
+          "kessCell": "학교별 주요통계!BC4590",
+          "iceCell": "초등학교!AD206"
+        },
+        {
+          "grade": 6,
+          "kess": 159,
+          "ice": 159,
+          "difference": 0,
+          "kessFemale": 69,
+          "iceFemale": 69,
+          "kessCell": "학교별 주요통계!BF4590",
+          "iceCell": "초등학교!AF206"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021300",
+      "name": "인천사리울초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 476,
+      "iceStudents": 478,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4596",
+      "iceCell": "초등학교!AH167",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 아암대로1437번길 50(논현동. 사리울초등학교)",
+      "iceAddress": "남동구 아암대로 1437번길 50(논현동 767-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 58,
+          "ice": 59,
+          "difference": -1,
+          "kessFemale": 23,
+          "iceFemale": 24,
+          "kessCell": "학교별 주요통계!AQ4596",
+          "iceCell": "초등학교!V167"
+        },
+        {
+          "grade": 2,
+          "kess": 75,
+          "ice": 74,
+          "difference": 1,
+          "kessFemale": 37,
+          "iceFemale": 37,
+          "kessCell": "학교별 주요통계!AT4596",
+          "iceCell": "초등학교!X167"
+        },
+        {
+          "grade": 3,
+          "kess": 71,
+          "ice": 71,
+          "difference": 0,
+          "kessFemale": 27,
+          "iceFemale": 27,
+          "kessCell": "학교별 주요통계!AW4596",
+          "iceCell": "초등학교!Z167"
+        },
+        {
+          "grade": 4,
+          "kess": 99,
+          "ice": 100,
+          "difference": -1,
+          "kessFemale": 46,
+          "iceFemale": 47,
+          "kessCell": "학교별 주요통계!AZ4596",
+          "iceCell": "초등학교!AB167"
+        },
+        {
+          "grade": 5,
+          "kess": 96,
+          "ice": 96,
+          "difference": 0,
+          "kessFemale": 50,
+          "iceFemale": 50,
+          "kessCell": "학교별 주요통계!BC4596",
+          "iceCell": "초등학교!AD167"
+        },
+        {
+          "grade": 6,
+          "kess": 77,
+          "ice": 78,
+          "difference": -1,
+          "kessFemale": 38,
+          "iceFemale": 39,
+          "kessCell": "학교별 주요통계!BF4596",
+          "iceCell": "초등학교!AF167"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021303",
+      "name": "인천원동초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 753,
+      "iceStudents": 754,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4599",
+      "iceCell": "초등학교!AH178",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 논고개로 38(논현동)인천원동초등학교",
+      "iceAddress": "님동구 논고개로 38(논현동 755-2번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 90,
+          "ice": 90,
+          "difference": 0,
+          "kessFemale": 38,
+          "iceFemale": 39,
+          "kessCell": "학교별 주요통계!AQ4599",
+          "iceCell": "초등학교!V178"
+        },
+        {
+          "grade": 2,
+          "kess": 118,
+          "ice": 118,
+          "difference": 0,
+          "kessFemale": 60,
+          "iceFemale": 60,
+          "kessCell": "학교별 주요통계!AT4599",
+          "iceCell": "초등학교!X178"
+        },
+        {
+          "grade": 3,
+          "kess": 116,
+          "ice": 117,
+          "difference": -1,
+          "kessFemale": 46,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!AW4599",
+          "iceCell": "초등학교!Z178"
+        },
+        {
+          "grade": 4,
+          "kess": 126,
+          "ice": 126,
+          "difference": 0,
+          "kessFemale": 61,
+          "iceFemale": 61,
+          "kessCell": "학교별 주요통계!AZ4599",
+          "iceCell": "초등학교!AB178"
+        },
+        {
+          "grade": 5,
+          "kess": 144,
+          "ice": 144,
+          "difference": 0,
+          "kessFemale": 67,
+          "iceFemale": 67,
+          "kessCell": "학교별 주요통계!BC4599",
+          "iceCell": "초등학교!AD178"
+        },
+        {
+          "grade": 6,
+          "kess": 159,
+          "ice": 159,
+          "difference": 0,
+          "kessFemale": 90,
+          "iceFemale": 90,
+          "kessCell": "학교별 주요통계!BF4599",
+          "iceCell": "초등학교!AF178"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021325",
+      "name": "인천문남초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 446,
+      "iceStudents": 443,
+      "differenceKessMinusIce": 3,
+      "kessCell": "학교별 주요통계!AN4601",
+      "iceCell": "초등학교!AH197",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 먼우금로 273. 인천문남초등학교 (연수동)",
+      "iceAddress": "연수구 먼우금로 273(연수동)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 59,
+          "ice": 64,
+          "difference": -5,
+          "kessFemale": 25,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!AQ4601",
+          "iceCell": "초등학교!V197"
+        },
+        {
+          "grade": 2,
+          "kess": 65,
+          "ice": 61,
+          "difference": 4,
+          "kessFemale": 32,
+          "iceFemale": 31,
+          "kessCell": "학교별 주요통계!AT4601",
+          "iceCell": "초등학교!X197"
+        },
+        {
+          "grade": 3,
+          "kess": 65,
+          "ice": 63,
+          "difference": 2,
+          "kessFemale": 36,
+          "iceFemale": 35,
+          "kessCell": "학교별 주요통계!AW4601",
+          "iceCell": "초등학교!Z197"
+        },
+        {
+          "grade": 4,
+          "kess": 70,
+          "ice": 70,
+          "difference": 0,
+          "kessFemale": 36,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!AZ4601",
+          "iceCell": "초등학교!AB197"
+        },
+        {
+          "grade": 5,
+          "kess": 86,
+          "ice": 86,
+          "difference": 0,
+          "kessFemale": 40,
+          "iceFemale": 40,
+          "kessCell": "학교별 주요통계!BC4601",
+          "iceCell": "초등학교!AD197"
+        },
+        {
+          "grade": 6,
+          "kess": 101,
+          "ice": 99,
+          "difference": 2,
+          "kessFemale": 49,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!BF4601",
+          "iceCell": "초등학교!AF197"
+        }
+      ],
+      "gradeDifferencesSum": 3,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021400",
+      "name": "인천선학초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 554,
+      "iceStudents": 553,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4606",
+      "iceCell": "초등학교!AH201",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 선학로 67(선학동)",
+      "iceAddress": "연수구 선학로 67(선학동 358)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 109,
+          "ice": 109,
+          "difference": 0,
+          "kessFemale": 42,
+          "iceFemale": 42,
+          "kessCell": "학교별 주요통계!AQ4606",
+          "iceCell": "초등학교!V201"
+        },
+        {
+          "grade": 2,
+          "kess": 81,
+          "ice": 81,
+          "difference": 0,
+          "kessFemale": 36,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!AT4606",
+          "iceCell": "초등학교!X201"
+        },
+        {
+          "grade": 3,
+          "kess": 92,
+          "ice": 92,
+          "difference": 0,
+          "kessFemale": 46,
+          "iceFemale": 46,
+          "kessCell": "학교별 주요통계!AW4606",
+          "iceCell": "초등학교!Z201"
+        },
+        {
+          "grade": 4,
+          "kess": 87,
+          "ice": 87,
+          "difference": 0,
+          "kessFemale": 44,
+          "iceFemale": 44,
+          "kessCell": "학교별 주요통계!AZ4606",
+          "iceCell": "초등학교!AB201"
+        },
+        {
+          "grade": 5,
+          "kess": 101,
+          "ice": 100,
+          "difference": 1,
+          "kessFemale": 48,
+          "iceFemale": 48,
+          "kessCell": "학교별 주요통계!BC4606",
+          "iceCell": "초등학교!AD201"
+        },
+        {
+          "grade": 6,
+          "kess": 84,
+          "ice": 84,
+          "difference": 0,
+          "kessFemale": 37,
+          "iceFemale": 37,
+          "kessCell": "학교별 주요통계!BF4606",
+          "iceCell": "초등학교!AF201"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021423",
+      "name": "인천약산초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 550,
+      "iceStudents": 551,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4610",
+      "iceCell": "초등학교!AH177",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 간석로26번길 10(간석동. 약산초등학교)",
+      "iceAddress": "남동구 간석로 26번길 10(인천광역시 남동구 간석동 104-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 75,
+          "ice": 75,
+          "difference": 0,
+          "kessFemale": 33,
+          "iceFemale": 33,
+          "kessCell": "학교별 주요통계!AQ4610",
+          "iceCell": "초등학교!V177"
+        },
+        {
+          "grade": 2,
+          "kess": 83,
+          "ice": 83,
+          "difference": 0,
+          "kessFemale": 38,
+          "iceFemale": 38,
+          "kessCell": "학교별 주요통계!AT4610",
+          "iceCell": "초등학교!X177"
+        },
+        {
+          "grade": 3,
+          "kess": 97,
+          "ice": 97,
+          "difference": 0,
+          "kessFemale": 52,
+          "iceFemale": 52,
+          "kessCell": "학교별 주요통계!AW4610",
+          "iceCell": "초등학교!Z177"
+        },
+        {
+          "grade": 4,
+          "kess": 92,
+          "ice": 92,
+          "difference": 0,
+          "kessFemale": 45,
+          "iceFemale": 45,
+          "kessCell": "학교별 주요통계!AZ4610",
+          "iceCell": "초등학교!AB177"
+        },
+        {
+          "grade": 5,
+          "kess": 119,
+          "ice": 120,
+          "difference": -1,
+          "kessFemale": 54,
+          "iceFemale": 55,
+          "kessCell": "학교별 주요통계!BC4610",
+          "iceCell": "초등학교!AD177"
+        },
+        {
+          "grade": 6,
+          "kess": 84,
+          "ice": 84,
+          "difference": 0,
+          "kessFemale": 42,
+          "iceFemale": 42,
+          "kessCell": "학교별 주요통계!BF4610",
+          "iceCell": "초등학교!AF177"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021445",
+      "name": "인천연수초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 243,
+      "iceStudents": 244,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4612",
+      "iceCell": "초등학교!AH212",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 원인재로 324(연수동.연수초등학교)",
+      "iceAddress": "연수구 원인재로 324(연수동 532-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 31,
+          "ice": 31,
+          "difference": 0,
+          "kessFemale": 12,
+          "iceFemale": 12,
+          "kessCell": "학교별 주요통계!AQ4612",
+          "iceCell": "초등학교!V212"
+        },
+        {
+          "grade": 2,
+          "kess": 29,
+          "ice": 29,
+          "difference": 0,
+          "kessFemale": 8,
+          "iceFemale": 8,
+          "kessCell": "학교별 주요통계!AT4612",
+          "iceCell": "초등학교!X212"
+        },
+        {
+          "grade": 3,
+          "kess": 32,
+          "ice": 32,
+          "difference": 0,
+          "kessFemale": 12,
+          "iceFemale": 12,
+          "kessCell": "학교별 주요통계!AW4612",
+          "iceCell": "초등학교!Z212"
+        },
+        {
+          "grade": 4,
+          "kess": 53,
+          "ice": 53,
+          "difference": 0,
+          "kessFemale": 25,
+          "iceFemale": 25,
+          "kessCell": "학교별 주요통계!AZ4612",
+          "iceCell": "초등학교!AB212"
+        },
+        {
+          "grade": 5,
+          "kess": 57,
+          "ice": 57,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!BC4612",
+          "iceCell": "초등학교!AD212"
+        },
+        {
+          "grade": 6,
+          "kess": 41,
+          "ice": 42,
+          "difference": -1,
+          "kessFemale": 21,
+          "iceFemale": 21,
+          "kessCell": "학교별 주요통계!BF4612",
+          "iceCell": "초등학교!AF212"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021460",
+      "name": "인천연화초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 584,
+      "iceStudents": 581,
+      "differenceKessMinusIce": 3,
+      "kessCell": "학교별 주요통계!AN4613",
+      "iceCell": "초등학교!AH213",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 원인재로 150(연수동)",
+      "iceAddress": "연수구 원인재로 150(연수2동 635-1))",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 79,
+          "ice": 79,
+          "difference": 0,
+          "kessFemale": 46,
+          "iceFemale": 46,
+          "kessCell": "학교별 주요통계!AQ4613",
+          "iceCell": "초등학교!V213"
+        },
+        {
+          "grade": 2,
+          "kess": 87,
+          "ice": 85,
+          "difference": 2,
+          "kessFemale": 38,
+          "iceFemale": 37,
+          "kessCell": "학교별 주요통계!AT4613",
+          "iceCell": "초등학교!X213"
+        },
+        {
+          "grade": 3,
+          "kess": 89,
+          "ice": 90,
+          "difference": -1,
+          "kessFemale": 38,
+          "iceFemale": 39,
+          "kessCell": "학교별 주요통계!AW4613",
+          "iceCell": "초등학교!Z213"
+        },
+        {
+          "grade": 4,
+          "kess": 96,
+          "ice": 95,
+          "difference": 1,
+          "kessFemale": 44,
+          "iceFemale": 43,
+          "kessCell": "학교별 주요통계!AZ4613",
+          "iceCell": "초등학교!AB213"
+        },
+        {
+          "grade": 5,
+          "kess": 117,
+          "ice": 116,
+          "difference": 1,
+          "kessFemale": 61,
+          "iceFemale": 61,
+          "kessCell": "학교별 주요통계!BC4613",
+          "iceCell": "초등학교!AD213"
+        },
+        {
+          "grade": 6,
+          "kess": 116,
+          "ice": 116,
+          "difference": 0,
+          "kessFemale": 53,
+          "iceFemale": 53,
+          "kessCell": "학교별 주요통계!BF4613",
+          "iceCell": "초등학교!AF213"
+        }
+      ],
+      "gradeDifferencesSum": 3,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021483",
+      "name": "인천인동초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 693,
+      "iceStudents": 692,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4615",
+      "iceCell": "초등학교!AH180",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": false,
+      "kessAddress": "인천광역시 남동구 백범로248번길 38. 인천인동초등학교 (만수동)",
+      "iceAddress": "남동구 백범로248번길(만수동 846번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 79,
+          "ice": 79,
+          "difference": 0,
+          "kessFemale": 40,
+          "iceFemale": 40,
+          "kessCell": "학교별 주요통계!AQ4615",
+          "iceCell": "초등학교!V180"
+        },
+        {
+          "grade": 2,
+          "kess": 101,
+          "ice": 101,
+          "difference": 0,
+          "kessFemale": 49,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!AT4615",
+          "iceCell": "초등학교!X180"
+        },
+        {
+          "grade": 3,
+          "kess": 115,
+          "ice": 115,
+          "difference": 0,
+          "kessFemale": 61,
+          "iceFemale": 61,
+          "kessCell": "학교별 주요통계!AW4615",
+          "iceCell": "초등학교!Z180"
+        },
+        {
+          "grade": 4,
+          "kess": 132,
+          "ice": 131,
+          "difference": 1,
+          "kessFemale": 67,
+          "iceFemale": 67,
+          "kessCell": "학교별 주요통계!AZ4615",
+          "iceCell": "초등학교!AB180"
+        },
+        {
+          "grade": 5,
+          "kess": 140,
+          "ice": 140,
+          "difference": 0,
+          "kessFemale": 63,
+          "iceFemale": 63,
+          "kessCell": "학교별 주요통계!BC4615",
+          "iceCell": "초등학교!AD180"
+        },
+        {
+          "grade": 6,
+          "kess": 126,
+          "ice": 126,
+          "difference": 0,
+          "kessFemale": 58,
+          "iceFemale": 58,
+          "kessCell": "학교별 주요통계!BF4615",
+          "iceCell": "초등학교!AF180"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021550",
+      "name": "인천중앙초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 223,
+      "iceStudents": 222,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4622",
+      "iceCell": "초등학교!AH217",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 새말로 153(연수동. 중앙초등학교)",
+      "iceAddress": "연수구 새말로 153(연수동 579-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 28,
+          "ice": 28,
+          "difference": 0,
+          "kessFemale": 15,
+          "iceFemale": 15,
+          "kessCell": "학교별 주요통계!AQ4622",
+          "iceCell": "초등학교!V217"
+        },
+        {
+          "grade": 2,
+          "kess": 26,
+          "ice": 26,
+          "difference": 0,
+          "kessFemale": 14,
+          "iceFemale": 14,
+          "kessCell": "학교별 주요통계!AT4622",
+          "iceCell": "초등학교!X217"
+        },
+        {
+          "grade": 3,
+          "kess": 30,
+          "ice": 30,
+          "difference": 0,
+          "kessFemale": 17,
+          "iceFemale": 17,
+          "kessCell": "학교별 주요통계!AW4622",
+          "iceCell": "초등학교!Z217"
+        },
+        {
+          "grade": 4,
+          "kess": 45,
+          "ice": 45,
+          "difference": 0,
+          "kessFemale": 21,
+          "iceFemale": 21,
+          "kessCell": "학교별 주요통계!AZ4622",
+          "iceCell": "초등학교!AB217"
+        },
+        {
+          "grade": 5,
+          "kess": 46,
+          "ice": 45,
+          "difference": 1,
+          "kessFemale": 32,
+          "iceFemale": 32,
+          "kessCell": "학교별 주요통계!BC4622",
+          "iceCell": "초등학교!AD217"
+        },
+        {
+          "grade": 6,
+          "kess": 48,
+          "ice": 48,
+          "difference": 0,
+          "kessFemale": 16,
+          "iceFemale": 16,
+          "kessCell": "학교별 주요통계!BF4622",
+          "iceCell": "초등학교!AF217"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021589",
+      "name": "인천고잔초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 730,
+      "iceStudents": 731,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4625",
+      "iceCell": "초등학교!AH153",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 아암대로1503번길 48. 인천고잔초등학교 (논현동)",
+      "iceAddress": "남동구 아암대로 1503번길48(논현동 774-2번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 77,
+          "ice": 77,
+          "difference": 0,
+          "kessFemale": 38,
+          "iceFemale": 38,
+          "kessCell": "학교별 주요통계!AQ4625",
+          "iceCell": "초등학교!V153"
+        },
+        {
+          "grade": 2,
+          "kess": 98,
+          "ice": 98,
+          "difference": 0,
+          "kessFemale": 47,
+          "iceFemale": 47,
+          "kessCell": "학교별 주요통계!AT4625",
+          "iceCell": "초등학교!X153"
+        },
+        {
+          "grade": 3,
+          "kess": 120,
+          "ice": 120,
+          "difference": 0,
+          "kessFemale": 64,
+          "iceFemale": 64,
+          "kessCell": "학교별 주요통계!AW4625",
+          "iceCell": "초등학교!Z153"
+        },
+        {
+          "grade": 4,
+          "kess": 125,
+          "ice": 125,
+          "difference": 0,
+          "kessFemale": 71,
+          "iceFemale": 71,
+          "kessCell": "학교별 주요통계!AZ4625",
+          "iceCell": "초등학교!AB153"
+        },
+        {
+          "grade": 5,
+          "kess": 158,
+          "ice": 159,
+          "difference": -1,
+          "kessFemale": 80,
+          "iceFemale": 81,
+          "kessCell": "학교별 주요통계!BC4625",
+          "iceCell": "초등학교!AD153"
+        },
+        {
+          "grade": 6,
+          "kess": 152,
+          "ice": 152,
+          "difference": 0,
+          "kessFemale": 63,
+          "iceFemale": 63,
+          "kessCell": "학교별 주요통계!BF4625",
+          "iceCell": "초등학교!AF153"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021601",
+      "name": "인천신송초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 444,
+      "iceStudents": 446,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4627",
+      "iceCell": "초등학교!AH208",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 해돋이로56번길 28(송도동. 신송초등학교)",
+      "iceAddress": "연수구 해돋이로56번길 28(송도동 3-42)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 49,
+          "ice": 50,
+          "difference": -1,
+          "kessFemale": 21,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AQ4627",
+          "iceCell": "초등학교!V208"
+        },
+        {
+          "grade": 2,
+          "kess": 65,
+          "ice": 65,
+          "difference": 0,
+          "kessFemale": 32,
+          "iceFemale": 32,
+          "kessCell": "학교별 주요통계!AT4627",
+          "iceCell": "초등학교!X208"
+        },
+        {
+          "grade": 3,
+          "kess": 62,
+          "ice": 63,
+          "difference": -1,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!AW4627",
+          "iceCell": "초등학교!Z208"
+        },
+        {
+          "grade": 4,
+          "kess": 76,
+          "ice": 76,
+          "difference": 0,
+          "kessFemale": 36,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!AZ4627",
+          "iceCell": "초등학교!AB208"
+        },
+        {
+          "grade": 5,
+          "kess": 92,
+          "ice": 92,
+          "difference": 0,
+          "kessFemale": 47,
+          "iceFemale": 47,
+          "kessCell": "학교별 주요통계!BC4627",
+          "iceCell": "초등학교!AD208"
+        },
+        {
+          "grade": 6,
+          "kess": 100,
+          "ice": 100,
+          "difference": 0,
+          "kessFemale": 53,
+          "iceFemale": 53,
+          "kessCell": "학교별 주요통계!BF4627",
+          "iceCell": "초등학교!AF208"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021620",
+      "name": "인천함박초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 397,
+      "iceStudents": 398,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4628",
+      "iceCell": "초등학교!AH222",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 함박뫼로 87\\. 함박초등학교(연수동.함박초등학교)",
+      "iceAddress": "연수구 함박뫼로 87(연수1동 535번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 54,
+          "ice": 54,
+          "difference": 0,
+          "kessFemale": 29,
+          "iceFemale": 29,
+          "kessCell": "학교별 주요통계!AQ4628",
+          "iceCell": "초등학교!V222"
+        },
+        {
+          "grade": 2,
+          "kess": 52,
+          "ice": 52,
+          "difference": 0,
+          "kessFemale": 24,
+          "iceFemale": 24,
+          "kessCell": "학교별 주요통계!AT4628",
+          "iceCell": "초등학교!X222"
+        },
+        {
+          "grade": 3,
+          "kess": 54,
+          "ice": 55,
+          "difference": -1,
+          "kessFemale": 27,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!AW4628",
+          "iceCell": "초등학교!Z222"
+        },
+        {
+          "grade": 4,
+          "kess": 74,
+          "ice": 74,
+          "difference": 0,
+          "kessFemale": 43,
+          "iceFemale": 43,
+          "kessCell": "학교별 주요통계!AZ4628",
+          "iceCell": "초등학교!AB222"
+        },
+        {
+          "grade": 5,
+          "kess": 82,
+          "ice": 82,
+          "difference": 0,
+          "kessFemale": 40,
+          "iceFemale": 40,
+          "kessCell": "학교별 주요통계!BC4628",
+          "iceCell": "초등학교!AD222"
+        },
+        {
+          "grade": 6,
+          "kess": 81,
+          "ice": 81,
+          "difference": 0,
+          "kessFemale": 44,
+          "iceFemale": 44,
+          "kessCell": "학교별 주요통계!BF4628",
+          "iceCell": "초등학교!AF222"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021621",
+      "name": "인천신월초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 189,
+      "iceStudents": 191,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4629",
+      "iceCell": "초등학교!AH176",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 인주대로776번길 14.인천신월초등학교(구월동. 신월초등학교)",
+      "iceAddress": "남동구 인주대로 776번길 14(구월동 609-1번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 23,
+          "ice": 22,
+          "difference": 1,
+          "kessFemale": 12,
+          "iceFemale": 11,
+          "kessCell": "학교별 주요통계!AQ4629",
+          "iceCell": "초등학교!V176"
+        },
+        {
+          "grade": 2,
+          "kess": 31,
+          "ice": 31,
+          "difference": 0,
+          "kessFemale": 16,
+          "iceFemale": 16,
+          "kessCell": "학교별 주요통계!AT4629",
+          "iceCell": "초등학교!X176"
+        },
+        {
+          "grade": 3,
+          "kess": 28,
+          "ice": 29,
+          "difference": -1,
+          "kessFemale": 12,
+          "iceFemale": 12,
+          "kessCell": "학교별 주요통계!AW4629",
+          "iceCell": "초등학교!Z176"
+        },
+        {
+          "grade": 4,
+          "kess": 33,
+          "ice": 33,
+          "difference": 0,
+          "kessFemale": 14,
+          "iceFemale": 13,
+          "kessCell": "학교별 주요통계!AZ4629",
+          "iceCell": "초등학교!AB176"
+        },
+        {
+          "grade": 5,
+          "kess": 41,
+          "ice": 42,
+          "difference": -1,
+          "kessFemale": 19,
+          "iceFemale": 19,
+          "kessCell": "학교별 주요통계!BC4629",
+          "iceCell": "초등학교!AD176"
+        },
+        {
+          "grade": 6,
+          "kess": 33,
+          "ice": 34,
+          "difference": -1,
+          "kessFemale": 15,
+          "iceFemale": 16,
+          "kessCell": "학교별 주요통계!BF4629",
+          "iceCell": "초등학교!AF176"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021631",
+      "name": "인천상아초등학교",
+      "level": "초등학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 546,
+      "iceStudents": 548,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4638",
+      "iceCell": "초등학교!AH168",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 석산로184번길 66(간석동. 상아초등학교)",
+      "iceAddress": "남동구 석산로184번길 66(간석동 939-4)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 57,
+          "ice": 58,
+          "difference": -1,
+          "kessFemale": 32,
+          "iceFemale": 33,
+          "kessCell": "학교별 주요통계!AQ4638",
+          "iceCell": "초등학교!V168"
+        },
+        {
+          "grade": 2,
+          "kess": 62,
+          "ice": 62,
+          "difference": 0,
+          "kessFemale": 33,
+          "iceFemale": 33,
+          "kessCell": "학교별 주요통계!AT4638",
+          "iceCell": "초등학교!X168"
+        },
+        {
+          "grade": 3,
+          "kess": 66,
+          "ice": 67,
+          "difference": -1,
+          "kessFemale": 26,
+          "iceFemale": 26,
+          "kessCell": "학교별 주요통계!AW4638",
+          "iceCell": "초등학교!Z168"
+        },
+        {
+          "grade": 4,
+          "kess": 111,
+          "ice": 111,
+          "difference": 0,
+          "kessFemale": 49,
+          "iceFemale": 48,
+          "kessCell": "학교별 주요통계!AZ4638",
+          "iceCell": "초등학교!AB168"
+        },
+        {
+          "grade": 5,
+          "kess": 113,
+          "ice": 113,
+          "difference": 0,
+          "kessFemale": 55,
+          "iceFemale": 55,
+          "kessCell": "학교별 주요통계!BC4638",
+          "iceCell": "초등학교!AD168"
+        },
+        {
+          "grade": 6,
+          "kess": 137,
+          "ice": 137,
+          "difference": 0,
+          "kessFemale": 74,
+          "iceFemale": 73,
+          "kessCell": "학교별 주요통계!BF4638",
+          "iceCell": "초등학교!AF168"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021632",
+      "name": "인천송명초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 1070,
+      "iceStudents": 1066,
+      "differenceKessMinusIce": 4,
+      "kessCell": "학교별 주요통계!AN4639",
+      "iceCell": "초등학교!AH204",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 송도교육로 19(송도동)",
+      "iceAddress": "연수구 송도교육로19(송도동 191-5번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 138,
+          "ice": 136,
+          "difference": 2,
+          "kessFemale": 70,
+          "iceFemale": 68,
+          "kessCell": "학교별 주요통계!AQ4639",
+          "iceCell": "초등학교!V204"
+        },
+        {
+          "grade": 2,
+          "kess": 167,
+          "ice": 166,
+          "difference": 1,
+          "kessFemale": 89,
+          "iceFemale": 89,
+          "kessCell": "학교별 주요통계!AT4639",
+          "iceCell": "초등학교!X204"
+        },
+        {
+          "grade": 3,
+          "kess": 167,
+          "ice": 167,
+          "difference": 0,
+          "kessFemale": 80,
+          "iceFemale": 80,
+          "kessCell": "학교별 주요통계!AW4639",
+          "iceCell": "초등학교!Z204"
+        },
+        {
+          "grade": 4,
+          "kess": 191,
+          "ice": 190,
+          "difference": 1,
+          "kessFemale": 109,
+          "iceFemale": 109,
+          "kessCell": "학교별 주요통계!AZ4639",
+          "iceCell": "초등학교!AB204"
+        },
+        {
+          "grade": 5,
+          "kess": 212,
+          "ice": 212,
+          "difference": 0,
+          "kessFemale": 94,
+          "iceFemale": 95,
+          "kessCell": "학교별 주요통계!BC4639",
+          "iceCell": "초등학교!AD204"
+        },
+        {
+          "grade": 6,
+          "kess": 195,
+          "ice": 195,
+          "difference": 0,
+          "kessFemale": 92,
+          "iceFemale": 92,
+          "kessCell": "학교별 주요통계!BF4639",
+          "iceCell": "초등학교!AF204"
+        }
+      ],
+      "gradeDifferencesSum": 4,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021633",
+      "name": "인천미송초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 1460,
+      "iceStudents": 1461,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4640",
+      "iceCell": "초등학교!AH198",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 아카데미로 667(송도동. 인천미송초등학교)",
+      "iceAddress": "연수구 아카데미로 667(송도동 309-1번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 207,
+          "ice": 208,
+          "difference": -1,
+          "kessFemale": 106,
+          "iceFemale": 106,
+          "kessCell": "학교별 주요통계!AQ4640",
+          "iceCell": "초등학교!V198"
+        },
+        {
+          "grade": 2,
+          "kess": 236,
+          "ice": 237,
+          "difference": -1,
+          "kessFemale": 117,
+          "iceFemale": 117,
+          "kessCell": "학교별 주요통계!AT4640",
+          "iceCell": "초등학교!X198"
+        },
+        {
+          "grade": 3,
+          "kess": 224,
+          "ice": 224,
+          "difference": 0,
+          "kessFemale": 125,
+          "iceFemale": 125,
+          "kessCell": "학교별 주요통계!AW4640",
+          "iceCell": "초등학교!Z198"
+        },
+        {
+          "grade": 4,
+          "kess": 259,
+          "ice": 259,
+          "difference": 0,
+          "kessFemale": 127,
+          "iceFemale": 127,
+          "kessCell": "학교별 주요통계!AZ4640",
+          "iceCell": "초등학교!AB198"
+        },
+        {
+          "grade": 5,
+          "kess": 271,
+          "ice": 271,
+          "difference": 0,
+          "kessFemale": 145,
+          "iceFemale": 144,
+          "kessCell": "학교별 주요통계!BC4640",
+          "iceCell": "초등학교!AD198"
+        },
+        {
+          "grade": 6,
+          "kess": 263,
+          "ice": 262,
+          "difference": 1,
+          "kessFemale": 113,
+          "iceFemale": 113,
+          "kessCell": "학교별 주요통계!BF4640",
+          "iceCell": "초등학교!AF198"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233021664",
+      "name": "인천송담초등학교",
+      "level": "초등학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 909,
+      "iceStudents": 907,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4642",
+      "iceCell": "초등학교!AH202",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 아카데미로 627(송도동)",
+      "iceAddress": "연수구 아카데미로 627(송도동)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 138,
+          "ice": 138,
+          "difference": 0,
+          "kessFemale": 68,
+          "iceFemale": 68,
+          "kessCell": "학교별 주요통계!AQ4642",
+          "iceCell": "초등학교!V202"
+        },
+        {
+          "grade": 2,
+          "kess": 139,
+          "ice": 139,
+          "difference": 0,
+          "kessFemale": 69,
+          "iceFemale": 69,
+          "kessCell": "학교별 주요통계!AT4642",
+          "iceCell": "초등학교!X202"
+        },
+        {
+          "grade": 3,
+          "kess": 163,
+          "ice": 162,
+          "difference": 1,
+          "kessFemale": 70,
+          "iceFemale": 69,
+          "kessCell": "학교별 주요통계!AW4642",
+          "iceCell": "초등학교!Z202"
+        },
+        {
+          "grade": 4,
+          "kess": 162,
+          "ice": 162,
+          "difference": 0,
+          "kessFemale": 78,
+          "iceFemale": 78,
+          "kessCell": "학교별 주요통계!AZ4642",
+          "iceCell": "초등학교!AB202"
+        },
+        {
+          "grade": 5,
+          "kess": 159,
+          "ice": 159,
+          "difference": 0,
+          "kessFemale": 69,
+          "iceFemale": 69,
+          "kessCell": "학교별 주요통계!BC4642",
+          "iceCell": "초등학교!AD202"
+        },
+        {
+          "grade": 6,
+          "kess": 148,
+          "ice": 147,
+          "difference": 1,
+          "kessFemale": 80,
+          "iceFemale": 79,
+          "kessCell": "학교별 주요통계!BF4642",
+          "iceCell": "초등학교!AF202"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031152",
+      "name": "구월중학교",
+      "level": "중학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 998,
+      "iceStudents": 999,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4645",
+      "iceCell": "중학교!Z90",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 남동대로 814(구월동)",
+      "iceAddress": "남동구 남동대로 814(구월동 22)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 298,
+          "ice": 298,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ4645",
+          "iceCell": "중학교!T90"
+        },
+        {
+          "grade": 2,
+          "kess": 354,
+          "ice": 354,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AT4645",
+          "iceCell": "중학교!V90"
+        },
+        {
+          "grade": 3,
+          "kess": 346,
+          "ice": 347,
+          "difference": -1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW4645",
+          "iceCell": "중학교!X90"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031282",
+      "name": "만수중학교",
+      "level": "중학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 184,
+      "iceStudents": 185,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4652",
+      "iceCell": "중학교!Z97",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 인수로 13(만수동.만수중학교)",
+      "iceAddress": "남동구 인수로 13(만수동 48번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 68,
+          "ice": 68,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ4652",
+          "iceCell": "중학교!T97"
+        },
+        {
+          "grade": 2,
+          "kess": 67,
+          "ice": 68,
+          "difference": -1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AT4652",
+          "iceCell": "중학교!V97"
+        },
+        {
+          "grade": 3,
+          "kess": 49,
+          "ice": 49,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW4652",
+          "iceCell": "중학교!X97"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031310",
+      "name": "인천예송중학교",
+      "level": "중학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 1053,
+      "iceStudents": 1052,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4656",
+      "iceCell": "중학교!Z124",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 아카데미로 212(송도동. 예송중학교)",
+      "iceAddress": "연수구 아카데미로 212(송도동 114-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 380,
+          "ice": 380,
+          "difference": 0,
+          "kessFemale": 166,
+          "iceFemale": 166,
+          "kessCell": "학교별 주요통계!AQ4656",
+          "iceCell": "중학교!T124"
+        },
+        {
+          "grade": 2,
+          "kess": 325,
+          "ice": 325,
+          "difference": 0,
+          "kessFemale": 166,
+          "iceFemale": 166,
+          "kessCell": "학교별 주요통계!AT4656",
+          "iceCell": "중학교!V124"
+        },
+        {
+          "grade": 3,
+          "kess": 348,
+          "ice": 347,
+          "difference": 1,
+          "kessFemale": 176,
+          "iceFemale": 176,
+          "kessCell": "학교별 주요통계!AW4656",
+          "iceCell": "중학교!X124"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031438",
+      "name": "선학중학교",
+      "level": "중학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 369,
+      "iceStudents": 370,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4662",
+      "iceCell": "중학교!Z114",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 선학로 19(선학동. 선학중학교)",
+      "iceAddress": "연수구 선학로 19(선학동 344)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 106,
+          "ice": 107,
+          "difference": -1,
+          "kessFemale": 49,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!AQ4662",
+          "iceCell": "중학교!T114"
+        },
+        {
+          "grade": 2,
+          "kess": 135,
+          "ice": 135,
+          "difference": 0,
+          "kessFemale": 58,
+          "iceFemale": 58,
+          "kessCell": "학교별 주요통계!AT4662",
+          "iceCell": "중학교!V114"
+        },
+        {
+          "grade": 3,
+          "kess": 128,
+          "ice": 128,
+          "difference": 0,
+          "kessFemale": 70,
+          "iceFemale": 70,
+          "kessCell": "학교별 주요통계!AW4662",
+          "iceCell": "중학교!X114"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031495",
+      "name": "인천은송중학교",
+      "level": "중학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 749,
+      "iceStudents": 681,
+      "differenceKessMinusIce": 68,
+      "kessCell": "학교별 주요통계!AN4664",
+      "iceCell": "중학교!Z125",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 센트럴로 464(송도동)",
+      "iceAddress": "연수구 센트럴로 464(송도동 313-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 265,
+          "ice": 265,
+          "difference": 0,
+          "kessFemale": 123,
+          "iceFemale": 124,
+          "kessCell": "학교별 주요통계!AQ4664",
+          "iceCell": "중학교!T125"
+        },
+        {
+          "grade": 2,
+          "kess": 328,
+          "ice": 328,
+          "difference": 0,
+          "kessFemale": 149,
+          "iceFemale": 149,
+          "kessCell": "학교별 주요통계!AT4664",
+          "iceCell": "중학교!V125"
+        },
+        {
+          "grade": 3,
+          "kess": 156,
+          "ice": 88,
+          "difference": 68,
+          "kessFemale": 68,
+          "iceFemale": 68,
+          "kessCell": "학교별 주요통계!AW4664",
+          "iceCell": "중학교!X125"
+        }
+      ],
+      "gradeDifferencesSum": 68,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031542",
+      "name": "청량중학교",
+      "level": "중학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 905,
+      "iceStudents": 908,
+      "differenceKessMinusIce": -3,
+      "kessCell": "학교별 주요통계!AN4670",
+      "iceCell": "중학교!Z129",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 먼우금로 138\\.청량중학교(동춘동.청량중학교)",
+      "iceAddress": "연수구 먼우금로 138(동춘동 924-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 299,
+          "ice": 299,
+          "difference": 0,
+          "kessFemale": 147,
+          "iceFemale": 147,
+          "kessCell": "학교별 주요통계!AQ4670",
+          "iceCell": "중학교!T129"
+        },
+        {
+          "grade": 2,
+          "kess": 288,
+          "ice": 289,
+          "difference": -1,
+          "kessFemale": 132,
+          "iceFemale": 132,
+          "kessCell": "학교별 주요통계!AT4670",
+          "iceCell": "중학교!V129"
+        },
+        {
+          "grade": 3,
+          "kess": 318,
+          "ice": 320,
+          "difference": -2,
+          "kessFemale": 150,
+          "iceFemale": 151,
+          "kessCell": "학교별 주요통계!AW4670",
+          "iceCell": "중학교!X129"
+        }
+      ],
+      "gradeDifferencesSum": -3,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031695",
+      "name": "함박중학교",
+      "level": "중학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 203,
+      "iceStudents": 202,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4673",
+      "iceCell": "중학교!Z131",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 연수구 솔샘로 143(청학동 109-1)",
+      "iceAddress": "연수구 솔샘로 143(청학동 109-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 51,
+          "ice": 51,
+          "difference": 0,
+          "kessFemale": 18,
+          "iceFemale": 18,
+          "kessCell": "학교별 주요통계!AQ4673",
+          "iceCell": "중학교!T131"
+        },
+        {
+          "grade": 2,
+          "kess": 72,
+          "ice": 72,
+          "difference": 0,
+          "kessFemale": 31,
+          "iceFemale": 31,
+          "kessCell": "학교별 주요통계!AT4673",
+          "iceCell": "중학교!V131"
+        },
+        {
+          "grade": 3,
+          "kess": 80,
+          "ice": 79,
+          "difference": 1,
+          "kessFemale": 26,
+          "iceFemale": 26,
+          "kessCell": "학교별 주요통계!AW4673",
+          "iceCell": "중학교!X131"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031698",
+      "name": "신송중학교",
+      "level": "중학교",
+      "sourceRegion": "연수구",
+      "kessStudents": 1268,
+      "iceStudents": 1266,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4676",
+      "iceCell": "중학교!Z115",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": false,
+      "kessAddress": "인천광역시 연수구 해돋이로56번길 12(송도동. 신송중학교)",
+      "iceAddress": "연수구 해돋이로56번길(송도동3-43)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 420,
+          "ice": 420,
+          "difference": 0,
+          "kessFemale": 207,
+          "iceFemale": 207,
+          "kessCell": "학교별 주요통계!AQ4676",
+          "iceCell": "중학교!T115"
+        },
+        {
+          "grade": 2,
+          "kess": 424,
+          "ice": 424,
+          "difference": 0,
+          "kessFemale": 211,
+          "iceFemale": 211,
+          "kessCell": "학교별 주요통계!AT4676",
+          "iceCell": "중학교!V115"
+        },
+        {
+          "grade": 3,
+          "kess": 424,
+          "ice": 422,
+          "difference": 2,
+          "kessFemale": 207,
+          "iceFemale": 206,
+          "kessCell": "학교별 주요통계!AW4676",
+          "iceCell": "중학교!X115"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:233031704",
+      "name": "인천정각중학교",
+      "level": "중학교",
+      "sourceRegion": "남동구",
+      "kessStudents": 779,
+      "iceStudents": 780,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4681",
+      "iceCell": "중학교!Z108",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 남동구 구월로 240(구월동. 정각중학교)",
+      "iceAddress": "남동구 구월로 240(구월동 24-4)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 255,
+          "ice": 256,
+          "difference": -1,
+          "kessFemale": 134,
+          "iceFemale": 135,
+          "kessCell": "학교별 주요통계!AQ4681",
+          "iceCell": "중학교!T108"
+        },
+        {
+          "grade": 2,
+          "kess": 262,
+          "ice": 262,
+          "difference": 0,
+          "kessFemale": 143,
+          "iceFemale": 143,
+          "kessCell": "학교별 주요통계!AT4681",
+          "iceCell": "중학교!V108"
+        },
+        {
+          "grade": 3,
+          "kess": 262,
+          "ice": 262,
+          "difference": 0,
+          "kessFemale": 145,
+          "iceFemale": 145,
+          "kessCell": "학교별 주요통계!AW4681",
+          "iceCell": "중학교!X108"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021026",
+      "name": "인천단봉초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 700,
+      "iceStudents": 699,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4774",
+      "iceCell": "초등학교!AH264",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 단봉로 122(오류동)",
+      "iceAddress": "서구 단봉로 122(오류동 1720-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 100,
+          "ice": 100,
+          "difference": 0,
+          "kessFemale": 57,
+          "iceFemale": 57,
+          "kessCell": "학교별 주요통계!AQ4774",
+          "iceCell": "초등학교!V264"
+        },
+        {
+          "grade": 2,
+          "kess": 112,
+          "ice": 111,
+          "difference": 1,
+          "kessFemale": 57,
+          "iceFemale": 56,
+          "kessCell": "학교별 주요통계!AT4774",
+          "iceCell": "초등학교!X264"
+        },
+        {
+          "grade": 3,
+          "kess": 104,
+          "ice": 104,
+          "difference": 0,
+          "kessFemale": 55,
+          "iceFemale": 55,
+          "kessCell": "학교별 주요통계!AW4774",
+          "iceCell": "초등학교!Z264"
+        },
+        {
+          "grade": 4,
+          "kess": 111,
+          "ice": 111,
+          "difference": 0,
+          "kessFemale": 49,
+          "iceFemale": 49,
+          "kessCell": "학교별 주요통계!AZ4774",
+          "iceCell": "초등학교!AB264"
+        },
+        {
+          "grade": 5,
+          "kess": 138,
+          "ice": 138,
+          "difference": 0,
+          "kessFemale": 67,
+          "iceFemale": 67,
+          "kessCell": "학교별 주요통계!BC4774",
+          "iceCell": "초등학교!AD264"
+        },
+        {
+          "grade": 6,
+          "kess": 135,
+          "ice": 135,
+          "difference": 0,
+          "kessFemale": 55,
+          "iceFemale": 55,
+          "kessCell": "학교별 주요통계!BF4774",
+          "iceCell": "초등학교!AF264"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021038",
+      "name": "인천한별초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 1561,
+      "iceStudents": 1559,
+      "differenceKessMinusIce": 2,
+      "kessCell": "학교별 주요통계!AN4775",
+      "iceCell": "초등학교!AH279",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 서로3로 201(원당동. 인천한별초등학교)",
+      "iceAddress": "서구 서로3로 201(원당동 1020-2)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 225,
+          "ice": 225,
+          "difference": 0,
+          "kessFemale": 112,
+          "iceFemale": 112,
+          "kessCell": "학교별 주요통계!AQ4775",
+          "iceCell": "초등학교!V279"
+        },
+        {
+          "grade": 2,
+          "kess": 258,
+          "ice": 258,
+          "difference": 0,
+          "kessFemale": 130,
+          "iceFemale": 130,
+          "kessCell": "학교별 주요통계!AT4775",
+          "iceCell": "초등학교!X279"
+        },
+        {
+          "grade": 3,
+          "kess": 276,
+          "ice": 275,
+          "difference": 1,
+          "kessFemale": 154,
+          "iceFemale": 154,
+          "kessCell": "학교별 주요통계!AW4775",
+          "iceCell": "초등학교!Z279"
+        },
+        {
+          "grade": 4,
+          "kess": 274,
+          "ice": 273,
+          "difference": 1,
+          "kessFemale": 134,
+          "iceFemale": 134,
+          "kessCell": "학교별 주요통계!AZ4775",
+          "iceCell": "초등학교!AB279"
+        },
+        {
+          "grade": 5,
+          "kess": 278,
+          "ice": 278,
+          "difference": 0,
+          "kessFemale": 131,
+          "iceFemale": 131,
+          "kessCell": "학교별 주요통계!BC4775",
+          "iceCell": "초등학교!AD279"
+        },
+        {
+          "grade": 6,
+          "kess": 250,
+          "ice": 250,
+          "difference": 0,
+          "kessFemale": 132,
+          "iceFemale": 132,
+          "kessCell": "학교별 주요통계!BF4775",
+          "iceCell": "초등학교!AF279"
+        }
+      ],
+      "gradeDifferencesSum": 2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021085",
+      "name": "인천도담초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 440,
+      "iceStudents": 443,
+      "differenceKessMinusIce": -3,
+      "kessCell": "학교별 주요통계!AN4777",
+      "iceCell": "초등학교!AH242",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": false,
+      "kessAddress": "인천광역시 서구 청라커낼로 217(청라동. 도담초등학교)",
+      "iceAddress": "서구 청라커넬로 217(청라동178-8번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 58,
+          "ice": 59,
+          "difference": -1,
+          "kessFemale": 22,
+          "iceFemale": 22,
+          "kessCell": "학교별 주요통계!AQ4777",
+          "iceCell": "초등학교!V242"
+        },
+        {
+          "grade": 2,
+          "kess": 70,
+          "ice": 70,
+          "difference": 0,
+          "kessFemale": 34,
+          "iceFemale": 34,
+          "kessCell": "학교별 주요통계!AT4777",
+          "iceCell": "초등학교!X242"
+        },
+        {
+          "grade": 3,
+          "kess": 53,
+          "ice": 54,
+          "difference": -1,
+          "kessFemale": 25,
+          "iceFemale": 25,
+          "kessCell": "학교별 주요통계!AW4777",
+          "iceCell": "초등학교!Z242"
+        },
+        {
+          "grade": 4,
+          "kess": 81,
+          "ice": 81,
+          "difference": 0,
+          "kessFemale": 44,
+          "iceFemale": 43,
+          "kessCell": "학교별 주요통계!AZ4777",
+          "iceCell": "초등학교!AB242"
+        },
+        {
+          "grade": 5,
+          "kess": 91,
+          "ice": 92,
+          "difference": -1,
+          "kessFemale": 37,
+          "iceFemale": 37,
+          "kessCell": "학교별 주요통계!BC4777",
+          "iceCell": "초등학교!AD242"
+        },
+        {
+          "grade": 6,
+          "kess": 87,
+          "ice": 87,
+          "difference": 0,
+          "kessFemale": 36,
+          "iceFemale": 36,
+          "kessCell": "학교별 주요통계!BF4777",
+          "iceCell": "초등학교!AF242"
+        }
+      ],
+      "gradeDifferencesSum": -3,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021107",
+      "name": "인천해든초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 1657,
+      "iceStudents": 1658,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4779",
+      "iceCell": "초등학교!AH280",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 서로3로 60(당하동)",
+      "iceAddress": "서구 서로3로 60(당하동 1318)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 280,
+          "ice": 280,
+          "difference": 0,
+          "kessFemale": 132,
+          "iceFemale": 132,
+          "kessCell": "학교별 주요통계!AQ4779",
+          "iceCell": "초등학교!V280"
+        },
+        {
+          "grade": 2,
+          "kess": 272,
+          "ice": 272,
+          "difference": 0,
+          "kessFemale": 133,
+          "iceFemale": 132,
+          "kessCell": "학교별 주요통계!AT4779",
+          "iceCell": "초등학교!X280"
+        },
+        {
+          "grade": 3,
+          "kess": 273,
+          "ice": 274,
+          "difference": -1,
+          "kessFemale": 123,
+          "iceFemale": 123,
+          "kessCell": "학교별 주요통계!AW4779",
+          "iceCell": "초등학교!Z280"
+        },
+        {
+          "grade": 4,
+          "kess": 298,
+          "ice": 298,
+          "difference": 0,
+          "kessFemale": 151,
+          "iceFemale": 149,
+          "kessCell": "학교별 주요통계!AZ4779",
+          "iceCell": "초등학교!AB280"
+        },
+        {
+          "grade": 5,
+          "kess": 284,
+          "ice": 284,
+          "difference": 0,
+          "kessFemale": 140,
+          "iceFemale": 139,
+          "kessCell": "학교별 주요통계!BC4779",
+          "iceCell": "초등학교!AD280"
+        },
+        {
+          "grade": 6,
+          "kess": 250,
+          "ice": 250,
+          "difference": 0,
+          "kessFemale": 124,
+          "iceFemale": 125,
+          "kessCell": "학교별 주요통계!BF4779",
+          "iceCell": "초등학교!AF280"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021152",
+      "name": "인천검단초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 642,
+      "iceStudents": 644,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4786",
+      "iceCell": "초등학교!AH261",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 마전로115번길 24(마전동. 검단초등학교)",
+      "iceAddress": "서구 마전로115번길 24(마전동 1137)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 95,
+          "ice": 96,
+          "difference": -1,
+          "kessFemale": 45,
+          "iceFemale": 46,
+          "kessCell": "학교별 주요통계!AQ4786",
+          "iceCell": "초등학교!V261"
+        },
+        {
+          "grade": 2,
+          "kess": 98,
+          "ice": 98,
+          "difference": 0,
+          "kessFemale": 48,
+          "iceFemale": 48,
+          "kessCell": "학교별 주요통계!AT4786",
+          "iceCell": "초등학교!X261"
+        },
+        {
+          "grade": 3,
+          "kess": 90,
+          "ice": 90,
+          "difference": 0,
+          "kessFemale": 44,
+          "iceFemale": 44,
+          "kessCell": "학교별 주요통계!AW4786",
+          "iceCell": "초등학교!Z261"
+        },
+        {
+          "grade": 4,
+          "kess": 112,
+          "ice": 112,
+          "difference": 0,
+          "kessFemale": 57,
+          "iceFemale": 57,
+          "kessCell": "학교별 주요통계!AZ4786",
+          "iceCell": "초등학교!AB261"
+        },
+        {
+          "grade": 5,
+          "kess": 122,
+          "ice": 122,
+          "difference": 0,
+          "kessFemale": 60,
+          "iceFemale": 60,
+          "kessCell": "학교별 주요통계!BC4786",
+          "iceCell": "초등학교!AD261"
+        },
+        {
+          "grade": 6,
+          "kess": 125,
+          "ice": 126,
+          "difference": -1,
+          "kessFemale": 60,
+          "iceFemale": 60,
+          "kessCell": "학교별 주요통계!BF4786",
+          "iceCell": "초등학교!AF261"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021167",
+      "name": "인천금곡초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 254,
+      "iceStudents": 253,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4788",
+      "iceCell": "초등학교!AH262",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 완정로228번길 19(금곡동. 금곡초등학교)",
+      "iceAddress": "서구 완정로228번길 19(금곡동 721-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 34,
+          "ice": 34,
+          "difference": 0,
+          "kessFemale": 18,
+          "iceFemale": 18,
+          "kessCell": "학교별 주요통계!AQ4788",
+          "iceCell": "초등학교!V262"
+        },
+        {
+          "grade": 2,
+          "kess": 32,
+          "ice": 31,
+          "difference": 1,
+          "kessFemale": 17,
+          "iceFemale": 16,
+          "kessCell": "학교별 주요통계!AT4788",
+          "iceCell": "초등학교!X262"
+        },
+        {
+          "grade": 3,
+          "kess": 36,
+          "ice": 36,
+          "difference": 0,
+          "kessFemale": 16,
+          "iceFemale": 16,
+          "kessCell": "학교별 주요통계!AW4788",
+          "iceCell": "초등학교!Z262"
+        },
+        {
+          "grade": 4,
+          "kess": 45,
+          "ice": 45,
+          "difference": 0,
+          "kessFemale": 22,
+          "iceFemale": 22,
+          "kessCell": "학교별 주요통계!AZ4788",
+          "iceCell": "초등학교!AB262"
+        },
+        {
+          "grade": 5,
+          "kess": 62,
+          "ice": 62,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!BC4788",
+          "iceCell": "초등학교!AD262"
+        },
+        {
+          "grade": 6,
+          "kess": 45,
+          "ice": 45,
+          "difference": 0,
+          "kessFemale": 26,
+          "iceFemale": 26,
+          "kessCell": "학교별 주요통계!BF4788",
+          "iceCell": "초등학교!AF262"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021202",
+      "name": "인천마전초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 555,
+      "iceStudents": 557,
+      "differenceKessMinusIce": -2,
+      "kessCell": "학교별 주요통계!AN4790",
+      "iceCell": "초등학교!AH266",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 완정로34번길 23(마전동. 마전초등학교)",
+      "iceAddress": "서구 완정로34번길 23(마전동 999-12번지)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 60,
+          "ice": 61,
+          "difference": -1,
+          "kessFemale": 29,
+          "iceFemale": 30,
+          "kessCell": "학교별 주요통계!AQ4790",
+          "iceCell": "초등학교!V266"
+        },
+        {
+          "grade": 2,
+          "kess": 71,
+          "ice": 72,
+          "difference": -1,
+          "kessFemale": 30,
+          "iceFemale": 30,
+          "kessCell": "학교별 주요통계!AT4790",
+          "iceCell": "초등학교!X266"
+        },
+        {
+          "grade": 3,
+          "kess": 76,
+          "ice": 76,
+          "difference": 0,
+          "kessFemale": 37,
+          "iceFemale": 37,
+          "kessCell": "학교별 주요통계!AW4790",
+          "iceCell": "초등학교!Z266"
+        },
+        {
+          "grade": 4,
+          "kess": 95,
+          "ice": 95,
+          "difference": 0,
+          "kessFemale": 44,
+          "iceFemale": 44,
+          "kessCell": "학교별 주요통계!AZ4790",
+          "iceCell": "초등학교!AB266"
+        },
+        {
+          "grade": 5,
+          "kess": 128,
+          "ice": 128,
+          "difference": 0,
+          "kessFemale": 62,
+          "iceFemale": 62,
+          "kessCell": "학교별 주요통계!BC4790",
+          "iceCell": "초등학교!AD266"
+        },
+        {
+          "grade": 6,
+          "kess": 125,
+          "ice": 125,
+          "difference": 0,
+          "kessFemale": 62,
+          "iceFemale": 62,
+          "kessCell": "학교별 주요통계!BF4790",
+          "iceCell": "초등학교!AF266"
+        }
+      ],
+      "gradeDifferencesSum": -2,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021560",
+      "name": "인천발산초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 464,
+      "iceStudents": 465,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4812",
+      "iceCell": "초등학교!AH268",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 고산후로78번길 6. 인천발산초등학교 (당하동)",
+      "iceAddress": "서구 고산후로78번길 6(당하동 1038-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 54,
+          "ice": 54,
+          "difference": 0,
+          "kessFemale": 28,
+          "iceFemale": 28,
+          "kessCell": "학교별 주요통계!AQ4812",
+          "iceCell": "초등학교!V268"
+        },
+        {
+          "grade": 2,
+          "kess": 62,
+          "ice": 62,
+          "difference": 0,
+          "kessFemale": 30,
+          "iceFemale": 30,
+          "kessCell": "학교별 주요통계!AT4812",
+          "iceCell": "초등학교!X268"
+        },
+        {
+          "grade": 3,
+          "kess": 67,
+          "ice": 67,
+          "difference": 0,
+          "kessFemale": 34,
+          "iceFemale": 34,
+          "kessCell": "학교별 주요통계!AW4812",
+          "iceCell": "초등학교!Z268"
+        },
+        {
+          "grade": 4,
+          "kess": 85,
+          "ice": 85,
+          "difference": 0,
+          "kessFemale": 38,
+          "iceFemale": 38,
+          "kessCell": "학교별 주요통계!AZ4812",
+          "iceCell": "초등학교!AB268"
+        },
+        {
+          "grade": 5,
+          "kess": 107,
+          "ice": 107,
+          "difference": 0,
+          "kessFemale": 57,
+          "iceFemale": 57,
+          "kessCell": "학교별 주요통계!BC4812",
+          "iceCell": "초등학교!AD268"
+        },
+        {
+          "grade": 6,
+          "kess": 89,
+          "ice": 90,
+          "difference": -1,
+          "kessFemale": 44,
+          "iceFemale": 44,
+          "kessCell": "학교별 주요통계!BF4812",
+          "iceCell": "초등학교!AF268"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234021602",
+      "name": "인천원당초등학교",
+      "level": "초등학교",
+      "sourceRegion": "서구",
+      "kessStudents": 285,
+      "iceStudents": 286,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4818",
+      "iceCell": "초등학교!AH275",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 원당대로820번길 16(당하동.원당초등학교)",
+      "iceAddress": "서구 원당대로820번길 16(당하동 1022)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 30,
+          "ice": 30,
+          "difference": 0,
+          "kessFemale": 14,
+          "iceFemale": 14,
+          "kessCell": "학교별 주요통계!AQ4818",
+          "iceCell": "초등학교!V275"
+        },
+        {
+          "grade": 2,
+          "kess": 34,
+          "ice": 34,
+          "difference": 0,
+          "kessFemale": 15,
+          "iceFemale": 15,
+          "kessCell": "학교별 주요통계!AT4818",
+          "iceCell": "초등학교!X275"
+        },
+        {
+          "grade": 3,
+          "kess": 56,
+          "ice": 56,
+          "difference": 0,
+          "kessFemale": 32,
+          "iceFemale": 32,
+          "kessCell": "학교별 주요통계!AW4818",
+          "iceCell": "초등학교!Z275"
+        },
+        {
+          "grade": 4,
+          "kess": 48,
+          "ice": 49,
+          "difference": -1,
+          "kessFemale": 22,
+          "iceFemale": 23,
+          "kessCell": "학교별 주요통계!AZ4818",
+          "iceCell": "초등학교!AB275"
+        },
+        {
+          "grade": 5,
+          "kess": 52,
+          "ice": 52,
+          "difference": 0,
+          "kessFemale": 21,
+          "iceFemale": 21,
+          "kessCell": "학교별 주요통계!BC4818",
+          "iceCell": "초등학교!AD275"
+        },
+        {
+          "grade": 6,
+          "kess": 65,
+          "ice": 65,
+          "difference": 0,
+          "kessFemale": 32,
+          "iceFemale": 32,
+          "kessCell": "학교별 주요통계!BF4818",
+          "iceCell": "초등학교!AF275"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234031084",
+      "name": "인천청람중학교",
+      "level": "중학교",
+      "sourceRegion": "서구",
+      "kessStudents": 1004,
+      "iceStudents": 1003,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4828",
+      "iceCell": "중학교!Z160",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 청라커낼로 335(청라동. 인천청람중학교)",
+      "iceAddress": "서구 청라커낼로335(청라동 140-5)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 361,
+          "ice": 360,
+          "difference": 1,
+          "kessFemale": 190,
+          "iceFemale": 189,
+          "kessCell": "학교별 주요통계!AQ4828",
+          "iceCell": "중학교!T160"
+        },
+        {
+          "grade": 2,
+          "kess": 341,
+          "ice": 341,
+          "difference": 0,
+          "kessFemale": 153,
+          "iceFemale": 153,
+          "kessCell": "학교별 주요통계!AT4828",
+          "iceCell": "중학교!V160"
+        },
+        {
+          "grade": 3,
+          "kess": 302,
+          "ice": 302,
+          "difference": 0,
+          "kessFemale": 145,
+          "iceFemale": 145,
+          "kessCell": "학교별 주요통계!AW4828",
+          "iceCell": "중학교!X160"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234031274",
+      "name": "인천이음중학교",
+      "level": "중학교",
+      "sourceRegion": "서구",
+      "kessStudents": 1381,
+      "iceStudents": 1380,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4836",
+      "iceCell": "중학교!Z158",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 이음1로 455(원당동. 인천이음중학교)",
+      "iceAddress": "서구 이음1로 455(원당동 1016-3)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 477,
+          "ice": 477,
+          "difference": 0,
+          "kessFemale": 243,
+          "iceFemale": 243,
+          "kessCell": "학교별 주요통계!AQ4836",
+          "iceCell": "중학교!T158"
+        },
+        {
+          "grade": 2,
+          "kess": 471,
+          "ice": 471,
+          "difference": 0,
+          "kessFemale": 219,
+          "iceFemale": 219,
+          "kessCell": "학교별 주요통계!AT4836",
+          "iceCell": "중학교!V158"
+        },
+        {
+          "grade": 3,
+          "kess": 433,
+          "ice": 432,
+          "difference": 1,
+          "kessFemale": 224,
+          "iceFemale": 224,
+          "kessCell": "학교별 주요통계!AW4836",
+          "iceCell": "중학교!X158"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234031585",
+      "name": "원당중학교",
+      "level": "중학교",
+      "sourceRegion": "서구",
+      "kessStudents": 1118,
+      "iceStudents": 1119,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4850",
+      "iceCell": "중학교!Z148",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 고산로40번길 22(원당동. 원당중학교)",
+      "iceAddress": "서구 고산로40번길 22(원당동 852-2)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 342,
+          "ice": 342,
+          "difference": 0,
+          "kessFemale": 166,
+          "iceFemale": 166,
+          "kessCell": "학교별 주요통계!AQ4850",
+          "iceCell": "중학교!T148"
+        },
+        {
+          "grade": 2,
+          "kess": 358,
+          "ice": 359,
+          "difference": -1,
+          "kessFemale": 175,
+          "iceFemale": 175,
+          "kessCell": "학교별 주요통계!AT4850",
+          "iceCell": "중학교!V148"
+        },
+        {
+          "grade": 3,
+          "kess": 418,
+          "ice": 418,
+          "difference": 0,
+          "kessFemale": 204,
+          "iceFemale": 204,
+          "kessCell": "학교별 주요통계!AW4850",
+          "iceCell": "중학교!X148"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234031658",
+      "name": "인천해원중학교",
+      "level": "중학교",
+      "sourceRegion": "서구",
+      "kessStudents": 1010,
+      "iceStudents": 1011,
+      "differenceKessMinusIce": -1,
+      "kessCell": "학교별 주요통계!AN4854",
+      "iceCell": "중학교!Z163",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 청라한내로 21(청라동. 인천해원중학교)",
+      "iceAddress": "서구 청라한내로 21(청라동 103-25)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 328,
+          "ice": 328,
+          "difference": 0,
+          "kessFemale": 168,
+          "iceFemale": 168,
+          "kessCell": "학교별 주요통계!AQ4854",
+          "iceCell": "중학교!T163"
+        },
+        {
+          "grade": 2,
+          "kess": 338,
+          "ice": 338,
+          "difference": 0,
+          "kessFemale": 169,
+          "iceFemale": 169,
+          "kessCell": "학교별 주요통계!AT4854",
+          "iceCell": "중학교!V163"
+        },
+        {
+          "grade": 3,
+          "kess": 344,
+          "ice": 345,
+          "difference": -1,
+          "kessFemale": 183,
+          "iceFemale": 184,
+          "kessCell": "학교별 주요통계!AW4854",
+          "iceCell": "중학교!X163"
+        }
+      ],
+      "gradeDifferencesSum": -1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:234031833",
+      "name": "인천아라중학교",
+      "level": "중학교",
+      "sourceRegion": "서구",
+      "kessStudents": 1384,
+      "iceStudents": 1383,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4856",
+      "iceCell": "중학교!Z157",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 서구 서로2로 50(당하동. 인천아라중학교)",
+      "iceAddress": "서구 서로2로 50(서구 당하동 1272-8)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 480,
+          "ice": 480,
+          "difference": 0,
+          "kessFemale": 234,
+          "iceFemale": 234,
+          "kessCell": "학교별 주요통계!AQ4856",
+          "iceCell": "중학교!T157"
+        },
+        {
+          "grade": 2,
+          "kess": 476,
+          "ice": 476,
+          "difference": 0,
+          "kessFemale": 234,
+          "iceFemale": 234,
+          "kessCell": "학교별 주요통계!AT4856",
+          "iceCell": "중학교!V157"
+        },
+        {
+          "grade": 3,
+          "kess": 428,
+          "ice": 427,
+          "difference": 1,
+          "kessFemale": 208,
+          "iceFemale": 208,
+          "kessCell": "학교별 주요통계!AW4856",
+          "iceCell": "중학교!X157"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:236031472",
+      "name": "서도중학교",
+      "level": "중학교",
+      "sourceRegion": "강화군",
+      "kessStudents": 3,
+      "iceStudents": 2,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4900",
+      "iceCell": "중학교!Z173",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 강화군 서도면 주문도길 173(서도면. 서도초.중.고등학교)",
+      "iceAddress": "강화군 서도면 주문도길 173",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 0,
+          "ice": null,
+          "difference": null,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AQ4900",
+          "iceCell": "중학교!T173"
+        },
+        {
+          "grade": 2,
+          "kess": 1,
+          "ice": 1,
+          "difference": 0,
+          "kessFemale": 1,
+          "iceFemale": 1,
+          "kessCell": "학교별 주요통계!AT4900",
+          "iceCell": "중학교!V173"
+        },
+        {
+          "grade": 3,
+          "kess": 2,
+          "ice": 1,
+          "difference": 1,
+          "kessFemale": 0,
+          "iceFemale": null,
+          "kessCell": "학교별 주요통계!AW4900",
+          "iceCell": "중학교!X173"
+        }
+      ],
+      "gradeDifferencesSum": null,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    },
+    {
+      "schoolId": "kedi:236031534",
+      "name": "심도중학교",
+      "level": "중학교",
+      "sourceRegion": "강화군",
+      "kessStudents": 21,
+      "iceStudents": 20,
+      "differenceKessMinusIce": 1,
+      "kessCell": "학교별 주요통계!AN4901",
+      "iceCell": "중학교!Z171",
+      "matchMethod": "unique_school_name_level_and_source_region",
+      "roadAddressesMatch": true,
+      "kessAddress": "인천광역시 강화군 화도면 마니산로 703-20(화도면. 심도중학교)",
+      "iceAddress": "강화군 화도면 마니산로 703-20(상방리 845-1)",
+      "grades": [
+        {
+          "grade": 1,
+          "kess": 3,
+          "ice": 3,
+          "difference": 0,
+          "kessFemale": 1,
+          "iceFemale": 1,
+          "kessCell": "학교별 주요통계!AQ4901",
+          "iceCell": "중학교!T171"
+        },
+        {
+          "grade": 2,
+          "kess": 13,
+          "ice": 12,
+          "difference": 1,
+          "kessFemale": 8,
+          "iceFemale": 7,
+          "kessCell": "학교별 주요통계!AT4901",
+          "iceCell": "중학교!V171"
+        },
+        {
+          "grade": 3,
+          "kess": 5,
+          "ice": 5,
+          "difference": 0,
+          "kessFemale": 0,
+          "iceFemale": 0,
+          "kessCell": "학교별 주요통계!AW4901",
+          "iceCell": "중학교!X171"
+        }
+      ],
+      "gradeDifferencesSum": 1,
+      "causeStatus": "unconfirmed",
+      "finding": "학년별 관측값 차이; 행정적 원인 미확정"
+    }
+  ],
+  "failedGradeChecks": [],
+  "gradeSumPolicy": "Sum populated numeric grade cells; blanks retained as null, not assigned zero. This is an internal sum check, not independent cause verification.",
+  "historicalTeacherControls": [
+    {
+      "level": "elem",
+      "year": 2022,
+      "kess": 10399,
+      "icePublished": 10399,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=895&mi=11853",
+      "sourceSha256": "42e8e4aae2fe210eaa1db07831e5f2a734f360788fdf91f0ed2f044ce247b922",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "elem",
+      "year": 2023,
+      "kess": 10471,
+      "icePublished": 10471,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=895&mi=11853",
+      "sourceSha256": "42e8e4aae2fe210eaa1db07831e5f2a734f360788fdf91f0ed2f044ce247b922",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "elem",
+      "year": 2024,
+      "kess": 10519,
+      "icePublished": 10519,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=895&mi=11853",
+      "sourceSha256": "42e8e4aae2fe210eaa1db07831e5f2a734f360788fdf91f0ed2f044ce247b922",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "elem",
+      "year": 2025,
+      "kess": 10343,
+      "icePublished": 10343,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=895&mi=11853",
+      "sourceSha256": "42e8e4aae2fe210eaa1db07831e5f2a734f360788fdf91f0ed2f044ce247b922",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "mid",
+      "year": 2022,
+      "kess": 5933,
+      "icePublished": 5933,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=896&mi=11853",
+      "sourceSha256": "1f2b1d3a7507209d77c341eba352b8400bd0edc8e8c23c4c27faa677808266b9",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "mid",
+      "year": 2023,
+      "kess": 5895,
+      "icePublished": 5895,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=896&mi=11853",
+      "sourceSha256": "1f2b1d3a7507209d77c341eba352b8400bd0edc8e8c23c4c27faa677808266b9",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "mid",
+      "year": 2024,
+      "kess": 5864,
+      "icePublished": 5864,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=896&mi=11853",
+      "sourceSha256": "1f2b1d3a7507209d77c341eba352b8400bd0edc8e8c23c4c27faa677808266b9",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "mid",
+      "year": 2025,
+      "kess": 6185,
+      "icePublished": 6185,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=896&mi=11853",
+      "sourceSha256": "1f2b1d3a7507209d77c341eba352b8400bd0edc8e8c23c4c27faa677808266b9",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "high",
+      "year": 2022,
+      "kess": 7499,
+      "icePublished": 7499,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=897&mi=11853",
+      "sourceSha256": "cdddb9a6abd94aa092adedd449996c25ea4632e97ccd3cb5f599075aeafc2e40",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "high",
+      "year": 2023,
+      "kess": 7384,
+      "icePublished": 7384,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=897&mi=11853",
+      "sourceSha256": "cdddb9a6abd94aa092adedd449996c25ea4632e97ccd3cb5f599075aeafc2e40",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "high",
+      "year": 2024,
+      "kess": 7287,
+      "icePublished": 7287,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=897&mi=11853",
+      "sourceSha256": "cdddb9a6abd94aa092adedd449996c25ea4632e97ccd3cb5f599075aeafc2e40",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    },
+    {
+      "level": "high",
+      "year": 2025,
+      "kess": 7299,
+      "icePublished": 7299,
+      "difference": 0,
+      "url": "https://www.ice.go.kr/ice/cm/cntnts/cntntsView.do?cntntsId=897&mi=11853",
+      "sourceSha256": "cdddb9a6abd94aa092adedd449996c25ea4632e97ccd3cb5f599075aeafc2e40",
+      "scope": "separate official publication; not a separate independent survey or 2026 control"
+    }
+  ]
+}

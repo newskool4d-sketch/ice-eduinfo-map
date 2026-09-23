@@ -42,7 +42,7 @@ export default function RegionList({ bundle }: RegionListProps) {
 
   return (
     <div>
-      <div className="mb-4">
+      {ACTIVE_PROFILE.capabilities.historicalTrends && <div className="mb-4">
         <TimeSeriesChart
           key={indicatorId}
           data={provinceTrend}
@@ -52,7 +52,7 @@ export default function RegionList({ bundle }: RegionListProps) {
           format={def.format}
           onShowStudents={indicatorId === "students_change_5y" ? () => setIndicator("students_total") : undefined}
         />
-      </div>
+      </div>}
       <p className="mb-3 text-sm text-ink-muted">시군을 클릭하거나 목록에서 선택하세요</p>
       <p className="mb-2 text-xs text-ink-muted">{label} 기준</p>
       <ul className="flex flex-col gap-1">

@@ -3,6 +3,7 @@
  * the indicator registry. No React import.
  */
 import type { ClosedSchoolsFile } from "../closedSchools/types";
+import { ACTIVE_PROFILE } from "../profiles";
 import { isRegionCode, PROVINCE_CODE, REGION_CODES } from "../geo/regions";
 import { INDICATORS } from "../indicators/registry";
 import type { IndicatorFile, Manifest, SeriesFile } from "../indicators/types";
@@ -15,7 +16,7 @@ import type { DataBundle, NeighborsFeatureCollection, RegionsFeatureCollection }
 // still satisfies this type (a function accepting a wider input type is a
 // valid substitute), and it lets tests inject a fetchImpl typed over plain
 // strings without fighting the DOM lib's URL|RequestInfo union.
-type FetchImpl = (url: string) => Promise<Response>;
+type FetchImpl = (url: string, init?: RequestInit) => Promise<Response>;
 
 async function fetchJson<T>(fetchImpl: FetchImpl, url: string): Promise<T> {
   const res = await fetchImpl(url);
@@ -36,13 +37,21 @@ async function fetchJson<T>(fetchImpl: FetchImpl, url: string): Promise<T> {
  * would just 404.
  */
 export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBundle> {
+  if (!ACTIVE_PROFILE.pipelineReady) {
+    throw new Error(`${ACTIVE_PROFILE.province.shortName} 지도 자료를 준비하고 있습니다.`);
+  }
+  const dataUrl = (name: string) => `${ACTIVE_PROFILE.files.publicDataUrl}/${name}`;
   const [regions, neighbors, charset, manifest, schools, closedSchools] = await Promise.all([
-    fetchJson<RegionsFeatureCollection>(fetchImpl, "/data/regions.geojson"),
-    fetchJson<NeighborsFeatureCollection>(fetchImpl, "/data/neighbors.geojson"),
-    fetchJson<string>(fetchImpl, "/data/charset.json"),
-    fetchJson<Manifest>(fetchImpl, "/data/manifest.json"),
-    fetchJson<SchoolsFile>(fetchImpl, "/data/schools.json"),
-    fetchJson<ClosedSchoolsFile>(fetchImpl, "/data/closed-schools.json"),
+    fetchJson<RegionsFeatureCollection>(fetchImpl, dataUrl("regions.geojson")),
+    ACTIVE_PROFILE.capabilities.neighborSilhouettes
+      ? fetchJson<NeighborsFeatureCollection>(fetchImpl, dataUrl("neighbors.geojson"))
+      : Promise.resolve<NeighborsFeatureCollection>({ type: "FeatureCollection", features: [] }),
+    fetchJson<string>(fetchImpl, dataUrl("charset.json")),
+    fetchJson<Manifest>(fetchImpl, dataUrl("manifest.json")),
+    fetchJson<SchoolsFile>(fetchImpl, dataUrl("schools.json")),
+    ACTIVE_PROFILE.capabilities.closedSchools
+      ? fetchJson<ClosedSchoolsFile>(fetchImpl, dataUrl("closed-schools.json"))
+      : Promise.resolve(null),
   ]);
 
   const indicatorIds = INDICATORS.map((d) => d.id);
@@ -76,13 +85,13 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
     throw new Error("데이터가 갱신 중입니다. 잠시 후 새로고침해 주세요.");
   }
 
-  const seriesIds = INDICATORS.filter((d) => d.aggregate.kind !== "external").map((d) => d.id);
+  const seriesIds = (ACTIVE_PROFILE.capabilities.historicalTrends ? INDICATORS : []).filter((d) => d.aggregate.kind !== "external").map((d) => d.id);
 
   const [indicatorFiles, seriesFiles] = await Promise.all([
     Promise.all(
-      indicatorIds.map((id) => fetchJson<IndicatorFile>(fetchImpl, `/data/indicators/${id}.json`)),
+      indicatorIds.map((id) => fetchJson<IndicatorFile>(fetchImpl, dataUrl(`indicators/${id}.json`))),
     ),
-    Promise.all(seriesIds.map((id) => fetchJson<SeriesFile>(fetchImpl, `/data/series/${id}.json`))),
+    Promise.all(seriesIds.map((id) => fetchJson<SeriesFile>(fetchImpl, dataUrl(`series/${id}.json`)))),
   ]);
 
   const indicators: Record<string, IndicatorFile> = {};
@@ -95,7 +104,9 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
     series[id] = seriesFiles[i];
   });
 
-  return { regions, neighbors, charset, manifest, schools, closedSchools, indicators, series };
+  const incheonHistory = ACTIVE_PROFILE.id === "incheon"
+    ? await fetchJson<import("./incheonHistory").IncheonHistory>(url => fetchImpl(url, { cache: "no-store" }), dataUrl("history.json")) : undefined;
+  return { regions, neighbors, charset, manifest, schools, closedSchools, indicators, series, ...(incheonHistory ? { incheonHistory } : {}) };
 }
 
 /**
@@ -154,7 +165,7 @@ export function assertBundle(bundle: DataBundle): void {
   // 시군 (mirrors the schools.json regionCode check above). An empty row
   // list is NOT flagged as a problem here (unlike schools.json) — an
   // all-zero 폐교 dataset would be a legitimate, if surprising, real state.
-  const badRegionClosedSchools = bundle.closedSchools.rows.filter((r) => !isRegionCode(r.regionCode));
+  const badRegionClosedSchools = (bundle.closedSchools?.rows ?? []).filter((r) => !isRegionCode(r.regionCode));
   if (badRegionClosedSchools.length > 0) {
     problems.push(
       `closed-schools.json has ${badRegionClosedSchools.length} row(s) with a regionCode outside the 14 시군: ` +

@@ -1,6 +1,8 @@
 "use client";
 import { useMapQuery } from "@/lib/state/urlState";
 import type { SeriesFile } from "@/lib/indicators/types";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
+import { INDICATOR_IDS } from "@/lib/indicators/registry";
 import IndicatorMenu from "./IndicatorMenu";
 
 const CHOICES = [
@@ -10,6 +12,7 @@ const CHOICES = [
   ["특수교육", "special-education"],
   ["지역 변화", "students_change_5y"],
 ] as const;
+const availableChoices = CHOICES.filter(([, id]) => INDICATOR_IDS.includes(id) || (id === "special-education" && ACTIVE_PROFILE.capabilities.educationIssues));
 
 export default function MapTopicMenu({
   series, onExploreIssues,
@@ -21,7 +24,7 @@ export default function MapTopicMenu({
   const active =
     query.issueId === "special-education"
       ? query.issueId
-      : !query.issueId && CHOICES.some(([, id]) => id === query.indicatorId)
+      : !query.issueId && availableChoices.some(([, id]) => id === query.indicatorId)
         ? query.indicatorId
         : "";
   const select = (id: string) =>
@@ -37,14 +40,14 @@ export default function MapTopicMenu({
         <option value="" disabled>
           주제 선택
         </option>
-        {CHOICES.map(([label, id]) => (
+        {availableChoices.map(([label, id]) => (
           <option key={id} value={id}>
             {label}
           </option>
         ))}
       </select>
       <nav aria-label="교육현황 빠른 선택" className="hidden gap-1 xl:flex">
-        {CHOICES.map(([label, id]) => (
+        {availableChoices.map(([label, id]) => (
           <button
             key={id}
             aria-pressed={active === id}
@@ -56,7 +59,7 @@ export default function MapTopicMenu({
         ))}
       </nav>
       <IndicatorMenu series={series} />
-      <button aria-label="교육문제 탐색" className="min-h-11 shrink-0 rounded-lg bg-accent-soft px-2 text-xs font-semibold text-accent-text" onClick={() => { query.setView("issues"); onExploreIssues?.(); }}>교육문제<span className="hidden xl:inline"> 탐색</span></button>
+      {ACTIVE_PROFILE.capabilities.educationIssues && <button aria-label="교육문제 탐색" className="min-h-11 shrink-0 rounded-lg bg-accent-soft px-2 text-xs font-semibold text-accent-text" onClick={() => { query.setView("issues"); onExploreIssues?.(); }}>교육문제<span className="hidden xl:inline"> 탐색</span></button>}
     </div>
   );
 }

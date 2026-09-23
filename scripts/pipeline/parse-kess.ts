@@ -9,12 +9,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import type { IndicatorSource } from "../../src/lib/indicators/types";
 import { readSchoolSheet } from "./lib/kess-xlsx";
 import { KESS_FILE_IDS } from "./sources";
 
-const RAW_DIR = path.resolve(import.meta.dirname, "../../data/raw");
-const INTERIM_DIR = path.resolve(import.meta.dirname, "../../data/interim");
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
+const RAW_DIR = PROFILE_PATHS.raw;
+const INTERIM_DIR = PROFILE_PATHS.interim;
 
 /**
  * `year` here is a per-year override applied at the write site below (fix

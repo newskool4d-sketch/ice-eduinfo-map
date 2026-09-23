@@ -44,6 +44,13 @@ next-env.d.ts
 data/raw/*
 !data/raw/.gitkeep
 
+# Verified staging packages are generated from the Incheon input manifest.
+/data/output/
+
+# Local analysis snapshots and browser screenshots; published summaries live in docs.
+/data/interim/incheon/
+/output/
+
 # superpowers / agent scratch state
 .superpowers/
 

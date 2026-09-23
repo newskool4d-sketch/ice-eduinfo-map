@@ -8,6 +8,7 @@
  * Pure TS, no React import: this file is imported both by client components
  * and by scripts/pipeline/build-indicators.ts under tsx.
  */
+import { ACTIVE_PROFILE } from "../profiles";
 import { formatArea, formatDecimal, formatInt, formatPercent } from "../format";
 import type { IndicatorDef, IndicatorSource } from "./types";
 
@@ -42,7 +43,7 @@ const CLOSED_SCHOOLS_SOURCE: IndicatorSource = {
  */
 export const CLOSED_SCHOOLS_AGGREGATE_FILE = "interim/closed-schools";
 
-export const INDICATORS: IndicatorDef[] = [
+const ALL_INDICATORS: IndicatorDef[] = [
   {
     id: "students_total",
     group: "scale",
@@ -308,6 +309,16 @@ export const INDICATORS: IndicatorDef[] = [
     caveat: "기준: 하단 출처의 기준일이 속한 연도를 포함해 최근 10개년(폐교연도 기준)을 집계합니다. 전북특별자치도교육청 폐교재산 현황 기준(하단 출처의 기준일 참조).",
   },
 ];
+
+export const INDICATORS: IndicatorDef[] = ALL_INDICATORS
+  .filter((def) => !ACTIVE_PROFILE.indicatorIds || ACTIVE_PROFILE.indicatorIds.includes(def.id))
+  .map((def) => ACTIVE_PROFILE.id === "incheon" ? {
+    ...def, byLevel: true,
+    description: def.description.replaceAll("전북", "인천"),
+    ...(def.id === "teachers_total" || def.id === "students_per_teacher" ? {
+      caveat: "정규·기간제 교원 합계(휴직 포함, 퇴직·강사 제외). 같은 기준일의 인천 독립 총계는 미확보 상태입니다.",
+    } : {}),
+  } : def);
 
 export const INDICATOR_IDS: string[] = INDICATORS.map((d) => d.id);
 

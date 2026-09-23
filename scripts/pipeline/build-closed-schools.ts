@@ -21,6 +21,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { ClosedSchoolsFile } from "../../src/lib/closedSchools/types";
@@ -32,11 +33,12 @@ import {
   referenceDateFromFilename,
 } from "./sources";
 
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
-const RAW_DIR = path.join(ROOT, "data/raw");
-const INTERIM_DIR = path.join(ROOT, "data/interim");
-const PUBLIC_DATA_DIR = path.join(ROOT, "public/data");
+const RAW_DIR = PROFILE_PATHS.raw;
+const INTERIM_DIR = PROFILE_PATHS.interim;
+const PUBLIC_DATA_DIR = PROFILE_PATHS.publicData;
 
 const INTERIM_FILENAME_RE = /^closed-schools-(\d{8})\.json$/;
 

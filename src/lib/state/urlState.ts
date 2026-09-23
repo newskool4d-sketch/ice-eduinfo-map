@@ -15,8 +15,10 @@ import { parseAsStringLiteral, useQueryStates } from "nuqs";
 
 import { ISSUE_IDS, ISSUE_METRICS, issueById, resolveIssueMetric } from "../issues/registry";
 
-export const MAP_VIEWS = ["schools", "issues", "statistics"] as const;
-export type MapPanelView = (typeof MAP_VIEWS)[number];
+import { ACTIVE_PROFILE } from "../profiles";
+export type MapPanelView = "schools" | "issues" | "statistics";
+export const MAP_VIEWS: readonly MapPanelView[] = ACTIVE_PROFILE.capabilities.educationIssues ? ["schools", "issues", "statistics"] : ["schools", "statistics"];
+
 
 import { REGION_CODES, type RegionCode } from "../geo/regions";
 import { DEFAULT_INDICATOR_ID, INDICATOR_IDS } from "../indicators/registry";

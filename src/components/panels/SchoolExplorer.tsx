@@ -260,11 +260,11 @@ export default function SchoolExplorer({
                     {regionName(school.regionCode as RegionCode)} ·{" "}
                     {SCHOOL_LEVEL_LABELS[school.level]}
                   </span>
-                  <span>
+                  {(!metric || metric.kind === "region" || ACTIVE_PROFILE.id !== "incheon") && <span>
                     {school.students === null
                       ? "학생수 자료 없음"
                       : `학생 ${school.students.toLocaleString("ko-KR")}명`}
-                  </span>
+                  </span>}
                   {metric && metric.kind !== "region" && (
                     <span>
                       {metric.title}:{" "}

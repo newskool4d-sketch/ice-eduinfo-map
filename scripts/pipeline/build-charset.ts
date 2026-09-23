@@ -5,15 +5,17 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { REGIONS } from "../../src/lib/geo/regions";
 
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "../..");
 
-const SCHOOLS_JSON_PATH = path.join(ROOT, "public/data/schools.json");
-const OUTPUT_PATH = path.join(ROOT, "public/data/charset.json");
+const SCHOOLS_JSON_PATH = path.join(PROFILE_PATHS.publicData, "schools.json");
+const OUTPUT_PATH = path.join(PROFILE_PATHS.publicData, "charset.json");
 
 // Digits, common punctuation/units, and every Korean word the dashboard's
 // static UI copy (legend, KPI labels, empty states, etc.) is expected to

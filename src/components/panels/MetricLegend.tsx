@@ -4,19 +4,30 @@ import { ACTIVE_PROFILE } from "@/lib/profiles";
 
 import { METRIC_RAMP } from "@/lib/mapMetrics";
 
+interface MetricLegendProps {
+  metric: MapMetricSpec;
+  density: boolean;
+  densityUnavailable?: boolean;
+  children?: ReactNode;
+  schoolSelected?: boolean;
+  mobile?: boolean;
+  clustered?: boolean;
+  targetsSeparate?: boolean;
+}
+
 export default function MetricLegend({
   metric,
   density,
   densityUnavailable = false,
   children,
   schoolSelected = false,
-}: {
-  metric: MapMetricSpec;
-  density: boolean;
-  densityUnavailable?: boolean;
-  children?: ReactNode;
-  schoolSelected?: boolean;
-}) {
+  mobile = false,
+  clustered = false,
+  targetsSeparate = false,
+}: MetricLegendProps) {
+  if (ACTIVE_PROFILE.id === "incheon") return <IncheonMetricLegend
+    metric={metric} density={density} densityUnavailable={densityUnavailable}
+    schoolSelected={schoolSelected} mobile={mobile} clustered={clustered} targetsSeparate={targetsSeparate}>{children}</IncheonMetricLegend>;
   const legend = density
     ? METRIC_RAMP.map((color, i) => ({
         color,
@@ -80,4 +91,42 @@ export default function MetricLegend({
       )}
     </section>
   );
+}
+
+function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelected, mobile, clustered, targetsSeparate, children }: MetricLegendProps) {
+  const numeric = !density && metric.kind !== "category" && !metric.regionOverlay;
+  const labelOf = (label: string) => numeric && metric.unit && label.endsWith(metric.unit)
+    ? label.slice(0, -metric.unit.length) : label;
+  return <section aria-label="선택 지표 범례" data-testid="metric-legend"
+    className={`ice-map-legend ${schoolSelected ? "ice-map-legend-raised" : ""}`}>
+    <div className="ice-legend-heading">
+      <h2 data-testid="legend-indicator-label">{metric.title}</h2>
+      {numeric && <span>단위: {metric.unit}</span>}
+    </div>
+    <p className="ice-legend-total">{metric.summary}</p>
+    <details className="ice-legend-details" open={!mobile}>
+      <summary>{density ? "집중도 범례" : "색상 범례"}<span aria-hidden="true">접기 / 펼치기</span></summary>
+      <div className="ice-legend-body">
+        <p className="ice-legend-scope">{density ? "상대 집중도 · 낮음 → 높음" : metric.kind === "region" ? "군·구 단위" : "개별 학교의 색상 · 인천 전체 기준"}</p>
+        {density ? <div className="ice-legend-density">
+          <div style={{ background: `linear-gradient(to right, ${METRIC_RAMP.map(c => `rgb(${c.slice(0, 3).join(",")})`).join(",")})` }} />
+          <p><span>낮음</span><span>높음</span></p>
+        </div> : <ul className="ice-legend-items">
+          {metric.legend.map((item, i) => <li key={i}>
+            <span aria-hidden="true" className="ice-legend-swatch" style={{ background: `rgb(${item.color.slice(0, 3).join(",")})` }} />
+            <span>{labelOf(item.label)}</span>
+          </li>)}
+        </ul>}
+        {clustered && <p className="ice-legend-clusters"><span aria-hidden="true">12</span>숫자 원: 학교·분교 위치 수<br />{targetsSeparate ? "소규모학교는 색 점으로 따로 표시합니다." : "확대하면 개별 학교로 나뉩니다."}</p>}
+        <p className="ice-legend-date">{metric.date}</p>
+        <details className="ice-legend-note"><summary>집계 기준·지도 읽는 법</summary>
+          <p data-testid="legend-description">{metric.note}</p>
+          {metric.proportional && <p>개별 원 크기: 학교별 수치 · 최소 크기는 선택 편의를 위한 표시입니다.</p>}
+          {metric.specialEducation && <p>● 일반학교 특수학급 · ◆ 특수학교 (별도 집계)</p>}
+        </details>
+        {children}
+        {densityUnavailable && <p>이 기기에서는 학교별 수치로 표시합니다.</p>}
+      </div>
+    </details>
+  </section>;
 }

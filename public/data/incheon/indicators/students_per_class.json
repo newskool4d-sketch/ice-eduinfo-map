@@ -1,0 +1,300 @@
+{
+  "id": "students_per_class",
+  "year": 2026,
+  "referenceDate": "2026-04-01",
+  "source": {
+    "name": "한국교육개발원 KESS 2026 학교별 주요통계",
+    "url": "https://kess.kedi.re.kr/contents/dataset",
+    "year": 2026
+  },
+  "rows": [
+    {
+      "regionCode": "28125",
+      "value": 19.358778625954198
+    },
+    {
+      "regionCode": "28125",
+      "level": "elem",
+      "value": 18.45736434108527
+    },
+    {
+      "regionCode": "28125",
+      "level": "mid",
+      "value": 21.103703703703705
+    },
+    {
+      "regionCode": "28125",
+      "level": "high",
+      "value": 19.34732824427481
+    },
+    {
+      "regionCode": "28125",
+      "level": "special",
+      "value": null
+    },
+    {
+      "regionCode": "28155",
+      "value": 23.496382054992765
+    },
+    {
+      "regionCode": "28155",
+      "level": "elem",
+      "value": 21.14441416893733
+    },
+    {
+      "regionCode": "28155",
+      "level": "mid",
+      "value": 27.666666666666668
+    },
+    {
+      "regionCode": "28155",
+      "level": "high",
+      "value": 24.862068965517242
+    },
+    {
+      "regionCode": "28155",
+      "level": "special",
+      "value": null
+    },
+    {
+      "regionCode": "28177",
+      "value": 20.708724832214767
+    },
+    {
+      "regionCode": "28177",
+      "level": "elem",
+      "value": 20.599162011173185
+    },
+    {
+      "regionCode": "28177",
+      "level": "mid",
+      "value": 25.313531353135314
+    },
+    {
+      "regionCode": "28177",
+      "level": "high",
+      "value": 19.57487922705314
+    },
+    {
+      "regionCode": "28177",
+      "level": "special",
+      "value": 5.842105263157895
+    },
+    {
+      "regionCode": "28185",
+      "value": 23.782328578002762
+    },
+    {
+      "regionCode": "28185",
+      "level": "elem",
+      "value": 21.93368700265252
+    },
+    {
+      "regionCode": "28185",
+      "level": "mid",
+      "value": 27.92084942084942
+    },
+    {
+      "regionCode": "28185",
+      "level": "high",
+      "value": 25.470588235294116
+    },
+    {
+      "regionCode": "28185",
+      "level": "special",
+      "value": 5.9375
+    },
+    {
+      "regionCode": "28200",
+      "value": 22.301951219512194
+    },
+    {
+      "regionCode": "28200",
+      "level": "elem",
+      "value": 20.1855249745158
+    },
+    {
+      "regionCode": "28200",
+      "level": "mid",
+      "value": 26.401544401544403
+    },
+    {
+      "regionCode": "28200",
+      "level": "high",
+      "value": 25.074626865671643
+    },
+    {
+      "regionCode": "28200",
+      "level": "special",
+      "value": 5.865853658536586
+    },
+    {
+      "regionCode": "28237",
+      "value": 20.50580514891469
+    },
+    {
+      "regionCode": "28237",
+      "level": "elem",
+      "value": 19.09452736318408
+    },
+    {
+      "regionCode": "28237",
+      "level": "mid",
+      "value": 24.55187637969095
+    },
+    {
+      "regionCode": "28237",
+      "level": "high",
+      "value": 22.47285067873303
+    },
+    {
+      "regionCode": "28237",
+      "level": "special",
+      "value": 4.654320987654321
+    },
+    {
+      "regionCode": "28245",
+      "value": 20.14503816793893
+    },
+    {
+      "regionCode": "28245",
+      "level": "elem",
+      "value": 18.688391038696537
+    },
+    {
+      "regionCode": "28245",
+      "level": "mid",
+      "value": 22.62015503875969
+    },
+    {
+      "regionCode": "28245",
+      "level": "high",
+      "value": 22.8515625
+    },
+    {
+      "regionCode": "28245",
+      "level": "special",
+      "value": 5.813953488372093
+    },
+    {
+      "regionCode": "28275",
+      "value": 23.39524085896692
+    },
+    {
+      "regionCode": "28275",
+      "level": "elem",
+      "value": 20.862955032119913
+    },
+    {
+      "regionCode": "28275",
+      "level": "mid",
+      "value": 26.93208430913349
+    },
+    {
+      "regionCode": "28275",
+      "level": "high",
+      "value": 25.756906077348066
+    },
+    {
+      "regionCode": "28275",
+      "level": "special",
+      "value": null
+    },
+    {
+      "regionCode": "28290",
+      "value": 22.62482946793997
+    },
+    {
+      "regionCode": "28290",
+      "level": "elem",
+      "value": 20.855054811205846
+    },
+    {
+      "regionCode": "28290",
+      "level": "mid",
+      "value": 25.99706744868035
+    },
+    {
+      "regionCode": "28290",
+      "level": "high",
+      "value": 27.410358565737052
+    },
+    {
+      "regionCode": "28290",
+      "level": "special",
+      "value": 5.679245283018868
+    },
+    {
+      "regionCode": "28710",
+      "value": 14.783171521035598
+    },
+    {
+      "regionCode": "28710",
+      "level": "elem",
+      "value": 10.683544303797468
+    },
+    {
+      "regionCode": "28710",
+      "level": "mid",
+      "value": 18.191176470588236
+    },
+    {
+      "regionCode": "28710",
+      "level": "high",
+      "value": 19.795180722891565
+    },
+    {
+      "regionCode": "28710",
+      "level": "special",
+      "value": null
+    },
+    {
+      "regionCode": "28720",
+      "value": 7.553191489361702
+    },
+    {
+      "regionCode": "28720",
+      "level": "elem",
+      "value": 6.276595744680851
+    },
+    {
+      "regionCode": "28720",
+      "level": "mid",
+      "value": 8.652173913043478
+    },
+    {
+      "regionCode": "28720",
+      "level": "high",
+      "value": 9
+    },
+    {
+      "regionCode": "28720",
+      "level": "special",
+      "value": null
+    },
+    {
+      "regionCode": "28000",
+      "value": 21.75877192982456
+    },
+    {
+      "regionCode": "28000",
+      "level": "elem",
+      "value": 20.09509335649153
+    },
+    {
+      "regionCode": "28000",
+      "level": "mid",
+      "value": 25.537570444583594
+    },
+    {
+      "regionCode": "28000",
+      "level": "high",
+      "value": 23.413943355119827
+    },
+    {
+      "regionCode": "28000",
+      "level": "special",
+      "value": 5.568681318681318
+    }
+  ]
+}

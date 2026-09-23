@@ -254,14 +254,14 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           onClick={handlePopoverClick}
           onKeyDown={handlePopoverKeyDown}
           onKeyUp={handlePopoverKeyUp}
-          className="fixed left-3 right-3 top-14 z-50 mt-2 max-h-[70vh] xl:absolute xl:left-auto xl:right-0 xl:top-full xl:w-[640px] overflow-y-auto rounded-lg border border-line bg-surface p-3 shadow-xl"
+          className="fixed left-3 right-3 top-14 z-50 mt-2 max-h-[70vh] xl:absolute xl:left-0 xl:right-auto xl:top-full xl:w-[640px] overflow-y-auto rounded-lg border border-line bg-surface p-3 shadow-xl"
         >
           <IndicatorPicker
             value={issueId ? "" : indicatorId}
             onChange={handleChange}
             series={series}
           />
-          <section
+          {PUBLISHED_ISSUES.length > 0 && <section
             className="mt-3 border-t border-line pt-3"
             aria-label="교육문제 지표"
           >
@@ -287,7 +287,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
                 </div>
               </fieldset>
             ))}
-          </section>
+          </section>}
         </div>
       )}
     </div>

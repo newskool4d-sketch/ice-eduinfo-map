@@ -1,0 +1,28 @@
+{
+  "files": [
+    {
+      "sha256": "638dea6aef77d13c248a0bbcbb995c8e84aabd689f94f75e6b1c47a8beb86c19",
+      "path": "data/raw/incheon/history/kess-2022.xlsx",
+      "url": "https://kess.kedi.re.kr/contents/dataSet/downLoad.do?fileNm=20247303352490.xlsx&userfileNm=x.xlsx",
+      "year": 2022
+    },
+    {
+      "sha256": "8ac30c1438b9fccf2eb41c54e290340cb534f45890bf18359693eb28b31bf877",
+      "path": "data/raw/incheon/history/kess-2023.xlsx",
+      "url": "https://kess.kedi.re.kr/contents/dataSet/downLoad.do?fileNm=202511821715160.xlsx&userfileNm=x.xlsx",
+      "year": 2023
+    },
+    {
+      "sha256": "30e48d710148057f159c8848fbd9fdbc8943946c7bc6f1cc9de1799e88adbc74",
+      "path": "data/raw/incheon/history/kess-2024.xlsx",
+      "url": "https://kess.kedi.re.kr/contents/dataSet/downLoad.do?fileNm=202511821729896.xlsx&userfileNm=x.xlsx",
+      "year": 2024
+    },
+    {
+      "sha256": "ed8df2b15d00917d88ab9338fcf90567491af80d7bba41d259e2189342bd0fbb",
+      "path": "data/raw/incheon/history/kess-2025.xlsx",
+      "url": "https://kess.kedi.re.kr/contents/dataSet/downLoad.do?fileNm=2026162291710.xlsx&userfileNm=x.xlsx",
+      "year": 2025
+    }
+  ]
+}

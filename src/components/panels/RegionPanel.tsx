@@ -112,7 +112,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
   // first (a reasonable default; the whole list is short enough — see the
   // per-region table in task-5-report.md — that no further filter/sort UI
   // is needed here, unlike the 학교 목록 above).
-  const regionClosedSchools = bundle.closedSchools.rows
+  const regionClosedSchools = (bundle.closedSchools?.rows ?? [])
     .filter((s) => s.regionCode === regionCode)
     .slice()
     .sort((a, b) => b.year - a.year);
@@ -197,7 +197,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         )}
       </section>
 
-      <div className="mb-4">
+      {ACTIVE_PROFILE.capabilities.historicalTrends && <div className="mb-4">
         <TimeSeriesChart
           key={`${indicatorId}:${regionCode}`}
           data={trendRows}
@@ -207,7 +207,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
           format={def.format}
           onShowStudents={indicatorId === "students_change_5y" ? () => setIndicator("students_total") : undefined}
         />
-      </div>
+      </div>}
 
       <section className="mb-4">
         <p className="mb-1 text-xs text-ink-muted">다른 지표</p>
@@ -364,7 +364,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
         )}
       </section>}
 
-      <section className="mb-4">
+      {bundle.closedSchools && <section className="mb-4">
         <details data-testid="closed-schools-section">
           <summary className="cursor-pointer text-xs text-ink-muted hover:text-ink">
             폐교 목록 ({regionClosedSchools.length}개)
@@ -390,7 +390,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
             </table>
           )}
         </details>
-      </section>
+      </section>}
 
       <footer className="text-[10px] text-ink-muted">
         {def.source.name} · {referenceDateLabel(file)}

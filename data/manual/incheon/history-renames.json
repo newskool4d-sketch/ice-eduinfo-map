@@ -1,0 +1,15 @@
+{
+  "source": {
+    "url": "https://www.ice.go.kr/ice/ad/schul/chg/chgSchulMngList.do",
+    "title": "인천광역시교육청 폐교 및 교명변경학교현황",
+    "retrievedAt": "2026-09-23",
+    "path": "data/raw/incheon/history/ice-school-renames-20260923.html",
+    "sha256": "f2af382ee997adc36895b8b80552fddf5b361ff20ffb6d7232b7311691775736"
+  },
+  "renames": [
+    {"code":"230052520","oldName":"인천정보과학고등학교","newName":"인천반도체고등학교","effectiveDate":"20240301"},
+    {"code":"230053775","oldName":"인천세무고등학교","newName":"문곡고등학교","effectiveDate":"20240301"},
+    {"code":"230053964","oldName":"인천중앙여자상업고등학교","newName":"인천중앙여자고등학교","effectiveDate":"20240301"},
+    {"code":"232031308","oldName":"부일여자중학교","newName":"인천동수중학교","effectiveDate":"20240301"}
+  ]
+}

@@ -1,4 +1,5 @@
 "use client";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 
 /**
  * Task E — 읍면동 경계: fetches `/data/emd/<code>.geojson` (built by
@@ -79,7 +80,7 @@ export function useEmdBoundaries(code: string | null, enabled: boolean): Feature
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch(`/data/emd/${activeCode}.geojson`);
+        const res = await fetch(`${ACTIVE_PROFILE.files.publicDataUrl}/emd/${activeCode}.geojson`);
         if (!res.ok) {
           if (!cancelled) setFc(null);
           return;

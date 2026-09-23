@@ -1,0 +1,88 @@
+{
+  "checkedDate": "2026-09-23",
+  "referenceDate": "2026-04-01",
+  "overallStatus": "PARTIAL",
+  "studentCheck": {
+    "newlyQueried": 88,
+    "reused": 3,
+    "target": 91,
+    "counts": {
+      "MATCH": 91
+    },
+    "arithmeticPassed": 91,
+    "administrativeCausesConfirmed": 0,
+    "interpretation": "All discrepancy records match KESS in a separate education-statistics-linked publication; ICE source differences remain."
+  },
+  "teacherCheck": {
+    "newlyQueried": 559,
+    "reused": 3,
+    "target": 562,
+    "counts": {
+      "MATCH": 560,
+      "NO_DISCLOSURE": 2
+    },
+    "observedTotals": {
+      "schoolinfoRawTotal": 25235,
+      "instructors": 315,
+      "nativeInstructorSubset": 4,
+      "normalized": 24920,
+      "regular": 20320,
+      "fixedTerm": 4600
+    },
+    "byLevel": [
+      {
+        "level": "elem",
+        "targetRecords": 276,
+        "observedRecords": 274,
+        "schoolinfoNormalizedObservedSum": 10370,
+        "kessAllRecordsSum": 10370,
+        "missingSchoolIds": [
+          "kedi:231021169",
+          "kedi:231021465"
+        ]
+      },
+      {
+        "level": "mid",
+        "targetRecords": 147,
+        "observedRecords": 147,
+        "schoolinfoNormalizedObservedSum": 6390,
+        "kessAllRecordsSum": 6390,
+        "missingSchoolIds": []
+      },
+      {
+        "level": "high",
+        "targetRecords": 129,
+        "observedRecords": 129,
+        "schoolinfoNormalizedObservedSum": 7432,
+        "kessAllRecordsSum": 7432,
+        "missingSchoolIds": []
+      },
+      {
+        "level": "special",
+        "targetRecords": 10,
+        "observedRecords": 10,
+        "schoolinfoNormalizedObservedSum": 728,
+        "kessAllRecordsSum": 728,
+        "missingSchoolIds": []
+      }
+    ],
+    "missingSchoolIds": [
+      "kedi:231021169",
+      "kedi:231021465"
+    ],
+    "separatelyPublishedProvinceAggregateAcquired": false,
+    "interpretation": "560 observed records sum to 24920 after excluding instructors once. Two suspended branches have no public numeric response; their KESS zeros are not substituted for missing MCP values."
+  },
+  "historicalAddress": {
+    "sourceUseEvidence": "partially_acquired",
+    "exactChangeDateConfirmed": false,
+    "relocationVersusAddressCorrectionConfirmed": false,
+    "linksChanged": 0
+  },
+  "inputHashes": {
+    "source\\public\\data\\incheon\\schools.json": "c4daf33ca4fdfcf6bd4ffa175fcc0d5348db11320ed6f2b63db7595da9be1083",
+    "source\\data\\manual\\incheon\\numeric-review.json": "2a4034c4c00be71dc1ff51b3afeb421cc29e6601ad429fea86c6f70893f56325",
+    "docs\\planning\\incheon-v1\\evidence\\followup\\teacher-comparison.json": "a3a73fd290c0affeb87bcc592e243f63b1f3905b901ae6ef5cf4b94fbf712c75"
+  },
+  "appDataChanged": false
+}

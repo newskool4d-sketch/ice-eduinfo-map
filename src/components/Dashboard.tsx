@@ -3,6 +3,11 @@
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { ACTIVE_PROFILE } from "@/lib/profiles";
+import { DesignProvider, useDesign } from "./design/DesignProvider";
+import IncheonHeader from "./design/IncheonHeader";
+import RegionalComparison from "./design/RegionalComparison";
+import IncheonTrends from "./design/IncheonTrends";
 import IssueExplorer from "@/components/panels/IssueExplorer";
 import { useIssueData } from "@/lib/issues/useIssueData";
 import { issueById } from "@/lib/issues/registry";
@@ -69,6 +74,8 @@ function DashboardInner({
   setRegion: (code: RegionCode | null) => void;
   exploreRequest: number;
 }) {
+  const { design } = useDesign();
+  const isIncheon = ACTIVE_PROFILE.id === "incheon";
   const def = indicatorById(indicatorId);
   if (!def) throw new Error(`Dashboard: unknown indicatorId "${indicatorId}"`);
   const {
@@ -133,7 +140,7 @@ function DashboardInner({
     parseAsString.withOptions({ history: "push", shallow: true }),
   );
   const [collapsed, setCollapsed] = useState(
-    !regionCode && tab === "schools" && !highlightedSchoolId,
+    !isIncheon && !regionCode && tab === "schools" && !highlightedSchoolId,
   );
   const [handledExplore, setHandledExplore] = useState(0);
   if (handledExplore !== exploreRequest) {
@@ -188,6 +195,8 @@ function DashboardInner({
       ?.querySelector<HTMLButtonElement>('[aria-label="패널 닫기"]')
       ?.focus();
     const close = (event: KeyboardEvent) => {
+      // A trend dialog handles its own Escape; keep the underlying mobile sheet open.
+      if (event.target instanceof Element && event.target.closest("dialog[open]")) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -286,7 +295,7 @@ function DashboardInner({
               first?.focus();
             }
           }}
-          className={`${panelOpen ? "flex" : "hidden"} ${collapsed ? "lg:hidden" : "lg:flex"} fixed inset-x-0 bottom-0 z-50 max-h-[75%] flex-col rounded-t-2xl border-t border-line bg-surface shadow-xl lg:relative lg:inset-auto lg:z-10 lg:h-full lg:max-h-none lg:w-[360px] lg:shrink-0 lg:rounded-none lg:border-r lg:border-t-0 lg:shadow-none`}
+          className={`ice-sidebar ${panelOpen ? "flex" : "hidden"} ${collapsed ? "lg:hidden" : "lg:flex"} fixed inset-x-0 bottom-0 z-50 max-h-[75%] flex-col rounded-t-2xl border-t border-line bg-surface shadow-xl lg:relative lg:inset-auto lg:z-10 lg:h-full lg:max-h-none lg:w-[360px] lg:shrink-0 lg:rounded-none lg:border-r lg:border-t-0 lg:shadow-none`}
         >
           <div className="flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
             <div
@@ -355,6 +364,12 @@ function DashboardInner({
             id={`panel-${tab}`}
             aria-labelledby={`tab-${tab}`}
           >
+            {isIncheon && bundle.incheonHistory && <IncheonTrends
+              key={`${tab}-${regionCode ?? "province"}-${selectedSchool?.id ?? "none"}`}
+              data={bundle.incheonHistory}
+              school={tab === "schools" ? selectedSchool : null}
+              currentRegionName={bundle.regions.features.find(f => f.properties.code === regionCode)?.properties.name}
+            />}
             {tab === "schools" ? (
               <SchoolExplorer
                 metric={mapMetric}
@@ -443,6 +458,8 @@ function DashboardInner({
                     </ul>
                     <p className="text-xs text-ink-muted">{issueModel.note}</p>
                   </section>
+                ) : isIncheon && design === "desk" ? (
+                  <RegionalComparison bundle={bundle} />
                 ) : regionCode ? (
                   <RegionPanel
                     bundle={bundle}
@@ -556,6 +573,7 @@ function DashboardInner({
 }
 
 function DashboardBody() {
+  const { design, colorMode, textSize } = useDesign();
   // URL is the source of truth for indicatorId (nuqs) — this replaces Task
   // 2's local useState. Called unconditionally here (not inside the
   // status === "ready" branch below), so the URL is established immediately
@@ -566,8 +584,8 @@ function DashboardBody() {
   const bundle = state.status === "ready" ? state.bundle : null;
 
   return (
-    <div className="grid h-full grid-rows-[56px_1fr] bg-paper text-ink">
-      <TopBar indicatorId={indicatorId} bundle={bundle} onExploreIssues={() => setExploreRequest(n => n + 1)} />
+    <div data-design={ACTIVE_PROFILE.id === "incheon" ? design : undefined} data-color={colorMode} data-text-size={textSize} className={`${ACTIVE_PROFILE.id === "incheon" ? "ice-app" : ""} grid h-full grid-rows-[auto_minmax(0,1fr)] bg-paper text-ink`}>
+      {ACTIVE_PROFILE.id === "incheon" ? <IncheonHeader bundle={bundle} onExplore={() => setExploreRequest(n => n + 1)} /> : <TopBar indicatorId={indicatorId} bundle={bundle} onExploreIssues={() => setExploreRequest(n => n + 1)} />}
       {state.status === "loading" && (
         <CenteredMessage>데이터 불러오는 중…</CenteredMessage>
       )}
@@ -587,8 +605,8 @@ function DashboardBody() {
 
 export default function Dashboard() {
   return (
-    <DataProvider>
+    <DesignProvider><DataProvider>
       <DashboardBody />
-    </DataProvider>
+    </DataProvider></DesignProvider>
   );
 }

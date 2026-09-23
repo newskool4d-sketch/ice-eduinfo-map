@@ -42,6 +42,7 @@ import { assertIssueData } from "../../src/lib/issues/validate";
 import type { SchoolsFile } from "../../src/lib/schools/types";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { pipelinePaths } from "./paths";
 import type { FeatureCollection, MultiPolygon, Polygon } from "geojson";
 import { INDICATOR_IDS, INDICATORS, indicatorById } from "../../src/lib/indicators/registry";
 import { referenceYear } from "./lib/closed-schools";
@@ -60,13 +61,14 @@ import {
   REGION_TABLE,
 } from "./sources";
 
-const PUBLIC_DATA_DIR = path.resolve(import.meta.dirname, "../../public/data");
+const PROFILE_PATHS = pipelinePaths(path.resolve(import.meta.dirname, "../.."));
+const PUBLIC_DATA_DIR = PROFILE_PATHS.publicData;
 const INDICATORS_DIR = path.join(PUBLIC_DATA_DIR, "indicators");
 const SERIES_DIR = path.join(PUBLIC_DATA_DIR, "series");
 const SCHOOLS_JSON_PATH = path.join(PUBLIC_DATA_DIR, "schools.json");
 const CLOSED_SCHOOLS_JSON_PATH = path.join(PUBLIC_DATA_DIR, "closed-schools.json");
 const REGIONS_GEOJSON_PATH = path.join(PUBLIC_DATA_DIR, "regions.geojson");
-const MATCH_REPORT_PATH = path.resolve(import.meta.dirname, "../../data/interim/schools-match-report.json");
+const MATCH_REPORT_PATH = path.join(PROFILE_PATHS.interim, "schools-match-report.json");
 
 /** The bbox rescue margin (서해 도서 등 지도 단순화로 좌표가 폴리곤 밖에 살짝 나가는 경우 허용). */
 const PIP_RESCUE_MARGIN_DEG = 0.05;
