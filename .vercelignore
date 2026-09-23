@@ -1,0 +1,19 @@
+# Keep deployment uploads limited to application sources and published assets.
+.git/
+.vercel/
+.env*
+*.pem
+node_modules/
+.next/
+out/
+build/
+coverage/
+output/
+playwright-report/
+test-results/
+.claude/
+.superpowers/
+data/raw/
+data/output/
+data/interim/incheon/
+*.tsbuildinfo
