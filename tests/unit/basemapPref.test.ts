@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { readBasemapPref, writeBasemapPref } from "@/components/map/basemapPref";
+import { readBasemapPref, writeBasemapPref, resolveBasemap } from "@/components/map/basemapPref";
 
 /** Minimal Storage-shaped stub — good enough for `getItem`/`setItem`, which is all this module ever calls. */
 function fakeStorage(initial: Record<string, string> = {}) {
@@ -19,9 +19,9 @@ describe("readBasemapPref/writeBasemapPref", () => {
     vi.unstubAllGlobals();
   });
 
-  it("defaults to 'satellite' when nothing is stored yet", () => {
+  it("defaults to automatic theme matching when nothing is stored yet", () => {
     vi.stubGlobal("window", { localStorage: fakeStorage() });
-    expect(readBasemapPref()).toBe("satellite");
+    expect(readBasemapPref()).toBe("auto");
   });
 
   // Task 3 (bright diorama) — the pref used to be a boolean stored as "1"/"0"
@@ -35,14 +35,14 @@ describe("readBasemapPref/writeBasemapPref", () => {
     expect(readBasemapPref()).toBe("off");
   });
 
-  it("reads the three modes back verbatim and falls back to satellite on garbage", () => {
-    for (const mode of ["off", "satellite", "base"] as const) {
+  it("reads all modes verbatim and falls back to auto on invalid values", () => {
+    for (const mode of ["auto", "off", "satellite", "base", "white", "midnight"] as const) {
       vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": mode }) });
       expect(readBasemapPref()).toBe(mode);
       vi.unstubAllGlobals();
     }
-    vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": "midnight" }) });
-    expect(readBasemapPref()).toBe("satellite");
+    vi.stubGlobal("window", { localStorage: fakeStorage({ "jbmap.basemap": "invalid" }) });
+    expect(readBasemapPref()).toBe("auto");
   });
 
   it("write stores the mode string under 'jbmap.basemap' and reads back round-trip", () => {
@@ -57,7 +57,7 @@ describe("readBasemapPref/writeBasemapPref", () => {
     expect(readBasemapPref()).toBe("off");
   });
 
-  it("defaults to 'satellite' when localStorage.getItem throws (private-mode Safari etc.)", () => {
+  it("defaults to auto when localStorage.getItem throws", () => {
     vi.stubGlobal("window", {
       localStorage: {
         getItem: () => {
@@ -65,7 +65,7 @@ describe("readBasemapPref/writeBasemapPref", () => {
         },
       },
     });
-    expect(readBasemapPref()).toBe("satellite");
+    expect(readBasemapPref()).toBe("auto");
   });
 
   it("writeBasemapPref silently no-ops when localStorage.setItem throws", () => {
@@ -79,9 +79,24 @@ describe("readBasemapPref/writeBasemapPref", () => {
     expect(() => writeBasemapPref("off")).not.toThrow();
   });
 
-  it("defaults to 'satellite' when window/localStorage is unavailable entirely (SSR-safety)", () => {
+  it("defaults to auto when window/localStorage is unavailable (SSR-safety)", () => {
     vi.stubGlobal("window", undefined);
-    expect(readBasemapPref()).toBe("satellite");
+    expect(readBasemapPref()).toBe("auto");
     expect(() => writeBasemapPref("off")).not.toThrow();
+  });
+});
+
+describe("theme-aware basemap selection", () => {
+  it("follows the theme only in automatic mode", () => {
+    expect(resolveBasemap("auto", false)).toBe("white");
+    expect(resolveBasemap("auto", true)).toBe("midnight");
+    for (const mode of ["base", "white", "midnight", "satellite"] as const) {
+      expect(resolveBasemap(mode, false)).toBe(mode);
+      expect(resolveBasemap(mode, true)).toBe(mode);
+    }
+  });
+  it("keeps the basemap off in either theme", () => {
+    expect(resolveBasemap("off", false)).toBeNull();
+    expect(resolveBasemap("off", true)).toBeNull();
   });
 });

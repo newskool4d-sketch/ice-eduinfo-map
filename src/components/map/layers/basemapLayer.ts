@@ -2,10 +2,10 @@ import { TileLayer } from "@deck.gl/geo-layers";
 import { BitmapLayer, SolidPolygonLayer } from "@deck.gl/layers";
 import type { BitmapLayerProps } from "@deck.gl/layers";
 
-import type { BasemapMode } from "@/components/map/basemapPref";
+import type { BasemapTiles } from "@/components/map/basemapPref";
 
-/** The two modes that actually draw tiles — `off` never reaches these factories (DeckMap keeps the layer slots `null`). */
-export type BasemapTiles = Exclude<BasemapMode, "off">;
+/** Only resolved styles reach these factories; auto and off are handled by DeckMap. */
+export type { BasemapTiles } from "@/components/map/basemapPref";
 
 /**
  * VWorld WMTS tile URL template. Row/col order is `{z}/{y}/{x}` (row=y,
@@ -29,11 +29,19 @@ export function vworldTileUrl(
  */
 const TILE_SOURCE: Record<
   BasemapTiles,
-  { layer: string; ext: string; desaturate: number }
+  { layer: string; ext: string; maxZoom: number }
 > = {
-  satellite: { layer: "Satellite", ext: "jpeg", desaturate: 0 },
-  base: { layer: "Base", ext: "png", desaturate: 1 },
+  satellite: { layer: "Satellite", ext: "jpeg", maxZoom: 19 },
+  base: { layer: "Base", ext: "png", maxZoom: 19 },
+  white: { layer: "white", ext: "png", maxZoom: 18 },
+  midnight: { layer: "midnight", ext: "png", maxZoom: 18 },
 };
+
+interface BasemapOptions {
+  onLoad?: () => void;
+  onError?: () => void;
+  retry?: number;
+}
 
 /**
  * One coverage rectangle for BOTH the tile extent and the wash polygon
@@ -67,40 +75,34 @@ const BASEMAP_EXTENT: [number, number, number, number] = [
 const TILE_MIN_ZOOM = 6;
 
 /**
- * VWorld WMTS basemap (Satellite or Base, per `tiles`), called directly from
- * the browser — no proxy Route Handler needed (`access-control-allow-origin:
- * *` confirmed by curl against the live endpoint; see task-C-brief.md's
- * "검증된 사실"). There is no availability probe: a missing/bad key doesn't
- * 404, it returns 200 + an XML ExceptionReport body (VWorld's own error
- * format), which fails image decode and lands in `onTileError` below —
- * silently, by design (an operator eyeballing the map is how a bad key gets
- * noticed; see README's VWorld setup section). The caller (DeckMap) is what
- * decides WHETHER to call this factory at all (gated on
- * `NEXT_PUBLIC_VWORLD_KEY` being set and the mode not being `off`); this
- * function itself does no key validation.
+ * WMTS tiles load directly in the browser. VWorld can return HTTP 200 with
+ * an XML error body, so image decoding failures also reach onTileError.
+ * Report status to the UI without logging URLs containing the API key.
  */
-export function makeBasemapLayer(key: string, tiles: BasemapTiles) {
-  const source = TILE_SOURCE[tiles];
+export function makeBasemapLayer(key: string, tiles: BasemapTiles, options: BasemapOptions = {}) {
+  return makeTileLayer(key, "basemap", TILE_SOURCE[tiles], options);
+}
+
+/** VWorld's transparent Hybrid tiles add roads and place names to imagery. */
+export function makeBasemapLabelsLayer(key: string, options: BasemapOptions = {}) {
+  return makeTileLayer(key, "basemap-labels", { layer: "Hybrid", ext: "png", maxZoom: 19 }, options);
+}
+
+function makeTileLayer(key: string, id: string, source: { layer: string; ext: string; maxZoom: number }, options: BasemapOptions) {
   return new TileLayer<ImageBitmap, { shadowEnabled: boolean }>({
-    id: "basemap",
+    id,
     data: vworldTileUrl(key, source.layer, source.ext),
     tileSize: 256,
     minZoom: TILE_MIN_ZOOM,
-    maxZoom: 18,
+    maxZoom: source.maxZoom,
     extent: BASEMAP_EXTENT,
     maxRequests: 6,
-    // 2026-09-22 성능 조정: the imagery sits under a white wash, so one zoom
-    // level coarser is invisible but loads ~4× fewer tiles (≈4× less texture
-    // memory), and the cache is capped so panning around cannot pile up
-    // 100 MB+ of tile textures (measured before: 58 → 101 MB after a pan).
-    zoomOffset: tiles === "base" ? 0 : -1,
+    // Native-resolution tiles keep road labels sharp; the cache stays bounded.
+    zoomOffset: 0,
     maxCacheSize: 64,
-    // REQUIRED: TileLayer's own default onTileError is console.error — 8 of
-    // this suite's e2e specs assert zero console errors (see
-    // e2e/fixtures.ts, which stubs the VWorld route for exactly this
-    // reason), and this is the second line of defense for any tile request
-    // that fails anyway (network hiccup, bad key XML response, ...).
-    onTileError: () => {},
+    onTileLoad: () => options.onLoad?.(),
+    onTileError: () => options.onError?.(),
+    updateTriggers: { getTileData: options.retry ?? 0 },
     shadowEnabled: false,
     pickable: false,
     parameters: { depthWriteEnabled: false },
@@ -140,19 +142,14 @@ export function makeBasemapLayer(key: string, tiles: BasemapTiles) {
           boundingBox[1][0],
           boundingBox[1][1],
         ],
-        desaturate: source.desaturate,
+        desaturate: 0,
       });
     },
   });
 }
 
-/**
- * Wash alpha per tile source (spec §2: satellite 110, base 60; screenshot
- * tuning may move either by ±30). The satellite photo needs the heavier
- * wash to read as a bright printed map; the already-light `Base` map only
- * needs a touch so its remaining color doesn't compete with the blocks.
- */
-const WASH_ALPHA: Record<BasemapTiles, number> = { satellite: 110, base: 100 };
+/** Keep roads readable; only imagery needs a small contrast adjustment. */
+const WASH_ALPHA: Record<BasemapTiles, number> = { satellite: 24, base: 8, white: 0, midnight: 0 };
 
 /** One datum: a single closed ring (deck.gl `Position[]`, i.e. `[lng, lat]` tuples). */
 type WashDatum = { polygon: [number, number][] };
@@ -177,8 +174,7 @@ const WASH_RING: [number, number][] = [
 const WASH_DATA: WashDatum[] = [{ polygon: WASH_RING }];
 
 /**
- * The translucent white wash drawn right on top of the tiles — what turns
- * the satellite photo into something like a bright printed map (spec §2).
+ * A small theme-aware wash above imagery, below Hybrid road/place labels.
  * It's a polygon, not a `tintColor` on the BitmapLayer, because `tintColor`
  * is multiplicative and can only darken (spec "검증된 사실"). Flat (not
  * extruded → no lighting applied, so the color is exactly the literal
@@ -186,12 +182,14 @@ const WASH_DATA: WashDatum[] = [{ polygon: WASH_RING }];
  * doesn't write depth, so the flat neighbors/footprint drawn after it at
  * z=0 overpaint it cleanly instead of z-fighting.
  */
-export function makeBasemapWashLayer(tiles: BasemapTiles) {
+export function makeBasemapWashLayer(tiles: BasemapTiles, dark = false) {
   return new SolidPolygonLayer<WashDatum, { shadowEnabled: boolean }>({
     id: "basemap-wash",
     data: WASH_DATA,
     getPolygon: (d) => d.polygon,
-    getFillColor: [255, 255, 255, WASH_ALPHA[tiles]],
+    getFillColor: tiles === "satellite" && dark
+      ? [12, 29, 44, 40]
+      : [255, 255, 255, WASH_ALPHA[tiles]],
     filled: true,
     extruded: false,
     pickable: false,

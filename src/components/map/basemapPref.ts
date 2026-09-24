@@ -1,38 +1,36 @@
-/**
- * Persists which VWorld basemap the "배경 지도" segmented control (DeckMap's
- * MapOverlay item) is showing, across page loads. Three modes since the
- * bright-diorama redesign (2026-09-21, spec §2):
- *
- * - `off`       — no tiles; the blocks sit on the plain paper floor.
- * - `satellite` — `Satellite` jpeg tiles under a bright white wash (default).
- * - `base`      — `Base` road-map png tiles, desaturated, lighter wash.
- *
- * Storage key is unchanged from the boolean era (2차 개선 Task C), so the old
- * "1"/"0" values are still read back as satellite/off — a returning user who
- * had switched the midnight basemap off keeps it off.
- *
- * `localStorage` access is wrapped in try/catch because it can throw
- * synchronously in some private-browsing modes (notably older Safari) even
- * just on `getItem`/`setItem` — this module treats that exactly like
- * "nothing stored yet": default satellite, write silently no-ops.
- * `typeof window === "undefined"` guards SSR/non-DOM callers (DeckMap itself
- * is client-only — see MapShell.tsx's `ssr:false` — but this module makes no
- * assumption about who calls it).
+/** Persist explicit choices; new visitors follow the screen theme by default.
+ * Keep the storage key and boolean-era values for returning users. Storage
+ * failures fall back safely without disabling the session's map controls.
  */
-export type BasemapMode = "off" | "satellite" | "base";
+export type BasemapMode = "auto" | "off" | "satellite" | "base" | "white" | "midnight";
+export type BasemapTiles = Exclude<BasemapMode, "auto" | "off">;
+
+export const BASEMAP_OPTIONS: { value: BasemapMode; label: string }[] = [
+  { value: "auto", label: "자동 · 화면 테마에 맞춤" },
+  { value: "base", label: "일반지도" },
+  { value: "white", label: "백지도" },
+  { value: "midnight", label: "야간지도" },
+  { value: "satellite", label: "위성지도 · 지명 포함" },
+  { value: "off", label: "끄기 · 학교·통계만" },
+];
+
+/** An explicit choice survives theme changes; only auto follows the theme. */
+export function resolveBasemap(mode: BasemapMode, dark: boolean): BasemapTiles | null {
+  if (mode === "off") return null;
+  return mode === "auto" ? (dark ? "midnight" : "white") : mode;
+}
 
 const STORAGE_KEY = "jbmap.basemap";
-const DEFAULT_MODE: BasemapMode = "satellite";
+const DEFAULT_MODE: BasemapMode = "auto";
 
 function parse(raw: string | null): BasemapMode {
   if (raw === null) return DEFAULT_MODE;
   if (raw === "1") return "satellite"; // 2차 개선(Task C) boolean-era value: ON
   if (raw === "0") return "off"; // …and OFF
-  if (raw === "off" || raw === "satellite" || raw === "base") return raw;
-  return DEFAULT_MODE; // garbage (e.g. a hand-edited "midnight") → default
+  return BASEMAP_OPTIONS.find((option) => option.value === raw)?.value ?? DEFAULT_MODE;
 }
 
-/** No stored value yet -> satellite by default. The caller (DeckMap) still gates on `NEXT_PUBLIC_VWORLD_KEY` — with no key the mode is irrelevant and nothing renders. */
+/** No saved choice or unavailable storage -> automatic theme matching. */
 export function readBasemapPref(): BasemapMode {
   if (typeof window === "undefined") return DEFAULT_MODE;
   try {

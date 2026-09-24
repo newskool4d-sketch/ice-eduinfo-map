@@ -3,7 +3,7 @@ import { SolidPolygonLayer } from "@deck.gl/layers";
 import type { BitmapLayer } from "@deck.gl/layers";
 
 import { CONTROLLER } from "@/components/map/camera";
-import { BASEMAP_COVERAGE, makeBasemapLayer, makeBasemapWashLayer, vworldTileUrl } from "@/components/map/layers/basemapLayer";
+import { BASEMAP_COVERAGE, makeBasemapLayer, makeBasemapLabelsLayer, makeBasemapWashLayer, vworldTileUrl } from "@/components/map/layers/basemapLayer";
 
 describe("vworldTileUrl", () => {
   it("builds the VWorld WMTS midnight URL template, row=y col=x", () => {
@@ -49,15 +49,15 @@ describe("makeBasemapLayer", () => {
     expect(makeBasemapLayer("k", "base").props.data).toBe(vworldTileUrl("k", "Base", "png"));
   });
 
-  it("tileSize 256, minZoom 6, maxZoom 18, maxRequests 6, zoomOffset -1, maxCacheSize 64 (both modes)", () => {
-    for (const tiles of ["satellite", "base"] as const) {
+  it("uses native resolution and each official layer's supported zoom range", () => {
+    for (const tiles of ["satellite", "base", "white", "midnight"] as const) {
       const layer = makeBasemapLayer("mykey", tiles);
       expect(layer.props.tileSize).toBe(256);
       expect(layer.props.minZoom).toBe(6);
-      expect(layer.props.maxZoom).toBe(18);
+      expect(layer.props.maxZoom).toBe(tiles === "white" || tiles === "midnight" ? 18 : 19);
       expect(layer.props.maxRequests).toBe(6);
       // 성능 조정 (2026-09-22): coarser tiles under the wash + a bounded cache.
-      expect(layer.props.zoomOffset).toBe(tiles === "base" ? 0 : -1);
+      expect(layer.props.zoomOffset).toBe(0);
       expect(layer.props.maxCacheSize).toBe(64);
     }
   });
@@ -122,7 +122,7 @@ describe("makeBasemapLayer", () => {
     // Spec §2: only the `Base` road map is desaturated (0.5) — it's a busy
     // yellow-highway routing style that would fight the pastel blocks; the
     // satellite photo keeps its color and is lightened by the wash instead.
-    it("desaturates the road map while retaining satellite colors", () => {
+    it("retains both road and satellite colors", () => {
       const fakeTile = {
         tile: { boundingBox: [[126, 35], [127, 36]] },
         data: {} as ImageBitmap,
@@ -135,7 +135,7 @@ describe("makeBasemapLayer", () => {
         fakeTile as never,
       ) as BitmapLayer;
       expect(sat.props.desaturate).toBe(0);
-      expect(base.props.desaturate).toBe(1);
+      expect(base.props.desaturate).toBe(0);
     });
   });
 });
@@ -152,11 +152,11 @@ describe("makeBasemapWashLayer", () => {
     expect(layer.props.shadowEnabled).toBe(false);
     expect(layer.props.extruded).toBe(false);
     expect(layer.props.parameters).toMatchObject({ depthWriteEnabled: false });
-    expect(layer.props.getFillColor).toEqual([255, 255, 255, 110]);
+    expect(layer.props.getFillColor).toEqual([255, 255, 255, 24]);
   });
 
   it("uses a lighter wash for the base map", () => {
-    expect(makeBasemapWashLayer("base").props.getFillColor).toEqual([255, 255, 255, 100]);
+    expect(makeBasemapWashLayer("base").props.getFillColor).toEqual([255, 255, 255, 8]);
   });
 
   // Task 3 fix round 1 (review ruling) — the wash is ONE fixed oversized
@@ -194,5 +194,28 @@ describe("makeBasemapWashLayer", () => {
       x: { polygon: number[][] },
     ) => number[][];
     expect(getPolygon(d)).toBe(d.polygon);
+  });
+});
+
+describe("readable styles and load recovery", () => {
+  it("uses the official white/midnight styles and transparent satellite labels", () => {
+    for (const mode of ["white", "midnight"] as const) {
+      expect(makeBasemapLayer("k", mode).props.data).toBe(vworldTileUrl("k", mode));
+      expect(makeBasemapWashLayer(mode, true).props.getFillColor).toEqual([255, 255, 255, 0]);
+    }
+    const labels = makeBasemapLabelsLayer("k");
+    expect(labels.props.id).toBe("basemap-labels");
+    expect(labels.props.data).toBe(vworldTileUrl("k", "Hybrid"));
+    expect(makeBasemapWashLayer("satellite", true).props.getFillColor).toEqual([12, 29, 44, 40]);
+  });
+  it("reports decode errors to the UI and invalidates tile data on retry", () => {
+    const onLoad = vi.fn();
+    const onError = vi.fn();
+    const layer = makeBasemapLayer("k", "base", { onLoad, onError, retry: 2 });
+    layer.props.onTileError(new Error("invalid image"));
+    layer.props.onTileLoad({} as never);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onLoad).toHaveBeenCalledOnce();
+    expect(layer.props.updateTriggers.getTileData).toBe(2);
   });
 });

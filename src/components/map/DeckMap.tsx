@@ -37,7 +37,7 @@ import type {
   ViewStateChangeParameters,
   Viewport,
 } from "@deck.gl/core";
-import { LightGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
+import { LightGlassTheme, DarkGlassTheme, ResetViewWidget, ZoomWidget } from "@deck.gl/widgets";
 import "@deck.gl/widgets/stylesheet.css";
 
 import {
@@ -57,7 +57,10 @@ import { useScene } from "./useScene";
 import {
   makeBasemapWashLayer,
   makeBasemapLayer,
+  makeBasemapLabelsLayer,
 } from "@/components/map/layers/basemapLayer";
+import { readBasemapPref, writeBasemapPref, resolveBasemap, type BasemapMode } from "./basemapPref";
+import BasemapControl from "./BasemapControl";
 import { makeEmdBoundaryLayer } from "@/components/map/layers/emdLayer";
 import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import {
@@ -174,6 +177,10 @@ const WIDGET_THEME_STYLE: CSSProperties = {
   ...LightGlassTheme,
   "--widget-margin": "16px",
 } as CSSProperties;
+const DARK_WIDGET_THEME_STYLE: CSSProperties = {
+  ...DarkGlassTheme,
+  "--widget-margin": "16px",
+} as CSSProperties;
 
 export interface DeckMapProps {
   mapMetric?: MapMetricSpec;
@@ -222,6 +229,31 @@ export default function DeckMap({
   const { colorMode, textSize } = useDesign();
   const incheon = ACTIVE_PROFILE.id === "incheon";
   const dark = incheon && colorMode === "dark";
+  const [basemapMode, setBasemapMode] = useState(readBasemapPref);
+  const [basemapRetry, setBasemapRetry] = useState(0);
+  const basemapTiles = VWORLD_KEY ? resolveBasemap(basemapMode, dark) : null;
+  const basemapRequest = useMemo(() => Symbol(`${basemapTiles ?? "off"}:${basemapRetry}`), [basemapTiles, basemapRetry]);
+  const activeBasemapRequest = useRef<symbol | null>(basemapRequest);
+  const [basemapStatus, setBasemapStatus] = useState<{ request: symbol | null; loaded: boolean; failed: boolean }>({ request: null, loaded: false, failed: false });
+  useLayoutEffect(() => {
+    activeBasemapRequest.current = basemapRequest;
+    return () => { activeBasemapRequest.current = null; };
+  }, [basemapRequest]);
+  const changeBasemap = useCallback((mode: BasemapMode) => {
+    setBasemapMode(mode);
+    writeBasemapPref(mode);
+  }, []);
+  const onBasemapStatus = useCallback((request: symbol, failed: boolean) => {
+    queueMicrotask(() => {
+      // Tile callbacks can outlive their style or the component.
+      if (activeBasemapRequest.current !== request) return;
+      setBasemapStatus((old) => {
+        const previous = old.request === request ? old : { loaded: false, failed: false };
+        if (failed ? previous.failed : previous.loaded) return old;
+        return { request, loaded: previous.loaded || !failed, failed: previous.failed || failed };
+      });
+    });
+  }, []);
   const { scene, setScene, enabled: buildingsEnabled } = useScene();
   const [mobile, setMobile] = useState(
     () => window.matchMedia("(max-width: 767px)").matches,
@@ -614,7 +646,7 @@ export default function DeckMap({
         return [{
           key: value.code,
           value: { kind: "region" as const, value: { ...value, position } },
-          position, text: labelTextOf(value.code), size: 14,
+          position, text: labelTextOf(value.code), size: textSize === "large" ? 16 : 14,
           priority: (value.code === selectedCode ? 900 : 800) - index,
         }];
       });
@@ -627,7 +659,7 @@ export default function DeckMap({
           value: { kind: "school", value },
           position: [value.lng, value.lat, heightOfSchool(value)],
           text: value.name,
-          size: 11,
+          size: textSize === "large" ? 14 : 12,
           priority:
             value.id === highlightedSchoolId
               ? 1000
@@ -902,11 +934,23 @@ export default function DeckMap({
     setSchoolChart,
   ]);
 
-  const basemapOn = !!VWORLD_KEY;
-  const basemapLayer = useMemo(
-    () => (VWORLD_KEY ? makeBasemapLayer(VWORLD_KEY, "base") : null),
-    [],
-  );
+  const basemapOn = basemapTiles !== null;
+  const basemapLayers = useMemo(() => {
+    if (!VWORLD_KEY || !basemapTiles) return [];
+    const options = {
+      onLoad: () => onBasemapStatus(basemapRequest, false),
+      onError: () => onBasemapStatus(basemapRequest, true),
+      retry: basemapRetry,
+    };
+    return [
+      // eslint-disable-next-line react-hooks/refs -- The factory only registers callbacks; ref access happens after tile I/O, never during render.
+      makeBasemapLayer(VWORLD_KEY, basemapTiles, options),
+      makeBasemapWashLayer(basemapTiles, dark),
+      // eslint-disable-next-line react-hooks/refs -- Same deferred TileLayer callbacks as the basemap above.
+      basemapTiles === "satellite" ? makeBasemapLabelsLayer(VWORLD_KEY, options) : null,
+    ];
+  }, [basemapTiles, basemapRequest, basemapRetry, dark, onBasemapStatus]);
+  const basemapFailed = basemapOn && basemapStatus.request === basemapRequest && basemapStatus.failed;
 
   // Only ever fetches while emdEnabled AND a 시군 is selected (see
   // useEmdBoundaries' own doc comment for why it's also safe re: e2e's
@@ -930,8 +974,7 @@ export default function DeckMap({
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = 0;
     const layerList: LayersList = [
-      basemapLayer,
-      basemapLayer ? makeBasemapWashLayer("base") : null,
+      ...basemapLayers,
       makeFlatRegionsLayer(
         bundle.regions,
         selectedCode,
@@ -941,11 +984,11 @@ export default function DeckMap({
         getFillColor: (f) =>
           (metricModel.kind === "region" || metricModel.regionOverlay)
             ? metricModel.regionColor(f.properties.code)
-            : incheon ? dark ? [30, 61, 78, 210] : [255, 255, 255, 210] : [255, 255, 255, 0],
+            : incheon ? dark ? [30, 61, 78, basemapOn ? 18 : 210] : [255, 255, 255, basemapOn ? 16 : 210] : [255, 255, 255, 0],
         getLineColor: (f) => f.properties.code === selectedCode ? dark ? [90,220,240,255] : [0,105,170,255] : f.properties.code === compareCode ? [153,66,182,255] : dark ? [108,158,181,180] : [85,100,118,110],
         getLineWidth: (f) => f.properties.code === selectedCode || f.properties.code === compareCode ? 3 : 1,
         updateTriggers: {
-          getFillColor: [metricModel, dark, incheon],
+          getFillColor: [metricModel, dark, incheon, basemapOn],
           getLineColor: [selectedCode, compareCode, dark],
           getLineWidth: [selectedCode, compareCode],
         },
@@ -1074,6 +1117,13 @@ export default function DeckMap({
             school.lat,
             heightOfSchool(school),
           ],
+          getColor: dark ? [232, 242, 247, 255] : [22, 52, 76, 255],
+          getBackgroundColor: dark ? [19, 43, 60, 242] : [255, 255, 255, 242],
+          outlineColor: dark ? [19, 43, 60, 255] : [255, 255, 255, 255],
+          getSize: textSize === "large" ? 14 : 12,
+          sizeMinPixels: textSize === "large" ? 14 : 12,
+          sizeMaxPixels: textSize === "large" ? 14 : 12,
+          fontWeight: 600,
           updateTriggers: { getPosition: [heightOfSchool] },
         }),
         makeRegionLabelLayer(visibleLabels.regions, {
@@ -1086,12 +1136,19 @@ export default function DeckMap({
           selectedCode,
           priorityOf,
           transitionDuration,
+        }).clone({
+          getColor: dark ? [232, 242, 247, 255] : [22, 52, 76, 255],
+          getBackgroundColor: dark ? [19, 43, 60, 242] : [255, 255, 255, 242],
+          outlineColor: dark ? [19, 43, 60, 255] : [255, 255, 255, 255],
+          getSize: textSize === "large" ? 16 : 14,
+          sizeMinPixels: textSize === "large" ? 16 : 14,
+          sizeMaxPixels: textSize === "large" ? 16 : 14,
         }),
       );
     }
     return layerList;
   }, [
-    basemapLayer,
+    basemapLayers, basemapOn,
     dark, incheon,
     metricModel,
     compareCode, emphasizeZero, schoolFacts,
@@ -1216,7 +1273,7 @@ export default function DeckMap({
       id="school-map"
       ref={containerRef}
       className="relative h-full w-full bg-paper outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
-      style={WIDGET_THEME_STYLE}
+      style={dark ? DARK_WIDGET_THEME_STYLE : WIDGET_THEME_STYLE}
       tabIndex={0}
       aria-label={`${ACTIVE_PROFILE.province.shortName} 학교 위치 지도`}
       onKeyDown={handleWrapperKeyDown}
@@ -1348,8 +1405,15 @@ export default function DeckMap({
       <MapOverlay
         collapsible
         items={overlayItems}
+        settings={<BasemapControl mode={basemapMode} dark={dark} available={!!VWORLD_KEY} onChange={changeBasemap} />}
         attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
       >
+        {basemapFailed && (
+          <div className="basemap-status" role="status">
+            <p>배경지도의 일부를 불러오지 못했습니다. 학교·통계는 계속 볼 수 있습니다.</p>
+            <button type="button" onClick={() => setBasemapRetry((n) => n + 1)}>배경지도 다시 불러오기</button>
+          </div>
+        )}
         {scene === "city" && (
           <div
             className="max-w-full rounded border border-line bg-surface/90 px-2 py-1 text-[10px] text-ink-muted"

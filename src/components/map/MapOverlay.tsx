@@ -51,6 +51,7 @@ export interface MapOverlayProps {
    */
   items: MapOverlayItem[];
   collapsible?: boolean;
+  settings?: ReactNode;
   /**
    * Task C — an optional small caption rendered below the button row (the
    * VWorld basemap tile source attribution, shown only while the basemap is
@@ -82,8 +83,9 @@ export default function MapOverlay({
   attribution,
   children,
   collapsible = false,
+  settings,
 }: MapOverlayProps) {
-  if (items.length === 0 && !attribution && !children) return null;
+  if (items.length === 0 && !attribution && !children && !settings) return null;
 
   return (
     <div className="pointer-events-none absolute right-3 top-16 lg:top-3 z-10 flex max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5">
@@ -94,33 +96,41 @@ export default function MapOverlay({
         <summary
           className={
             collapsible
-              ? "ml-auto w-fit cursor-pointer rounded-lg border border-line bg-surface/95 px-3 py-2.5 text-xs shadow-sm"
+              ? "ml-auto min-h-11 w-fit cursor-pointer rounded-lg border border-line bg-surface px-3 py-2.5 text-sm font-semibold shadow-sm"
               : "hidden"
           }
         >
           지도 설정
         </summary>
-        {items.length > 0 && (
-          <div className="flex max-w-[250px] sm:max-w-[calc(100vw-24px)] flex-wrap justify-end gap-1.5">
-            {items.map((item) =>
-              item.kind === "segmented" ? (
-                <SegmentedRadioGroup key={item.id} item={item} />
-              ) : (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-pressed={item.pressed}
-                  title={item.title}
-                  onClick={item.onToggle}
-                  className={`pointer-events-auto rounded min-h-11 px-2.5 py-1 text-xs backdrop-blur-sm transition-colors ${
-                    item.pressed
-                      ? "border border-accent/40 bg-accent-soft font-semibold text-ink shadow-sm"
-                      : "border border-line bg-surface/85 text-ink-muted shadow-sm hover:bg-surface"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ),
+        {(settings || items.length > 0) && (
+          <div className="map-settings-content">
+            {settings}
+            {items.length > 0 && (
+              <div className="flex max-w-full flex-wrap gap-2">
+                {items.map((item) =>
+                  item.kind === "segmented" ? (
+                    <div key={item.id} className="max-w-full">
+                      <p className="mb-1 text-xs font-semibold text-ink">{item.label}</p>
+                      <SegmentedRadioGroup item={item} />
+                    </div>
+                  ) : (
+                    <button
+                      key={item.id}
+                      type="button"
+                      aria-pressed={item.pressed}
+                      title={item.title}
+                      onClick={item.onToggle}
+                      className={`pointer-events-auto rounded min-h-11 px-2.5 py-1 text-xs backdrop-blur-sm transition-colors ${
+                        item.pressed
+                          ? "border border-accent/40 bg-accent-soft font-semibold text-ink shadow-sm"
+                          : "border border-line bg-surface/85 text-ink-muted shadow-sm hover:bg-surface"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ),
+                )}
+              </div>
             )}
           </div>
         )}
@@ -128,7 +138,7 @@ export default function MapOverlay({
       {attribution && (
         <div
           data-testid="basemap-attribution"
-          className="max-w-full rounded border border-line bg-surface/85 px-2 py-0.5 text-[10px] text-ink-muted shadow-sm backdrop-blur-sm"
+          className="max-w-full rounded border border-line bg-surface px-2 py-1 text-xs text-ink-muted shadow-sm"
         >
           {attribution}
         </div>
