@@ -22,6 +22,11 @@ export const incheonProfile: RegionProfile = {
     { code: "28720", name: "옹진군" },
   ],
   boundary: { sidoCode: "28", neighborSidoCodes: [], geographyVersion: "incheon-2026-07-01" },
+  buildings: {
+    // public/data/incheon/regions.geojson; includes Baengnyeong and all offshore islands.
+    bounds: [124.60979, 37.01811, 126.79367, 37.98431],
+    defaultScene: "flat",
+  },
   schoolData: {
     kessSidoNames: ["인천"], educationOfficeCodes: ["7310000"],
     addressPrefixes: ["인천광역시"], statisticsYear: 2026,

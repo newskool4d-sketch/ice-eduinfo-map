@@ -1,6 +1,6 @@
 # 반투명 건물 현황판
 
-기본 화면은 `scene=city`, 평면은 `scene=flat`이다. 유효한 URL → `jb-edu-map:scene:v1` 저장값 → 입체 기본값 순서로 적용한다. 기존 위성·지형 설정은 읽지 않는다. 학교 선택은 `school` URL 매개변수로 보존한다.
+전북 기본 화면은 `scene=city`, 인천 기본 화면은 `scene=flat`이다. 유효한 URL → 지역별 저장값 → 지역별 기본값 순서로 적용한다. 전북은 기존 `jb-edu-map:scene:v1`, 인천은 `jb-edu-map:scene:incheon:v1`을 사용한다. 기존 위성·지형 설정은 읽지 않는다. 학교 선택은 `school` URL 매개변수로 보존한다.
 
 ## 운영 설정
 
@@ -10,7 +10,7 @@
 - `BUILDINGS_ENABLED=false`: 서버 API 긴급 중단(503, no-store).
 - `NEXT_PUBLIC_BUILDINGS_ENABLED=false`: 빌드 시 건물 기능 및 전환 UI를 끄고 평면으로 고정. 변경 후 재배포한다.
 
-API는 `/api/buildings/v1/16/{x}/{y}`이며 전북 도서 포함 bbox의 한 타일 여백까지만 허용한다. 전체 페이지 수/건수/중복 ID를 검사하며 8페이지 또는 전체 10초를 넘으면 실패한다. 성공만 하루 CDN/브라우저 캐시와 7일 stale-while-revalidate를 제공한다. 원천 URL이나 키는 응답 및 오류 로그에 남기지 않는다.
+API는 `/api/buildings/v1/16/{x}/{y}`이며 활성 지역 프로필의 도서 포함 bbox에 한 타일 여백을 둔 범위까지만 허용한다. 서버와 화면은 같은 범위 계산을 사용하며 건물 설정이 없는 프로필에서는 요청과 UI를 비활성화한다. 전체 페이지 수/건수/중복 ID를 검사하며 8페이지 또는 전체 10초를 넘으면 실패한다. 성공만 하루 CDN/브라우저 캐시와 7일 stale-while-revalidate를 제공한다. 원천 URL이나 키는 응답 및 오류 로그에 남기지 않는다.
 
 높이는 `height > 0` → `grnd_flr > 0 × 3m` → 높이 0의 윤곽 순서다. 원천값은 별도로 보존한다. 조회 시각은 원천 갱신일이나 교육통계 기준일을 의미하지 않는다.
 

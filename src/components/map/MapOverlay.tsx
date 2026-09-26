@@ -66,9 +66,8 @@ export interface MapOverlayProps {
 /**
  * Task A — a small toggle-button cluster pinned to the map's top-right
  * corner. Rendered by DeckMap just after `<DeckGL>` (see DeckMap.tsx), so it
- * sits visually on top of the canvas; `pointer-events-none` on the
- * wrapper (with `pointer-events-auto` on each button/group) keeps the gaps
- * between controls from swallowing deck.gl's own drag/click gestures.
+ * sits visually on top of the canvas. The overlay scrolls within the map
+ * so status text and retry controls remain reachable on short viewports.
  *
  * Purely controlled — no state of its own. The caller (DeckMap) owns
  * `pressed`/`onToggle` per toggle item and `value`/`onChange` per segmented
@@ -88,7 +87,7 @@ export default function MapOverlay({
   if (items.length === 0 && !attribution && !children && !settings) return null;
 
   return (
-    <div className="pointer-events-none absolute right-3 top-16 lg:top-3 z-10 flex max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5">
+    <div className="pointer-events-auto absolute right-3 top-16 lg:top-3 z-10 flex max-h-[calc(100%_-_76px)] max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5 overflow-y-auto overscroll-contain lg:max-h-[calc(100%_-_24px)]">
       <details
         open={collapsible ? undefined : true}
         className="pointer-events-auto max-w-full"

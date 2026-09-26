@@ -32,6 +32,12 @@ export interface RegionProfile {
     sggCodeOverrides?: Readonly<Record<string, string>>;
     sggPrefixOverrides?: Readonly<Record<string, string>>;
   };
+  /** Omit to disable building requests and controls for an unsupported profile. */
+  buildings?: {
+    /** West, south, east, north; source boundary including offshore islands. */
+    bounds: readonly [number, number, number, number];
+    defaultScene: "city" | "flat";
+  };
   schoolData: {
     kessSidoNames: readonly string[];
     educationOfficeCodes: readonly string[];

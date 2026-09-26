@@ -23,6 +23,11 @@ export const jeonbukProfile: RegionProfile = {
     sidoCode: "52", neighborSidoCodes: ["44", "12", "47", "48"],
     sggPrefixOverrides: { "5211": "52110" },
   },
+  buildings: {
+    // Preserve the original Jeonbuk building coverage and initial city scene.
+    bounds: [125.96651, 35.2992, 127.91147, 36.15642],
+    defaultScene: "city",
+  },
   schoolData: {
     kessSidoNames: ["전북"], educationOfficeCodes: ["8321000"],
     addressPrefixes: ["전북특별자치도", "전라북도"],

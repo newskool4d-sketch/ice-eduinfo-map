@@ -8,7 +8,7 @@ export async function GET(request: Request, context: { params: Promise<{ z: stri
   const { z, x, y } = await context.params;
   if (![z, x, y].every((part) => /^\d+$/.test(part)) || !validBuildingTile(Number(z), Number(x), Number(y))) return fail(400);
   const key = process.env.VWORLD_BUILDING_KEY;
-  if (!key || process.env.BUILDINGS_ENABLED === "false") return fail(503);
+  if (!key || process.env.BUILDINGS_ENABLED === "false" || process.env.NEXT_PUBLIC_BUILDINGS_ENABLED === "false") return fail(503);
   try {
     const tile = await fetchBuildingTile(Number(x), Number(y), { key, domain: process.env.VWORLD_BUILDING_DOMAIN, signal: request.signal });
     return Response.json(tile, { headers: {

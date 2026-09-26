@@ -2,7 +2,7 @@ import { TileLayer, _Tileset2D as Tileset2D } from "@deck.gl/geo-layers";
 import { GeoJsonLayer } from "@deck.gl/layers";
 import { ClipExtension, type ClipExtensionProps } from "@deck.gl/extensions";
 import type { BuildingProperties, BuildingTile } from "@/lib/buildings/types";
-import { BUILDING_EXTENT } from "@/lib/buildings/tiles";
+import { buildingCoverage } from "@/lib/buildings/tiles";
 
 /** Fixed-zoom tiles have no fallback parents: cancel every offscreen request immediately. */
 export class BuildingTileset extends Tileset2D {
@@ -20,10 +20,12 @@ export function makeBuildingLayer(options: {
   mobile: boolean; issueActive: boolean; retry: number;
   onStatus: (id: string, error: boolean, fetchedAt?: string) => void;
 }) {
+  const coverage = buildingCoverage();
+  if (!coverage) throw new Error("Buildings unavailable for active profile");
   return new TileLayer<BuildingTile>({
     id: `buildings-${options.retry}`,
     TilesetClass: BuildingTileset,
-    minZoom: 16, maxZoom: 16, tileSize: 512, extent: BUILDING_EXTENT,
+    minZoom: 16, maxZoom: 16, tileSize: 512, extent: coverage.extent,
     visibleMinZoom: options.mobile ? 16 : 15.5,
     maxRequests: options.mobile ? 2 : 4,
     maxCacheSize: options.mobile ? 32 : 64,

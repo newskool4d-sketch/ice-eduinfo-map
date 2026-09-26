@@ -1423,16 +1423,18 @@ export default function DeckMap({
               <p>건물은 더 확대하면 표시됩니다</p>
             ) : (
               <>
-                <p>건물 © 국토교통부·브이월드 · 일부 높이는 층수로 추정</p>
+                <p>건물 © 국토교통부·브이월드</p>
+                <p>높이는 원천 제공값 또는 층수 × 3m 추정값이며, 높이 자료가 없으면 윤곽으로 표시합니다.</p>
                 {buildingFetchedAt && (
                   <p>
                     건물 조회:{" "}
                     {new Date(buildingFetchedAt).toLocaleString("ko-KR")}
+                    {" · 원천 갱신일과 다름"}
                   </p>
                 )}
                 {buildingErrors.size > 0 && (
                   <p>
-                    일부 건물 정보를 불러오지 못했습니다{" "}
+                    일부 건물 정보를 불러오지 못했습니다. 학교·통계는 계속 볼 수 있습니다.{" "}
                     <button
                       className="pointer-events-auto underline"
                       onClick={() => {

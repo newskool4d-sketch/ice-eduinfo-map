@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildingProperties } from "@/lib/buildings/types";
 import { fetchBuildingTile } from "@/lib/buildings/server";
-import { TILE_RANGE, validBuildingTile } from "@/lib/buildings/tiles";
+import { buildingCoverage, validBuildingTile } from "@/lib/buildings/tiles";
+import { PROFILES } from "@/lib/profiles";
 import { buildingsActive, scenePitch } from "@/components/map/scene";
 import { WebMercatorViewport } from "@deck.gl/core";
 import { BuildingTileset, makeBuildingLayer } from "@/components/map/layers/buildingLayer";
@@ -10,7 +11,7 @@ import { GET } from "@/app/api/buildings/v1/[z]/[x]/[y]/route";
 
 const row = (id: number) => ({ type: "Feature", id, geometry: { type: "Polygon", coordinates: [[[127,35],[127.001,35],[127,35.001],[127,35]]] }, properties: { height: "0", grnd_flr: "2" } });
 const page = (current = 1, total = 1, pages = 1, rows = [row(current)]) => Response.json({ response: { status: "OK", record: { total, current: rows.length }, page: { current, total: pages }, result: { featureCollection: { features: rows } } } });
-const x = TILE_RANGE.minX, y = TILE_RANGE.minY;
+const { minX: x, minY: y } = buildingCoverage(PROFILES.jeonbuk)!.range;
 
 describe("building contract", () => {
   it.each([

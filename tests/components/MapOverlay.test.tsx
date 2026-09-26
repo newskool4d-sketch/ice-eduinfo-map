@@ -188,12 +188,10 @@ describe("MapOverlay", () => {
         "발표 모드",
         "읍면동 경계",
       ]);
-      const row = group.parentElement!;
-      expect(Array.from(row.children).map((c) => c.textContent)).toEqual([
-        "발표 모드",
-        "끄기위성일반",
-        "읍면동 경계",
-      ]);
+      // Check control order independently of the segmented label wrapper.
+      const [presentation, emd] = screen.getAllByRole("button");
+      expect(presentation.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(group.compareDocumentPosition(emd) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     });
 
     it("styles the checked radio like a pressed chip and the rest like unpressed ones", () => {
