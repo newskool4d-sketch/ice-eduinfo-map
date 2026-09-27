@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import type { DataBundle } from "@/lib/data/types";
 import { valueMap } from "@/lib/stats";
 import { useMapQuery } from "@/lib/state/urlState";
@@ -20,6 +21,11 @@ export default function IncheonHeader({ bundle, onExplore }: { bundle: DataBundl
       <button className="ice-theme-toggle" type="button" aria-label="어두운 화면" aria-pressed={colorMode === "dark"} onClick={() => setColorMode(colorMode === "dark" ? "light" : "dark")}>{colorMode === "dark" ? "다크" : "라이트"}<span aria-hidden className="ice-toggle-track"><span /></span></button>
       </div>
     </header>
+    <aside className="ice-disclosure" aria-label="지도 제작 및 배포 안내">
+      <div className="ice-disclosure-copy"><span className="ice-disclosure-badge">비공식 안내</span><p>이 지도는 인천광역시교육청에서 공식 배포한 지도가 아닙니다.</p></div>
+      <p className="ice-disclosure-author"><span>제작</span> 인천광역시교육청 교육전문직원 홍주형</p>
+      <Link className="ice-disclosure-link" href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link>
+    </aside>
     <div className="ice-workbar"><div><h2>{current.description}</h2><p>2026년 인천 교육현황</p></div>
       <dl className="ice-metrics">{metrics.map(([id, label, unit]) => <div key={id}><dt>{label}</dt><dd>{bundle ? valueMap(bundle.indicators[id]).get("28000")?.toLocaleString("ko-KR") ?? "—" : "—"}<small>{unit}</small></dd></div>)}</dl>
     </div>
