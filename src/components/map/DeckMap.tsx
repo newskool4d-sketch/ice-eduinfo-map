@@ -258,9 +258,19 @@ export default function DeckMap({
   const [mobile, setMobile] = useState(
     () => window.matchMedia("(max-width: 767px)").matches,
   );
+  const [scrollableMap, setScrollableMap] = useState(() =>
+    window.matchMedia("(max-width: 767px), (min-width: 768px) and (max-width: 1023px) and (max-height: 500px)").matches,
+  );
+  const [touchMapMode, setTouchMapMode] = useState(false);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
     const update = () => setMobile(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px), (min-width: 768px) and (max-width: 1023px) and (max-height: 500px)");
+    const update = () => setScrollableMap(media.matches);
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
@@ -1271,6 +1281,8 @@ export default function DeckMap({
   return (
     <div
       id="school-map"
+      data-scrollable-map={scrollableMap}
+      data-touch-map-mode={touchMapMode}
       ref={containerRef}
       className="relative h-full w-full bg-paper outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
       style={dark ? DARK_WIDGET_THEME_STYLE : WIDGET_THEME_STYLE}
@@ -1326,6 +1338,7 @@ export default function DeckMap({
           initialViewState={cameraViewState}
           views={views}
           controller={{ ...CONTROLLER, maxBounds: undefined }}
+          touchAction={incheon && scrollableMap && !touchMapMode ? "pan-y" : "none"}
           layers={layers}
           widgets={widgets}
           getTooltip={getTooltip}
@@ -1354,9 +1367,16 @@ export default function DeckMap({
         <button type="button" title="강화·옹진·영종 등 섬 지역을 포함한 인천 전체 보기"
           onClick={() => { focusBounds(unionBbox(bundle.regions.features)); setMapHint("섬 지역을 포함한 인천 전체로 이동했습니다."); }}>인천 전체</button>
       </nav>}
+      {incheon && scrollableMap && <button
+        type="button"
+        className="ice-map-touch-toggle"
+        aria-pressed={touchMapMode}
+        onClick={() => setTouchMapMode((value) => !value)}
+      >{touchMapMode ? "화면 스크롤" : "지도 이동"}</button>}
       {clusterChoice && <ClusterSchoolDialog cluster={clusterChoice} onClose={() => setClusterChoice(null)} onSelect={(id) => onHighlightSchool(id, "map")} />}
       <MetricLegend
         metric={metricModel}
+        attribution={incheon && basemapOn ? BASEMAP_ATTRIBUTION : undefined}
         density={densityVisible}
         schoolSelected={!!highlightedSchoolId}
         mobile={mobile}
@@ -1406,7 +1426,7 @@ export default function DeckMap({
         collapsible
         items={overlayItems}
         settings={<BasemapControl mode={basemapMode} dark={dark} available={!!VWORLD_KEY} onChange={changeBasemap} />}
-        attribution={basemapOn ? BASEMAP_ATTRIBUTION : undefined}
+        attribution={!incheon && basemapOn ? BASEMAP_ATTRIBUTION : undefined}
       >
         {basemapFailed && (
           <div className="basemap-status" role="status">

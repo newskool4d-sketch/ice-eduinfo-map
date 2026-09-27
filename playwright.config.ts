@@ -122,6 +122,9 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
+        // Local verification can use an already-installed Chrome when the
+        // Playwright-managed browser revision is not present on this machine.
+        ...(process.env.PW_USE_SYSTEM_CHROME === "1" ? { channel: "chrome" } : {}),
         viewport: { width: 1600, height: 900 },
         deviceScaleFactor: 1,
         // Fix round 2, finding 6 — these swiftshader/ANGLE flags force

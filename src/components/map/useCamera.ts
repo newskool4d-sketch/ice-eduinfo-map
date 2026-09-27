@@ -56,7 +56,6 @@ export function useCamera(
     reselect: number;
     scene: Scene;
     mobile: boolean;
-    sizeKey: string;
   } | null>(null);
   const sequence = useRef(0);
   const reselect = useCallback(() => setReselectNonce((n) => n + 1), []);
@@ -69,12 +68,20 @@ export function useCamera(
     if (!element) return;
     const measure = () => {
       const { width, height } = element.getBoundingClientRect();
-      if (width > 0 && height > 0)
-        setSize((old) =>
-          old?.width === width && old?.height === height
-            ? old
-            : { width, height },
-        );
+      // Tiny transitional sizes cannot display a usable map and may make
+      // fitBounds unstable while the mobile header or browser chrome resizes.
+      if (width < 32 || height < 32) {
+        setSize(null);
+        setCameraViewState(null);
+        latest.current = null;
+        previous.current = null;
+        return;
+      }
+      setSize((old) =>
+        old?.width === width && old?.height === height
+          ? old
+          : { width, height },
+      );
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -98,12 +105,12 @@ export function useCamera(
   useEffect(() => {
     if (!size || !overview) return;
     const before = previous.current;
-    const sizeKey = `${size.width}:${size.height}`;
-    const resized = before?.sizeKey !== sizeKey;
     const current = latest.current;
     let target: OverviewViewState | CameraViewState | null = null;
+    // A normal resize keeps the user's zoom and position. The tiny-size gate
+    // above clears `previous`, so a map that becomes usable again re-fits.
     if (
-      (!before || resized || before.focus !== focusNonce || before.schoolId !== (selectedSchool?.id ?? null)) &&
+      (!before || before.focus !== focusNonce || before.schoolId !== (selectedSchool?.id ?? null)) &&
       selectedSchool?.lat != null &&
       selectedSchool.lng != null
     ) {
@@ -115,7 +122,7 @@ export function useCamera(
         zoom: Math.min(maxZoom, Math.max(current?.zoom ?? 0, 16)),
       };
     } else if (
-      !before || resized ||
+      !before ||
       before.code !== selectedCode ||
       before.reselect !== reselectNonce
     ) {
@@ -128,7 +135,7 @@ export function useCamera(
     }
     if (!target && current && (before?.scene !== scene || before?.mobile !== mobile)) target = current;
     previous.current = {
-      scene, mobile, sizeKey,
+      scene, mobile,
       schoolId: selectedSchool?.id ?? null,
       code: selectedCode,
       focus: focusNonce,

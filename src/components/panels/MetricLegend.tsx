@@ -13,6 +13,7 @@ interface MetricLegendProps {
   mobile?: boolean;
   clustered?: boolean;
   targetsSeparate?: boolean;
+  attribution?: string;
 }
 
 export default function MetricLegend({
@@ -24,10 +25,11 @@ export default function MetricLegend({
   mobile = false,
   clustered = false,
   targetsSeparate = false,
+  attribution,
 }: MetricLegendProps) {
   if (ACTIVE_PROFILE.id === "incheon") return <IncheonMetricLegend
     metric={metric} density={density} densityUnavailable={densityUnavailable}
-    schoolSelected={schoolSelected} mobile={mobile} clustered={clustered} targetsSeparate={targetsSeparate}>{children}</IncheonMetricLegend>;
+    schoolSelected={schoolSelected} mobile={mobile} clustered={clustered} targetsSeparate={targetsSeparate} attribution={attribution}>{children}</IncheonMetricLegend>;
   const legend = density
     ? METRIC_RAMP.map((color, i) => ({
         color,
@@ -93,7 +95,7 @@ export default function MetricLegend({
   );
 }
 
-function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelected, mobile, clustered, targetsSeparate, children }: MetricLegendProps) {
+function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelected, mobile, clustered, targetsSeparate, attribution, children }: MetricLegendProps) {
   const numeric = !density && metric.kind !== "category" && !metric.regionOverlay;
   const labelOf = (label: string) => numeric && metric.unit && label.endsWith(metric.unit)
     ? label.slice(0, -metric.unit.length) : label;
@@ -128,5 +130,6 @@ function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelect
         {densityUnavailable && <p>이 기기에서는 학교별 수치로 표시합니다.</p>}
       </div>
     </details>
+    {attribution && <p className="ice-legend-attribution" data-testid="basemap-attribution">{attribution}</p>}
   </section>;
 }

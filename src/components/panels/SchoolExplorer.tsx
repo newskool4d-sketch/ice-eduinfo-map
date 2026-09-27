@@ -136,9 +136,9 @@ export default function SchoolExplorer({
     (s) => s.lat !== null && s.lng !== null,
   ).length;
   return (
-    <div className="space-y-4">
+    <div className="ice-school-explorer space-y-4">
       {metric && (
-        <div className="rounded-lg bg-paper p-3 text-xs">
+        <div className="ice-school-metric rounded-lg bg-paper p-3 text-xs">
           <p className="font-semibold">{metric.title}</p>
           <p className="mt-1 text-ink-muted">
             {metric.kind === "region"

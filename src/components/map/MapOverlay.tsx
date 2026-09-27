@@ -87,7 +87,7 @@ export default function MapOverlay({
   if (items.length === 0 && !attribution && !children && !settings) return null;
 
   return (
-    <div className="pointer-events-auto absolute right-3 top-16 lg:top-3 z-10 flex max-h-[calc(100%_-_76px)] max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5 overflow-y-auto overscroll-contain lg:max-h-[calc(100%_-_24px)]">
+    <div className="map-overlay pointer-events-auto absolute right-3 top-16 lg:top-3 z-10 flex max-h-[calc(100%_-_76px)] max-w-[calc(100%_-_24px)] flex-col items-end gap-1.5 overflow-y-auto overscroll-contain lg:max-h-[calc(100%_-_24px)]">
       <details
         open={collapsible ? undefined : true}
         className="pointer-events-auto max-w-full"

@@ -131,6 +131,9 @@ function isContained(
  */
 export function fitViewToPoints(points: readonly FitPoint[], size: Size, opts: FitViewOptions): FitResult {
   const { pitch, bearing, padding, minZoom, maxZoom } = opts;
+  // fitBounds requires positive space after padding on both axes. A mobile
+  // viewport can briefly be shorter than the normal 60–80px camera margin.
+  const safePadding = Math.min(padding, size.width / 4, size.height / 4);
 
   let minLng = Infinity;
   let minLat = Infinity;
@@ -148,7 +151,7 @@ export function fitViewToPoints(points: readonly FitPoint[], size: Size, opts: F
       [minLng, minLat],
       [maxLng, maxLat],
     ],
-    { padding },
+    { padding: safePadding },
   );
 
   let longitude = flat.longitude;
@@ -161,7 +164,7 @@ export function fitViewToPoints(points: readonly FitPoint[], size: Size, opts: F
   for (let pass = 0; pass < RECENTER_PASSES; pass++) {
     let viewport = new WebMercatorViewport({ width: size.width, height: size.height, longitude, latitude, zoom, pitch, bearing });
 
-    while (!isContained(viewport, points, size, padding)) {
+    while (!isContained(viewport, points, size, safePadding)) {
       if (zoom <= minZoom) break;
       zoom = Math.max(minZoom, zoom - ZOOM_STEP);
       viewport = new WebMercatorViewport({ width: size.width, height: size.height, longitude, latitude, zoom, pitch, bearing });

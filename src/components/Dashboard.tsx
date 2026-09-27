@@ -297,7 +297,7 @@ function DashboardInner({
           }}
           className={`ice-sidebar ${panelOpen ? "flex" : "hidden"} ${collapsed ? "lg:hidden" : "lg:flex"} fixed inset-x-0 bottom-0 z-50 max-h-[75%] flex-col rounded-t-2xl border-t border-line bg-surface shadow-xl lg:relative lg:inset-auto lg:z-10 lg:h-full lg:max-h-none lg:w-[360px] lg:shrink-0 lg:rounded-none lg:border-r lg:border-t-0 lg:shadow-none`}
         >
-          <div className="flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
+          <div className="ice-panel-tabs flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
             <div
               role="tablist"
               aria-label="탐색 유형"

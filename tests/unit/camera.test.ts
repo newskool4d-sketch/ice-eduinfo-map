@@ -89,6 +89,14 @@ describe("fitOverview", () => {
     expect(viewState.zoom).toBeLessThanOrEqual(VIEW_LIMITS.maxZoom);
   });
 
+  it("fits without throwing when a short mobile map is smaller than the normal padding", () => {
+    const shortSize = { width: 320, height: 80 };
+    const viewState = fitOverview(JB_BBOX, [], shortSize, "road");
+    expect(Number.isFinite(viewState.zoom)).toBe(true);
+    expect(Number.isFinite(viewState.longitude)).toBe(true);
+    expect(Number.isFinite(viewState.latitude)).toBe(true);
+  });
+
   it("returns finite longitude/latitude roughly centered on the bbox", () => {
     const viewState = fitOverview(JB_BBOX, [], SIZE);
     expect(Number.isFinite(viewState.longitude)).toBe(true);

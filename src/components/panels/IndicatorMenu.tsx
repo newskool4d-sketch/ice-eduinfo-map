@@ -221,7 +221,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
   }
 
   return (
-    <div className="relative shrink-0">
+    <div className="ice-indicator-menu relative min-w-0 shrink-0">
       <button
         ref={buttonRef}
         type="button"
@@ -240,9 +240,9 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           if (event.key === "Enter") openedByEnterRef.current = true;
         }}
         onClick={() => setOpen((v) => !v)}
-        className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-sm text-ink hover:bg-ink/10"
+        className="ice-indicator-trigger flex min-w-0 shrink-0 items-center gap-1 whitespace-nowrap rounded px-2 py-1.5 text-sm text-ink hover:bg-ink/10"
       >
-        <span className="max-w-32 truncate sm:max-w-none">{`전체 지표 · ${label} ▾`}</span>
+        <span className="ice-indicator-label max-w-32 truncate sm:max-w-none">{`전체 지표 · ${label} ▾`}</span>
       </button>
 
       {open && (

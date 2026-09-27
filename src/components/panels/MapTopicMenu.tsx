@@ -30,12 +30,12 @@ export default function MapTopicMenu({
   const select = (id: string) =>
     id === "special-education" ? query.setIssue(id) : query.setIndicator(id);
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="ice-topic-menu flex min-w-0 items-center gap-2">
       <select
         aria-label="교육현황 빠른 선택"
         value={active}
         onChange={(event) => select(event.target.value)}
-        className="min-h-11 max-w-28 rounded-lg border border-line bg-surface px-2 text-xs xl:hidden"
+        className="ice-topic-select min-h-11 max-w-28 rounded-lg border border-line bg-surface px-2 text-xs xl:hidden"
       >
         <option value="" disabled>
           주제 선택
@@ -59,7 +59,7 @@ export default function MapTopicMenu({
         ))}
       </nav>
       <IndicatorMenu series={series} />
-      {ACTIVE_PROFILE.capabilities.educationIssues && <button aria-label="교육문제 탐색" className="min-h-11 shrink-0 rounded-lg bg-accent-soft px-2 text-xs font-semibold text-accent-text" onClick={() => { query.setView("issues"); onExploreIssues?.(); }}>교육문제<span className="hidden xl:inline"> 탐색</span></button>}
+      {ACTIVE_PROFILE.capabilities.educationIssues && <button aria-label="교육문제 탐색" className="ice-issue-shortcut min-h-11 shrink-0 rounded-lg bg-accent-soft px-2 text-xs font-semibold text-accent-text" onClick={() => { query.setView("issues"); onExploreIssues?.(); }}>교육문제<span className="hidden xl:inline"> 탐색</span></button>}
     </div>
   );
 }
