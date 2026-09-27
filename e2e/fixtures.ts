@@ -52,7 +52,7 @@ export async function docShot(page: Page, name: string): Promise<void> {
 /** Panels/settings now start collapsed to give the thematic map room. */
 export async function openPanel(page: Page) {
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
-  const opener = page.getByRole("button", { name: "학교·통계", exact: true });
+  const opener = page.getByRole("button", { name: /^(학교 찾기|학교·통계)$/ });
   if (await opener.isVisible()) await opener.click();
 }
 export async function openMapSettings(page: Page) {

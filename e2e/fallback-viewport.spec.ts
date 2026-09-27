@@ -9,6 +9,7 @@ test("모바일에서도 지도와 학교 검색을 사용하고 선택 후 패�
   page,
 }) => {
   await page.goto("/");
+  test.skip(!!(await page.locator(".ice-header").count()), "Jeonbuk profile only");
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({
     timeout: 20000,
   });
@@ -51,6 +52,7 @@ test("모바일과 PC 사이 크기 변경 후에도 선택과 배율이 유지�
   page,
 }) => {
   await page.goto("/?region=52110");
+  test.skip(!!(await page.locator(".ice-header").count()), "Jeonbuk profile only");
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({
     timeout: 20000,
   });

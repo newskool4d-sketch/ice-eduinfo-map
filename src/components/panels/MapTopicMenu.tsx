@@ -38,7 +38,7 @@ export default function MapTopicMenu({
         className="ice-topic-select min-h-11 max-w-28 rounded-lg border border-line bg-surface px-2 text-xs xl:hidden"
       >
         <option value="" disabled>
-          주제 선택
+          전체 지표
         </option>
         {availableChoices.map(([label, id]) => (
           <option key={id} value={id}>
@@ -52,9 +52,9 @@ export default function MapTopicMenu({
             key={id}
             aria-pressed={active === id}
             onClick={() => select(id)}
-            className="min-h-11 rounded-lg px-3 text-sm hover:bg-paper aria-pressed:bg-accent-soft aria-pressed:text-accent-text"
+            className="min-h-11 rounded-lg border border-transparent px-3 text-sm hover:bg-paper aria-pressed:border-accent-text aria-pressed:bg-accent-soft aria-pressed:font-semibold aria-pressed:text-accent-text"
           >
-            {label}
+            {active === id && <span aria-hidden="true" className="ice-check-marker mr-1" />}{label}
           </button>
         ))}
       </nav>

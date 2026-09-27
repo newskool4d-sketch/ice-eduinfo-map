@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ACTIVE_PROFILE } from "@/lib/profiles";
 import { DesignProvider, useDesign } from "./design/DesignProvider";
-import IncheonHeader from "./design/IncheonHeader";
+import IncheonHeader, { IncheonMobileInfo } from "./design/IncheonHeader";
 import RegionalComparison from "./design/RegionalComparison";
 import IncheonTrends from "./design/IncheonTrends";
 import IssueExplorer from "@/components/panels/IssueExplorer";
@@ -26,6 +26,7 @@ import { DataProvider, useData, useRetry } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
 import type { RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
+import { GROUP_LABELS } from "@/lib/indicators/groups";
 import { MAP_VIEWS, useMapQuery } from "@/lib/state/urlState";
 
 function CenteredMessage({ children }: { children: ReactNode }) {
@@ -60,6 +61,13 @@ function DataErrorMessage({ error }: { error: string }) {
     </div>
   );
 }
+
+const INCH_TOPIC_LABELS: Record<string, string> = {
+  students_total: "학생 분포",
+  students_per_class: "교육여건",
+  small_schools: "작은학교",
+  students_change_5y: "지역 변화",
+};
 
 function DashboardInner({
   bundle,
@@ -172,6 +180,8 @@ function DashboardInner({
   }, [issueModel, filteredSchools, bundle, name, level]);
   const selectedSchool =
     mapSchools.find((s) => s.id === highlightedSchoolId) ?? null;
+  const currentTopic = issueById(issueId)?.title ?? INCH_TOPIC_LABELS[indicatorId] ?? GROUP_LABELS[def.group];
+  const currentRegion = bundle.regions.features.find((feature) => feature.properties.code === regionCode)?.properties.name ?? "인천 전체";
   useEffect(() => {
     if (highlightedSchoolId && !selectedSchool)
       void setHighlightedSchoolId(null, { history: "replace" });
@@ -253,13 +263,17 @@ function DashboardInner({
   };
 
   return (
-    <div className="flex min-h-0 flex-col overflow-hidden">
+    <div className="ice-dashboard-inner flex min-h-0 flex-col overflow-hidden">
       <span
         aria-live="polite"
         className="sr-only"
         data-testid="indicator-announcement"
       >{`지표 변경: ${mapMetric.title}`}</span>
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      {isIncheon && <div className="ice-current-view" role="status" aria-live="polite">
+        <p><strong>현재 보기</strong><span>{currentTopic} · {mapMetric.title} · {currentRegion}</span></p>
+        {selectedSchool && <p className="ice-current-school"><span>선택 학교: <strong>{selectedSchool.name}</strong></span><button type="button" onClick={() => selectSchool(null)}>선택 해제</button></p>}
+      </div>}
+      <div className="ice-map-row relative flex min-h-0 flex-1 overflow-hidden">
         {panelOpen && (
           <button
             type="button"
@@ -533,7 +547,7 @@ function DashboardInner({
             }}
             className={`${collapsed ? "" : "lg:hidden"} absolute left-3 top-3 z-10 min-h-11 rounded-lg border border-line bg-surface px-3 text-sm font-medium shadow-sm`}
           >
-            학교·통계
+            {isIncheon ? "학교 찾기" : "학교·통계"}
           </button>
           {selectedSchool && (
             <button
@@ -568,6 +582,7 @@ function DashboardInner({
           )}
         </main>
       </div>
+      {isIncheon && <a className="ice-more-info" href="#education-info">↓ 교육현황 더 보기</a>}
     </div>
   );
 }
@@ -591,13 +606,16 @@ function DashboardBody() {
       )}
       {state.status === "error" && <DataErrorMessage error={state.error} />}
       {state.status === "ready" && (
-        <DashboardInner
-          bundle={state.bundle}
-          exploreRequest={exploreRequest}
-          indicatorId={indicatorId}
-          regionCode={regionCode}
-          setRegion={setRegion}
-        />
+        <>
+          <DashboardInner
+            bundle={state.bundle}
+            exploreRequest={exploreRequest}
+            indicatorId={indicatorId}
+            regionCode={regionCode}
+            setRegion={setRegion}
+          />
+          {ACTIVE_PROFILE.id === "incheon" && <IncheonMobileInfo bundle={state.bundle} />}
+        </>
       )}
     </div>
   );

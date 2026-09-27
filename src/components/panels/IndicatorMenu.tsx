@@ -256,6 +256,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
           onKeyUp={handlePopoverKeyUp}
           className="fixed left-3 right-3 top-14 z-50 mt-2 max-h-[70vh] xl:absolute xl:left-0 xl:right-auto xl:top-full xl:w-[640px] overflow-y-auto rounded-lg border border-line bg-surface p-3 shadow-xl"
         >
+          <p className="sticky top-0 z-10 mb-2 rounded border border-accent-text bg-accent-soft px-3 py-2 text-sm font-semibold text-ink">현재 선택: {label}</p>
           <IndicatorPicker
             value={issueId ? "" : indicatorId}
             onChange={handleChange}
@@ -281,7 +282,7 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
                         setOpen(false);
                       }}
                     >
-                      {METRIC_LABELS[metric]}
+                      {issueId === issue.id && issueMetric === metric && <span aria-hidden="true" className="ice-check-marker mr-1" />}{METRIC_LABELS[metric]}
                     </button>
                   ))}
                 </div>

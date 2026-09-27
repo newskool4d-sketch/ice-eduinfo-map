@@ -10,7 +10,9 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import {
   schoolChartMetric,
@@ -203,6 +205,10 @@ export interface DeckMapProps {
   onHighlightSchool: (id: string | null, origin?: "map") => void;
 }
 
+function MapLegendPlacement({ host, children }: { host: HTMLElement | null; children: ReactNode }) {
+  return host ? createPortal(children, host) : children;
+}
+
 export default function DeckMap({
   indicatorId,
   selectedCode,
@@ -259,9 +265,17 @@ export default function DeckMap({
     () => window.matchMedia("(max-width: 767px)").matches,
   );
   const [scrollableMap, setScrollableMap] = useState(() =>
-    window.matchMedia("(max-width: 767px), (min-width: 768px) and (max-width: 1023px) and (max-height: 500px)").matches,
+    window.matchMedia("(max-width: 1023px), (min-width: 1024px) and (max-width: 1200px) and (max-height: 650px)").matches,
   );
   const [touchMapMode, setTouchMapMode] = useState(false);
+  const [compactLegend, setCompactLegend] = useState(() => window.matchMedia("(max-width: 1023px)").matches);
+  const [legendHost] = useState<HTMLElement | null>(() => document.getElementById("ice-below-map-legend"));
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 1023px)");
+    const update = () => setCompactLegend(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 767px)");
     const update = () => setMobile(media.matches);
@@ -269,7 +283,7 @@ export default function DeckMap({
     return () => media.removeEventListener("change", update);
   }, []);
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 767px), (min-width: 768px) and (max-width: 1023px) and (max-height: 500px)");
+    const media = window.matchMedia("(max-width: 1023px), (min-width: 1024px) and (max-width: 1200px) and (max-height: 650px)");
     const update = () => setScrollableMap(media.matches);
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
@@ -1372,9 +1386,9 @@ export default function DeckMap({
         className="ice-map-touch-toggle"
         aria-pressed={touchMapMode}
         onClick={() => setTouchMapMode((value) => !value)}
-      >{touchMapMode ? "화면 스크롤" : "지도 이동"}</button>}
+      >{touchMapMode ? "✓ 지도 이동 중 · 화면 내리기" : "지도 이동"}</button>}
       {clusterChoice && <ClusterSchoolDialog cluster={clusterChoice} onClose={() => setClusterChoice(null)} onSelect={(id) => onHighlightSchool(id, "map")} />}
-      <MetricLegend
+      <MapLegendPlacement host={compactLegend ? legendHost : null}><MetricLegend
         metric={metricModel}
         attribution={incheon && basemapOn ? BASEMAP_ATTRIBUTION : undefined}
         density={densityVisible}
@@ -1421,7 +1435,7 @@ export default function DeckMap({
             )}
           </div>
         )}
-      </MetricLegend>
+      </MetricLegend></MapLegendPlacement>
       <MapOverlay
         collapsible
         items={overlayItems}

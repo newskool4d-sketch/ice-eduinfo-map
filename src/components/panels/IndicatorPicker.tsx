@@ -56,8 +56,8 @@ export default function IndicatorPicker({ value, onChange, series = {} }: Indica
                 // instead, leaving the NAME exactly `def.label`.
                 <div key={def.id} className="flex flex-col">
                   <label
-                    className={`cursor-pointer rounded px-2 py-1 text-xs transition-colors ${
-                      checked ? "bg-accent-soft text-ink" : "text-ink-muted hover:bg-ink/5"
+                    className={`flex min-h-11 cursor-pointer items-center rounded border px-2 py-1 text-xs transition-colors ${
+                      checked ? "border-accent-text bg-accent-soft font-semibold text-ink" : "border-transparent text-ink-muted hover:bg-ink/5"
                     }`}
                   >
                     <input
@@ -70,6 +70,7 @@ export default function IndicatorPicker({ value, onChange, series = {} }: Indica
                       className="mr-1 align-middle accent-accent"
                     />
                     {displayLabel(def, series)}
+                    {checked && <span aria-hidden="true" className="ice-check-marker ml-1 font-bold" />}
                   </label>
                   <span id={descriptionId} className="max-w-[220px] pl-2 text-[10px] leading-snug text-ink-muted">
                     {def.description}

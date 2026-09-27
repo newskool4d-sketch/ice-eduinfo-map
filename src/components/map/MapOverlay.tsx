@@ -125,7 +125,7 @@ export default function MapOverlay({
                           : "border border-line bg-surface/85 text-ink-muted shadow-sm hover:bg-surface"
                       }`}
                     >
-                      {item.label}
+                      {item.pressed && <span aria-hidden="true" className="ice-check-marker mr-1" />}{item.label}
                     </button>
                   ),
                 )}
@@ -242,7 +242,7 @@ function SegmentedRadioGroup({ item }: { item: MapOverlaySegmentedItem }) {
                 : "text-ink-muted hover:bg-surface"
             }`}
           >
-            {opt.label}
+            {checked && <span aria-hidden="true" className="ice-check-marker mr-1" />}{opt.label}
           </button>
         );
       })}
