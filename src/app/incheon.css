@@ -310,6 +310,7 @@
   .ice-app .ice-school-metric { padding:8px 10px; }
   .ice-app .ice-school-metric p { margin-top:0; }
   .ice-app .ice-map-legend { bottom:12px; padding:8px; }
+  .ice-app .map-settings-content { max-width:100%; }
   .ice-map-touch-toggle { position:absolute; z-index:10; top:116px; left:12px; min-height:44px; padding:8px 10px; border:1px solid var(--color-line); border-radius:8px; background:var(--color-surface); box-shadow:0 2px 8px #00152612; font-size:var(--ice-small); font-weight:700; }
   .ice-map-touch-toggle[aria-pressed="true"] { border-color:var(--color-accent); background:var(--color-accent-soft); color:var(--color-accent-text); }
   .ice-app main:has(.map-overlay>details[open]) .ice-map-legend,

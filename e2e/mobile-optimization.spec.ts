@@ -51,6 +51,8 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await openMapSettings(page);
     const settings = page.locator(".map-settings-content");
     await expect(settings).toBeVisible();
+    expect(await page.locator(".map-overlay details").evaluate((element) =>
+      element.scrollWidth <= element.clientWidth + 1)).toBe(true);
     await expect(page.locator(".ice-map-legend")).toBeHidden();
     await expect(page.getByRole("button", { name: "지도 이동" })).toBeHidden();
     await page.screenshot({ path: `test-results/mobile-${viewport.width}-settings.png` });
