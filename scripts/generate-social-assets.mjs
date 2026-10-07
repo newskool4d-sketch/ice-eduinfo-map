@@ -1,11 +1,13 @@
 import { readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
-const provinceName = process.env.SOCIAL_PROVINCE_NAME ?? "전북특별자치도";
-const shortName = process.env.SOCIAL_SHORT_NAME ?? "전북";
-const siteHost = process.env.SOCIAL_SITE_HOST ?? "jb-edu-map.vercel.app";
+const isIncheon = process.argv.includes("--profile=incheon");
+const provinceName = process.env.SOCIAL_PROVINCE_NAME ?? (isIncheon ? "인천광역시" : "전북특별자치도");
+const shortName = process.env.SOCIAL_SHORT_NAME ?? (isIncheon ? "인천" : "전북");
+const siteHost = process.env.SOCIAL_SITE_HOST ?? (isIncheon ? "ice-eduinfo-map.vercel.app" : "jb-edu-map.vercel.app");
+const outputName = isIncheon ? "social-preview-incheon" : "social-preview";
 
-const regions = JSON.parse(await readFile("public/data/regions.geojson", "utf8"));
+const regions = JSON.parse(await readFile(isIncheon ? "public/data/incheon/regions.geojson" : "public/data/regions.geojson", "utf8"));
 const points = regions.features.flatMap(({ geometry }) =>
   geometry.type === "Polygon"
     ? geometry.coordinates.flat(1)
@@ -47,27 +49,30 @@ const mark = `<rect width="64" height="64" rx="18" fill="#d9572b"/>
 <path d="M32 12c-10.5 0-19 8.5-19 19 0 14.4 19 27 19 27s19-12.6 19-27c0-10.5-8.5-19-19-19Z" fill="#fff"/>
 <circle cx="32" cy="31" r="8" fill="#d9572b"/>`;
 const icon = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">${mark}</svg>`;
-await writeFile("src/app/icon.svg", icon);
-await sharp(Buffer.from(icon)).resize(512, 512).png().toFile("src/app/apple-icon.png");
-const iconSizes = [16, 32, 48, 64];
-const iconImages = await Promise.all(iconSizes.map((size) =>
-  sharp(Buffer.from(icon)).resize(size, size).png().toBuffer(),
-));
-const icoHeader = Buffer.alloc(6 + iconSizes.length * 16);
-icoHeader.writeUInt16LE(1, 2);
-icoHeader.writeUInt16LE(iconSizes.length, 4);
-let icoOffset = icoHeader.length;
-iconImages.forEach((bytes, index) => {
-  const entry = 6 + index * 16;
-  icoHeader.writeUInt8(iconSizes[index], entry);
-  icoHeader.writeUInt8(iconSizes[index], entry + 1);
-  icoHeader.writeUInt16LE(1, entry + 4);
-  icoHeader.writeUInt16LE(32, entry + 6);
-  icoHeader.writeUInt32LE(bytes.length, entry + 8);
-  icoHeader.writeUInt32LE(icoOffset, entry + 12);
-  icoOffset += bytes.length;
-});
-await writeFile("src/app/favicon.ico", Buffer.concat([icoHeader, ...iconImages]));
+// The Incheon share card has its own assets; keep the site's existing icons.
+if (!isIncheon) {
+  await writeFile("src/app/icon.svg", icon);
+  await sharp(Buffer.from(icon)).resize(512, 512).png().toFile("src/app/apple-icon.png");
+  const iconSizes = [16, 32, 48, 64];
+  const iconImages = await Promise.all(iconSizes.map((size) =>
+    sharp(Buffer.from(icon)).resize(size, size).png().toBuffer(),
+  ));
+  const icoHeader = Buffer.alloc(6 + iconSizes.length * 16);
+  icoHeader.writeUInt16LE(1, 2);
+  icoHeader.writeUInt16LE(iconSizes.length, 4);
+  let icoOffset = icoHeader.length;
+  iconImages.forEach((bytes, index) => {
+    const entry = 6 + index * 16;
+    icoHeader.writeUInt8(iconSizes[index], entry);
+    icoHeader.writeUInt8(iconSizes[index], entry + 1);
+    icoHeader.writeUInt16LE(1, entry + 4);
+    icoHeader.writeUInt16LE(32, entry + 6);
+    icoHeader.writeUInt32LE(bytes.length, entry + 8);
+    icoHeader.writeUInt32LE(icoOffset, entry + 12);
+    icoOffset += bytes.length;
+  });
+  await writeFile("src/app/favicon.ico", Buffer.concat([icoHeader, ...iconImages]));
+}
 
 const preview = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
 <rect width="1200" height="630" fill="#f6f7f8"/>
@@ -76,13 +81,14 @@ const preview = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="63
 <circle cx="941" cy="318" r="225" fill="#fff7f1"/>
 <g transform="translate(76 70)">${mark}</g>
 <text x="156" y="109" fill="#a63d17" font-size="27" font-weight="700" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">${provinceName} 교육 데이터 지도</text>
-<text x="76" y="254" fill="#1c2331" font-size="85" font-weight="700" letter-spacing="-4" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">${shortName}교육지도</text>
-<text x="80" y="325" fill="#5b6472" font-size="31" font-weight="500" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">우리 지역의 학교와 교육 현황을</text>
-<text x="80" y="369" fill="#5b6472" font-size="31" font-weight="500" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">지도에서 살펴보세요</text>
+<text x="76" y="254" fill="#1c2331" font-size="85" font-weight="700" letter-spacing="-4" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">${shortName}${isIncheon ? " " : ""}교육지도</text>
+<text x="80" y="325" fill="#5b6472" font-size="31" font-weight="500" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">${isIncheon ? "학교 위치와 학생·학급·교원 현황" : "우리 지역의 학교와 교육 현황을"}</text>
+<text x="80" y="369" fill="#5b6472" font-size="31" font-weight="500" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">${isIncheon ? "2022~2026년 변화까지 한눈에" : "지도에서 살펴보세요"}</text>
 <rect x="78" y="430" width="324" height="59" rx="29.5" fill="#fff" stroke="#e7dcd7" stroke-width="2"/>
-<text x="109" y="469" fill="#a63d17" font-size="25" font-weight="700" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">학교 · 통계 · 교육문제</text>
+<text x="109" y="469" fill="#a63d17" font-size="25" font-weight="700" font-family="Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif">${isIncheon ? "학교 · 통계 · 연도별 추세" : "학교 · 통계 · 교육문제"}</text>
+${isIncheon ? '<text x="80" y="525" fill="#5b6472" font-size="21" font-family="Malgun Gothic, sans-serif">비공식 교육정보 지도</text>' : ""}
 <text x="80" y="568" fill="#7b8491" font-size="23" font-weight="500" font-family="Arial, sans-serif">${siteHost}</text>
 <g>${regionPaths}${sampleDots}</g>
-</svg>`;
-await writeFile("public/social-preview.svg", preview);
-await sharp(Buffer.from(preview)).png({ compressionLevel: 9 }).toFile("public/social-preview.png");
+</svg>`.replaceAll("Noto Sans CJK KR, Apple SD Gothic Neo, sans-serif", "Noto Sans CJK KR, Malgun Gothic, Apple SD Gothic Neo, sans-serif");
+await writeFile(`public/${outputName}.svg`, preview);
+await sharp(Buffer.from(preview)).png({ compressionLevel: 9 }).toFile(`public/${outputName}.png`);

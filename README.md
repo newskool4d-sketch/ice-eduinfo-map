@@ -95,6 +95,8 @@ GitHub Actions(`.github/workflows/ci.yml`)가 push/PR마다 데이터 검증(`da
 
 카카오톡 등 공유 미리보기에는 1200×630 PNG와 Open Graph 제목·설명을 사용합니다. 다른 지역으로 배포할 때는 `NEXT_PUBLIC_SITE_URL`을 해당 공개 주소로 설정하고, 경계 데이터를 생성한 뒤 `SOCIAL_PROVINCE_NAME`, `SOCIAL_SHORT_NAME`, `SOCIAL_SITE_HOST`를 지정해 `npm run social:build`를 실행하세요. 생성된 `public/social-preview.png`와 `src/app`의 아이콘 파일을 함께 커밋해야 합니다.
 
+인천 공유 카드는 `npm run social:build -- --profile=incheon`으로 생성합니다. 인천 경계와 서비스 소개를 담은 `public/social-preview-incheon.png` 및 SVG를 만들며 기존 아이콘은 유지합니다. 인천 프로필의 기본 공유 주소는 `https://ice-eduinfo-map.vercel.app`이며, 별도 도메인을 쓸 때만 `NEXT_PUBLIC_SITE_URL`로 지정합니다. OG와 X(Twitter) 카드에는 같은 제목·설명·이미지가 적용됩니다.
+
 ## 데이터 갱신 절차
 
 1. **원천 파일을 `data/raw/` 에 새로 받습니다.** 이 저장소의 파이프라인은 소스 파일의 **기준일자를 파일명에서 직접 읽습니다** — 임의로 "오늘 날짜"를 쓰지 않습니다(`scripts/pipeline/sources.ts`의 `referenceDateFromFilename` 참고):
