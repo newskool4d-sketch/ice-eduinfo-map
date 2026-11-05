@@ -36,7 +36,7 @@ const nextConfig: NextConfig = {
       // above, a returning visitor can get a freshly-deployed JS bundle
       // (referencing new registry ids) paired with a STALE cached
       // manifest.json for up to an hour after a data-refresh deploy,
-      // hitting that error needlessly. This entry must stay ordered AFTER
+      // hitting that error needlessly. Both profile entries must stay AFTER
       // the `/data/:path*` wildcard above — Next.js applies matching header
       // sets in array order, and when two entries set the SAME header key
       // for the same request, the LATER entry wins; putting this more
@@ -44,6 +44,15 @@ const nextConfig: NextConfig = {
       // by the wildcard's 1h policy instead.
       {
         source: "/data/manifest.json",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/data/incheon/manifest.json",
         headers: [
           {
             key: "Cache-Control",

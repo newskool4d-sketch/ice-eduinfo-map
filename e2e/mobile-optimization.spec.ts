@@ -118,6 +118,15 @@ for (const viewport of [{ width: 700, height: 900 }, { width: 820, height: 780 }
     expect(layout.pageWidth).toBeLessThanOrEqual(viewport.width + 1);
     expect(layout.mapHeight).toBeGreaterThanOrEqual(500);
     expect(layout.scrollableMap).toBe("true");
+    const moveMap = page.getByRole("button", { name: "지도 이동", exact: true });
+    await moveMap.click();
+    await expect(moveMap).toHaveCount(0);
+    const scrollPage = page.getByRole("button", { name: /지도 이동 중 · 화면 내리기/ });
+    await expect(scrollPage).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".deck-events-root")).toHaveCSS("touch-action", "none");
+    await scrollPage.click();
+    await expect(moveMap).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator(".deck-events-root")).toHaveCSS("touch-action", "pan-y");
     await openMapSettings(page);
     await expect(page.locator(".map-settings-content")).toBeVisible();
     expect(await page.locator(".map-settings-content").evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
@@ -130,6 +139,26 @@ for (const viewport of [{ width: 700, height: 900 }, { width: 820, height: 780 }
     }
   });
 }
+
+test("mobile legend stays below the map after returning from the about page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?scene=flat");
+  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  const legend = page.locator("#ice-below-map-legend .ice-map-legend");
+  await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
+  await expect(legend).toBeAttached();
+  // Internal links keep the dynamic map module warm; page.goto would hide the bug.
+  await page.locator(".ice-mobile-source").getByRole("link", { name: /자료 기준/ }).click();
+  await expect(page).toHaveURL(/\/about$/);
+  await page.getByRole("link", { name: "← 인천 교육지도" }).click();
+  await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
+  await expect(legend).toBeAttached();
+  const positions = await page.evaluate(() => ({
+    legend: document.querySelector(".ice-map-legend")!.getBoundingClientRect().top,
+    map: document.querySelector("#school-map")!.getBoundingClientRect().bottom,
+  }));
+  expect(positions.legend).toBeGreaterThanOrEqual(positions.map);
+});
 
 test("very narrow mobile viewport never turns a camera fit into an error fallback", async ({ page }) => {
   await page.setViewportSize({ width: 260, height: 562 });

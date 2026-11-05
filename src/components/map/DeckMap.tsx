@@ -194,6 +194,7 @@ export interface DeckMapProps {
   schoolFocusNonce?: number;
   statisticsVisible?: boolean;
   interactionBlocked?: boolean;
+  legendHost?: HTMLElement | null;
   indicatorId: string;
   /** Selection truth lives in the URL (useMapQuery().regionCode) — DeckMap only renders/reacts to it. */
   selectedCode: RegionCode | null;
@@ -219,6 +220,7 @@ export default function DeckMap({
   schoolFocusNonce = 0,
   statisticsVisible = false,
   interactionBlocked = false,
+  legendHost = null,
   issueModel = null,
   schoolFacts = null,
   mapMetric,
@@ -269,7 +271,6 @@ export default function DeckMap({
   );
   const [touchMapMode, setTouchMapMode] = useState(false);
   const [compactLegend, setCompactLegend] = useState(() => window.matchMedia("(max-width: 1023px)").matches);
-  const [legendHost] = useState<HTMLElement | null>(() => document.getElementById("ice-below-map-legend"));
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1023px)");
     const update = () => setCompactLegend(media.matches);

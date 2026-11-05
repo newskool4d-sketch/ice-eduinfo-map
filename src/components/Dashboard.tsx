@@ -75,12 +75,14 @@ function DashboardInner({
   regionCode,
   setRegion,
   exploreRequest,
+  legendHost,
 }: {
   bundle: DataBundle;
   indicatorId: string;
   regionCode: RegionCode | null;
   setRegion: (code: RegionCode | null) => void;
   exploreRequest: number;
+  legendHost: HTMLElement | null;
 }) {
   const { design } = useDesign();
   const isIncheon = ACTIVE_PROFILE.id === "incheon";
@@ -497,6 +499,7 @@ function DashboardInner({
         </aside>
         <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <MapShell
+            legendHost={legendHost}
             mapMetric={mapMetric}
             indicatorId={indicatorId}
             selectedCode={regionCode}
@@ -596,6 +599,8 @@ function DashboardBody() {
   const { indicatorId, regionCode, setRegion } = useMapQuery();
   const state = useData();
   const [exploreRequest, setExploreRequest] = useState(0);
+  // A callback ref supplies the target after commit, including warm route returns.
+  const [legendHost, setLegendHost] = useState<HTMLDivElement | null>(null);
   const bundle = state.status === "ready" ? state.bundle : null;
 
   return (
@@ -608,13 +613,14 @@ function DashboardBody() {
       {state.status === "ready" && (
         <>
           <DashboardInner
+            legendHost={legendHost}
             bundle={state.bundle}
             exploreRequest={exploreRequest}
             indicatorId={indicatorId}
             regionCode={regionCode}
             setRegion={setRegion}
           />
-          {ACTIVE_PROFILE.id === "incheon" && <IncheonMobileInfo bundle={state.bundle} />}
+          {ACTIVE_PROFILE.id === "incheon" && <IncheonMobileInfo bundle={state.bundle} legendRef={setLegendHost} />}
         </>
       )}
     </div>

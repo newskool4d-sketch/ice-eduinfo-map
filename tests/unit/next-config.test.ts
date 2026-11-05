@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { unstable_getResponseFromNextConfig } from "next/experimental/testing/server";
 
 import nextConfig from "../../next.config";
 
@@ -12,24 +13,19 @@ import nextConfig from "../../next.config";
  * revalidated on every load instead.
  */
 describe("next.config headers()", () => {
-  it("serves /data/manifest.json with Cache-Control: no-cache, must-revalidate", async () => {
-    const entries = await nextConfig.headers!();
-    const manifestEntry = entries.find((e) => e.source === "/data/manifest.json");
-    expect(manifestEntry).toBeTruthy();
-    const cacheControl = manifestEntry!.headers.find((h) => h.key === "Cache-Control")?.value;
-    expect(cacheControl).toBe("no-cache, must-revalidate");
+  it.each(["/data/manifest.json", "/data/incheon/manifest.json"])("revalidates %s after applying all matching header rules", async (pathname) => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://example.test${pathname}`,
+      nextConfig,
+    });
+    expect(response.headers.get("Cache-Control")).toBe("no-cache, must-revalidate");
   });
 
-  it("keeps the 1h stale-while-revalidate policy for the rest of /data/*, with the more specific manifest.json entry ordered AFTER the wildcard (Next.js resolves same-key header collisions last-entry-wins)", async () => {
-    const entries = await nextConfig.headers!();
-
-    const wildcardEntry = entries.find((e) => e.source === "/data/:path*");
-    expect(wildcardEntry).toBeTruthy();
-    const wildcardCacheControl = wildcardEntry!.headers.find((h) => h.key === "Cache-Control")?.value;
-    expect(wildcardCacheControl).toBe("public, max-age=3600, stale-while-revalidate=86400");
-
-    const wildcardIndex = entries.findIndex((e) => e.source === "/data/:path*");
-    const manifestIndex = entries.findIndex((e) => e.source === "/data/manifest.json");
-    expect(manifestIndex).toBeGreaterThan(wildcardIndex);
+  it.each(["/data/regions.geojson", "/data/incheon/regions.geojson", "/data/incheon/indicators/students_total.json"])("preserves the data cache policy for %s", async (pathname) => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: `https://example.test${pathname}`,
+      nextConfig,
+    });
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=3600, stale-while-revalidate=86400");
   });
 });
