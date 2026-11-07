@@ -5,12 +5,14 @@ import type { School } from "@/lib/schools/types";
 import TimeSeriesChart from "../ui/TimeSeriesChart";
 
 const number = (n: number | null) => n === null ? "—" : n.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
-const signed = (n: number | null) => n === null ? "산출 불가" : `${n > 0 ? "+" : ""}${number(n)}`;
+// One formatter for sign and rounding: a separate sign check printed "+0"/"-0" for tiny changes.
+const signedFormat = new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 2, signDisplay: "exceptZero" });
+const signed = (n: number | null) => n === null ? "산출 불가" : signedFormat.format(n);
 
 /** Historical administrative names intentionally do not mutate the current-boundary map filter. */
 export default function IncheonTrends({ data, school, currentRegionName }: { data: IncheonHistory; school: School | null; currentRegionName?: string }) {
   const [scope, setScope] = useState<"province" | "region" | "school">(school ? "school" : currentRegionName && data.regions[currentRegionName] ? "region" : "province");
-  const [region, setRegion] = useState(currentRegionName && data.regions[currentRegionName] ? currentRegionName : "중구");
+  const [region, setRegion] = useState(currentRegionName && data.regions[currentRegionName] ? currentRegionName : Object.keys(data.regions)[0]);
   const [metric, setMetric] = useState<HistoryMetric>("students");
   const [level, setLevel] = useState<HistoryLevel>("all");
   const [expanded, setExpanded] = useState(false);
@@ -58,7 +60,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
       </div>
       <p className="ice-trend-note">{scope === "school" && school ? `${HISTORY_LEVELS[school.level]} · 선택한 학교 기준` : "추세의 학교급·지표는 지도와 별도로 선택합니다."}</p>
       {scope === "school" && beforeOpening && <p className="ice-trend-note ice-trend-status" role="note">{beforeOpening.note}. 해당 공백은 현재 미개교 상태나 학생 0명을 뜻하지 않습니다.</p>}
-      {scope === "region" && <p className="ice-trend-note ice-trend-status">당시 4월의 10개 군·구 기준입니다. 현재 지도와 행정구역 기준이 다릅니다.</p>}
+      {scope === "region" && <p className="ice-trend-note ice-trend-status">당시 4월의 {Object.keys(data.regions).length}개 군·구 기준입니다. 현재 지도와 행정구역 기준이 다릅니다.</p>}
       {scope !== "school" && currentRegionName && !data.regions[currentRegionName] && <p className="ice-trend-note ice-trend-status" role="note">선택한 {currentRegionName}은(는) 2026년 7월 신설 구역으로 과거 추세 자료가 없어 {scope === "region" ? `${region} (당시 기준)` : "인천 전체"}를 표시합니다.</p>}
       <dl className="ice-trend-metrics" aria-label="추세 핵심 수치">
         <div className="ice-trend-current"><dt>{lastYear}년 {definition.label}</dt><dd>{last === null ? "자료 없음" : <>{number(last)}<small>{definition.unit}</small></>}</dd></div>
@@ -72,7 +74,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
         const review=scope === "school" ? schoolHistory?.reviews?.[p.year] : undefined;
         return <tr key={p.year}><th scope="row">{p.year}</th><td>{number(p[metric])}{p[metric]===null && review && <small className="block" title={review.note}>{review.status==="before_opening" ? "조사일 당시 개교 전" : "연결 확인 중"}</small>}</td><td>{delta.difference===null ? "—" : signed(delta.difference)}</td><td>{delta.percent===null ? "—" : signed(delta.percent)}</td></tr>;
       })}</tbody></table></div></section></div>
-      <details className="ice-trend-note"><summary>집계·증감률 기준</summary><p>{scope === "school" ? "선택한 학교 기준." : `${level === "all" ? "초·중·고·특수학교 합계" : HISTORY_LEVELS[level]+" 합계"} · 학생·교원·학급에는 분교 포함, 학교 수는 본교만 포함.`} 학교가 없는 학교급의 인원·학교 수는 0이며, 학급·교원이 0이면 비율을 산출하지 않습니다. — 는 비교 자료 없음 또는 기준값 0으로 증감률 산출 불가를 뜻합니다.</p>{!school && <p>지도나 목록에서 학교를 선택하면 학교별 추세도 볼 수 있습니다.</p>}{scope === "region" && <p>중구·동구·서구 등 당시 10개 군·구 기준입니다. 제물포구·영종구·서해구·검단구의 과거 추세로 해석할 수 없습니다. 이 선택은 지도 구역을 변경하지 않습니다.</p>}</details>
+      <details className="ice-trend-note"><summary>집계·증감률 기준</summary><p>{scope === "school" ? "선택한 학교 기준." : `${level === "all" ? "초·중·고·특수학교 합계" : HISTORY_LEVELS[level]+" 합계"} · 학생·교원·학급에는 분교 포함, 학교 수는 본교만 포함.`} 학교가 없는 학교급의 인원·학교 수는 0이며, 학급·교원이 0이면 비율을 산출하지 않습니다. — 는 비교 자료 없음 또는 기준값 0으로 증감률 산출 불가를 뜻합니다.</p>{!school && <p>지도나 목록에서 학교를 선택하면 학교별 추세도 볼 수 있습니다.</p>}{scope === "region" && <p>중구·동구·서구 등 당시 {Object.keys(data.regions).length}개 군·구 기준입니다. 제물포구·영종구·서해구·검단구의 과거 추세로 해석할 수 없습니다. 이 선택은 지도 구역을 변경하지 않습니다.</p>}</details>
       {scope === "school" && <details className="ice-trend-note"><summary>학교 연결 기준·누락 연도 확인</summary><ul>{data.years.map(year=>{
         const review=schoolHistory?.reviews?.[year];
         return <li key={year}>{year}: {review?.note ?? schoolHistory?.methods[year] ?? "연결 근거 확인 필요"}{review?.evidenceUrl && <> · <a href={review.evidenceUrl} target="_blank" rel="noreferrer">교육청 교명변경 근거</a></>}</li>;
@@ -87,7 +89,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
     <dialog ref={dialogRef} className="ice-trend-dialog" aria-labelledby={dialogTitle} onCancel={event=>{event.preventDefault();setExpanded(false);}} onKeyDown={event=>{
       event.stopPropagation();
       if (event.key !== "Tab") return;
-      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), select, input, a[href], summary, [tabindex="0"]')).filter(el=>el.checkVisibility() && el.tabIndex >= 0);
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), select, input, a[href], summary, [tabindex="0"]')).filter(el=>(el.checkVisibility?.() ?? el.getClientRects().length > 0) && el.tabIndex >= 0);
       const first=controls[0], last=controls[controls.length-1];
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }

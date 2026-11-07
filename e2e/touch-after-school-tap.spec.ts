@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, test, requireIncheon } from "./fixtures";
 import type { CDPSession, Page } from "@playwright/test";
 
 // Code review 2026-11-07 #3: DeckMap's onPointerUpCapture stopped the native
@@ -37,7 +37,7 @@ async function touch(session: CDPSession, path: [number, number][]) {
 test("one-finger drag still pans the map after tapping a school point", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scene=flat&schoolChart=dots&view=schools&region=28185");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   const mapMode = page.getByRole("button", { name: "지도 이동" });
   if (await mapMode.isVisible()) await mapMode.click();

@@ -3,6 +3,7 @@ import type { Ref } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { DataBundle } from "@/lib/data/types";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 import { valueMap } from "@/lib/stats";
 import { useMapQuery } from "@/lib/state/urlState";
 import { DESIGNS, useDesign, type DesignId } from "./DesignProvider";
@@ -24,7 +25,7 @@ function DataProvenance({ bundle, mobile = false }: { bundle: DataBundle | null;
   const schools = bundle?.schools.schools ?? [];
   const stats = manifest?.statisticsDate ?? "—";
   const differences = manifest?.quality?.studentDifferentSchoolRecords;
-  return <details className="ice-provenance"><summary>자료 일부 확인 필요 <span>· {stats.replaceAll("-", ".")}</span></summary><div role="note" data-testid={mobile ? undefined : "data-quality-note"}><strong>자료 기준과 확인 범위</strong><p>통계 {stats} · 경계 {manifest?.geographyDate ?? "—"} · 검증 {manifest?.quality?.status ?? "—"}</p><p>학생수는 KESS 기준입니다.{differences ? ` 교육청 자료와 ${differences}개 학교에서 차이가 있습니다.` : ""} 교원은 정규·기간제 합계(휴직 포함, 강사 제외)이며 독립 총계는 미확보 상태입니다.</p><p>좌표는 기준일이 서로 다른 자료를 연결했습니다. 2022~2026 추세는 패널에서 볼 수 있으며, 군·구는 각 연도 4월의 10개 구역 기준입니다. 폐교 현황은 제공 준비 중입니다.{schools.length ? ` 지도에는 분교를 포함한 ${schools.length}개 학교가 표시되며, 본교 집계는 ${schools.filter((school) => !school.branch).length}교입니다.` : ""}</p><Image src="/brand/ice-wordmark.jpg" width={270} height={71} alt="인천광역시교육청 IN CHEON METROPOLITAN CITY OFFICE OF EDUCATION" unoptimized /></div></details>;
+  return <details className="ice-provenance"><summary>자료 일부 확인 필요 <span>· {stats.replaceAll("-", ".")}</span></summary><div role="note" data-testid={mobile ? undefined : "data-quality-note"}><strong>자료 기준과 확인 범위</strong><p>통계 {stats} · 경계 {manifest?.geographyDate ?? "—"} · 검증 {manifest?.quality?.status ?? "—"}</p><p>학생수는 KESS 기준입니다.{differences ? ` 교육청 자료와 ${differences}개 학교에서 차이가 있습니다.` : ""} 교원은 정규·기간제 합계(휴직 포함, 강사 제외)이며 독립 총계는 미확보 상태입니다.</p><p>좌표는 기준일이 서로 다른 자료를 연결했습니다. {bundle?.incheonHistory ? `${bundle.incheonHistory.years[0]}~${bundle.incheonHistory.years.at(-1)} 추세는 패널에서 볼 수 있으며, 군·구는 각 연도 4월의 ${Object.keys(bundle.incheonHistory.regions).length}개 구역 기준입니다.` : ""}{ACTIVE_PROFILE.capabilities.closedSchools ? "" : " 폐교 현황은 제공 준비 중입니다."}{schools.length ? ` 지도에는 분교를 포함한 ${schools.length}개 학교가 표시되며, 본교 집계는 ${schools.filter((school) => !school.branch).length}교입니다.` : ""}</p><Image src="/brand/ice-wordmark.jpg" width={270} height={71} alt="인천광역시교육청 IN CHEON METROPOLITAN CITY OFFICE OF EDUCATION" unoptimized /></div></details>;
 }
 
 export function IncheonMobileInfo({ bundle, legendRef }: { bundle: DataBundle; legendRef: Ref<HTMLDivElement> }) {

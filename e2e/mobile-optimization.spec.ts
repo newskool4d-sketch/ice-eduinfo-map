@@ -1,4 +1,4 @@
-import { expect, test, openMapSettings } from "./fixtures";
+import { expect, test, openMapSettings, requireIncheon } from "./fixtures";
 
 test.use({ hasTouch: true, isMobile: true });
 
@@ -6,7 +6,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
   test(`Incheon mobile layout and controls fit ${viewport.width}×${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto("/?scene=flat");
-    if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+    await requireIncheon(page);
     await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
     await expect(page.getByTestId("map-fallback-reason")).toHaveCount(0);
 
@@ -112,7 +112,7 @@ for (const viewport of [{ width: 700, height: 900 }, { width: 820, height: 780 }
   test(`unfolded and landscape viewport remains scrollable ${viewport.width}×${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport);
     await page.goto("/?scene=flat");
-    if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+    await requireIncheon(page);
     await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
     const layout = await page.evaluate(() => ({
       pageHeight: document.documentElement.scrollHeight,
@@ -149,7 +149,7 @@ for (const viewport of [{ width: 700, height: 900 }, { width: 820, height: 780 }
 test("mobile legend stays below the map after returning from the about page", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/?scene=flat");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   const legend = page.locator("#ice-below-map-legend .ice-map-legend");
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   await expect(legend).toBeAttached();
@@ -169,7 +169,7 @@ test("mobile legend stays below the map after returning from the about page", as
 test("very narrow mobile viewport never turns a camera fit into an error fallback", async ({ page }) => {
   await page.setViewportSize({ width: 260, height: 562 });
   await page.goto("/?scene=flat");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   await expect(page.getByTestId("map-fallback-reason")).toHaveCount(0);
   await expect(page.locator(".ice-header")).toBeVisible();
@@ -187,7 +187,7 @@ test("very narrow mobile viewport never turns a camera fit into an error fallbac
 test("one-finger swipe starting on the mobile map scrolls to its lower controls", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto("/?scene=flat");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   const session = await page.context().newCDPSession(page);
   const point = (y: number) => [{ x: 160, y, id: 1 }];
@@ -235,7 +235,7 @@ test("one-finger swipe starting on the mobile map scrolls to its lower controls"
 test("all Incheon designs survive large text, dark mode, and landscape resize", async ({ page }) => {
   await page.setViewportSize({ width: 430, height: 932 });
   await page.goto("/?scene=flat");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   await page.getByRole("button", { name: "큰 글씨" }).click();
   await page.getByRole("button", { name: "어두운 화면" }).click();
@@ -263,7 +263,7 @@ test("basemap retry remains reachable on a short mobile screen", async ({ page }
   await page.route("**/api.vworld.kr/**", (route) =>
     failing ? route.fulfill({ status: 503, body: "offline" }) : route.fallback());
   await page.goto("/?scene=flat");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   const status = page.locator(".basemap-status");
   await expect(status).toBeVisible({ timeout: 20000 });
   failing = false;

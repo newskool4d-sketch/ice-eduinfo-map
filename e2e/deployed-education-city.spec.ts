@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { deployedProfile } from "./deployed-profile";
 
-test("deployed automatic education view keeps metric scope on desktop and mobile", async ({ page }) => {
+test("deployed automatic education view keeps metric scope on desktop and mobile", async ({ page, request }) => {
   const site = process.env.DEPLOYMENT_URL;
   test.skip(!site, "Requires a deployed site URL");
+  test.skip((await deployedProfile(request, site!)) !== "jeonbuk", "Jeonbuk deployment only (Incheon: deployed-incheon.spec.ts)");
   test.setTimeout(90000);
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
