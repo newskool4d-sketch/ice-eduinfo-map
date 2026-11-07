@@ -62,3 +62,15 @@ export interface SchoolsFile {
   };
   schools: School[];
 }
+
+/** A school with a real location match (a 특수학교 row can have `lat`/`lng: null` and is never plotted). */
+export type PositionedSchool = School & { lat: number; lng: number };
+
+/**
+ * Type guard for a school with a real coordinate. Lives here (no deck.gl
+ * import) so server-rendered components such as Dashboard.tsx can use it
+ * without pulling @deck.gl/* into their chunk (code review 2026-11-07 2차 #6).
+ */
+export function hasCoordinates(school: School): school is PositionedSchool {
+  return school.lat !== null && school.lng !== null;
+}

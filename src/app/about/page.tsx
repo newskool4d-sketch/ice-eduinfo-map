@@ -4,6 +4,7 @@ import incheonManifest from "../../../public/data/incheon/manifest.json";
 import incheonSchools from "../../../public/data/incheon/schools.json";
 import { incheonProfile } from "@/lib/profiles/incheon";
 import styles from "./page.module.css";
+import { shareMetadata } from "../shareMetadata";
 
 type IncheonManifest = typeof incheonManifest & {
   statisticsDate: string;
@@ -23,9 +24,13 @@ const indicatorLabels = [
   "소규모학교 비율",
 ];
 
+const aboutTitle = "제작자·자료 안내 | 인천 교육지도";
+const aboutDescription = "인천 교육지도의 제작자, 자료 출처, 통계 기준과 확인 범위를 안내합니다.";
 export const metadata: Metadata = {
-  title: "제작자·자료 안내 | 인천 교육지도",
-  description: "인천 교육지도의 제작자, 자료 출처, 통계 기준과 확인 범위를 안내합니다.",
+  title: aboutTitle,
+  description: aboutDescription,
+  // Without these, /about inherits the root's canonical "/" and og:url "/".
+  ...shareMetadata("/about", aboutTitle, aboutDescription),
 };
 
 export default function AboutPage() {

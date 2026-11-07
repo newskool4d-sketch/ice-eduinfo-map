@@ -996,6 +996,20 @@ export default function DeckMap({
         : null,
     [buildingsVisible, mobile, issueModel, buildingRetry, onBuildingStatus],
   );
+  // deck.gl only reports tile unloads on cache eviction; removing the layer
+  // (zoom-out → buildingsVisible false → finalize) fires no callback, so a
+  // failed tile from one district would keep the warning up in every later
+  // district. Clear the per-layer status whenever the layer goes away
+  // (derived-state reset during render, same pattern as Dashboard's
+  // handledExplore; code review 2026-11-07 2차 #7).
+  const [buildingsShown, setBuildingsShown] = useState(buildingsVisible);
+  if (buildingsShown !== buildingsVisible) {
+    setBuildingsShown(buildingsVisible);
+    if (!buildingsVisible) {
+      setBuildingErrors((old) => (old.size ? new Set() : old));
+      setBuildingFetchedAt(null);
+    }
+  }
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = 0;
     const layerList: LayersList = [

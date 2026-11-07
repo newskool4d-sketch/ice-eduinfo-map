@@ -14,7 +14,7 @@ import { issueById } from "@/lib/issues/registry";
 import { buildIssueModel } from "@/lib/issues/model";
 import SchoolExplorer from "@/components/panels/SchoolExplorer";
 import { filterSchools, type SchoolFilters } from "@/lib/schools/filter";
-import { hasCoordinates } from "@/components/map/layers/schoolLayers";
+import { hasCoordinates } from "@/lib/schools/types";
 import MapShell from "@/components/map/MapShell";
 import Footer from "@/components/panels/Footer";
 import { chartValueText } from "@/lib/schools/chart";

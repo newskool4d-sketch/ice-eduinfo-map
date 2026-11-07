@@ -5,7 +5,7 @@ import { schoolChartMetric } from "./schools/chart";
 import { indicatorById } from "./indicators/registry";
 import { displayLabel, valueMap } from "./stats";
 import { makeColorScale, paletteFor } from "./colors";
-import { PROVINCE_CODE, REGION_CODES } from "./geo/regions";
+import { PROVINCE_CODE, REGION_CODES, REGION_UNIT } from "./geo/regions";
 import { ACTIVE_PROFILE } from "./profiles";
 
 export type MetricColor = [number, number, number, number];
@@ -185,7 +185,7 @@ export function buildMapMetric(
     (kind === "density"
       ? "학교 위치를 기준으로 한 분포입니다. 거주지나 통학권을 뜻하지 않습니다."
       : kind === "region"
-        ? `시군 전체 집계 · 학교별 값으로 배분하지 않습니다.${regional.colorBuckets === "quantile" && !change ? " 색 구간: 고유값 5분위." : ""}`
+        ? `${REGION_UNIT} 전체 집계 · 학교별 값으로 배분하지 않습니다.${regional.colorBuckets === "quantile" && !change ? " 색 구간: 고유값 5분위." : ""}`
         : kind === "category"
           ? "본교 기준 · 분교 제외. 학교수는 해당 여부로 표시합니다."
           : specialEducation
