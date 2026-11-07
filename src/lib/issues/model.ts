@@ -238,11 +238,22 @@ export function buildIssueModel(
       label: formatIssueValue(metric, value),
       color: colorOf(value),
     }));
-  } else {
+  } else if (metric === "small-share" || metric === "unused-share") {
     legend = Array.from({ length: 5 }, (_, i) => ({
-      label: `${((max * i) / 5).toFixed(1)}–${((max * (i + 1)) / 5).toFixed(1)}`,
+      label: `${((max * i) / 5).toFixed(0)}–${((max * (i + 1)) / 5).toFixed(0)}%`,
       color: [...PURPLE[i], 100] as IssueColor,
     }));
+  } else {
+    // Integer counts: bucket i holds the integers colorOf maps to PURPLE[i]
+    // (floor(value / max * 5) === i), so labels match the map colors exactly.
+    legend = Array.from({ length: 5 }, (_, i) => {
+      const low = Math.ceil((max * i) / 5);
+      const high = i === 4 ? max : Math.ceil((max * (i + 1)) / 5) - 1;
+      return high < low ? null : {
+        label: low === high ? formatIssueValue(metric, low) : `${count(low)}–${formatIssueValue(metric, high)}`,
+        color: [...PURPLE[i], 100] as IssueColor,
+      };
+    }).filter((entry): entry is { label: string; color: IssueColor } => entry !== null);
   }
   if (raw.some((r) => r.value === null))
     legend.push({ label: "자료 없음", color: MISSING });

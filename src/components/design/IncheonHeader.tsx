@@ -14,15 +14,24 @@ function EducationMetrics({ bundle }: { bundle: DataBundle | null }) {
   return <dl className="ice-metrics">{metrics.map(([id, label, unit]) => <div key={id}><dt>{label}</dt><dd>{bundle ? valueMap(bundle.indicators[id]).get("28000")?.toLocaleString("ko-KR") ?? "—" : "—"}<small>{unit}</small></dd></div>)}</dl>;
 }
 
-function DataProvenance({ mobile = false }: { mobile?: boolean }) {
-  return <details className="ice-provenance"><summary>자료 일부 확인 필요 <span>· 2026.04.01</span></summary><div role="note" data-testid={mobile ? undefined : "data-quality-note"}><strong>자료 기준과 확인 범위</strong><p>통계 2026-04-01 · 경계 2026-07-01 · 검증 PARTIAL</p><p>학생수는 KESS 기준입니다. 교육청 자료와 91개 학교에서 차이가 있습니다. 교원은 정규·기간제 합계(휴직 포함, 강사 제외)이며 독립 총계는 미확보 상태입니다.</p><p>좌표는 기준일이 서로 다른 자료를 연결했습니다. 2022~2026 추세는 패널에서 볼 수 있으며, 군·구는 각 연도 4월의 10개 구역 기준입니다. 폐교 현황은 제공 준비 중입니다. 지도에는 분교를 포함한 562개 학교가 표시되며, 본교 집계는 555교입니다.</p><Image src="/brand/ice-wordmark.jpg" width={270} height={71} alt="인천광역시교육청 IN CHEON METROPOLITAN CITY OFFICE OF EDUCATION" unoptimized /></div></details>;
+type ProvenanceManifest = { statisticsDate?: string; geographyDate?: string; latestYear?: number;
+  quality?: { status?: string; studentDifferentSchoolRecords?: number } };
+
+/** Facts come from manifest.json/schools.json (same source as /about), not literals,
+ *  so the next data refresh cannot leave this note out of date (code review 2026-11-07). */
+function DataProvenance({ bundle, mobile = false }: { bundle: DataBundle | null; mobile?: boolean }) {
+  const manifest = bundle?.manifest as (DataBundle["manifest"] & ProvenanceManifest) | undefined;
+  const schools = bundle?.schools.schools ?? [];
+  const stats = manifest?.statisticsDate ?? "—";
+  const differences = manifest?.quality?.studentDifferentSchoolRecords;
+  return <details className="ice-provenance"><summary>자료 일부 확인 필요 <span>· {stats.replaceAll("-", ".")}</span></summary><div role="note" data-testid={mobile ? undefined : "data-quality-note"}><strong>자료 기준과 확인 범위</strong><p>통계 {stats} · 경계 {manifest?.geographyDate ?? "—"} · 검증 {manifest?.quality?.status ?? "—"}</p><p>학생수는 KESS 기준입니다.{differences ? ` 교육청 자료와 ${differences}개 학교에서 차이가 있습니다.` : ""} 교원은 정규·기간제 합계(휴직 포함, 강사 제외)이며 독립 총계는 미확보 상태입니다.</p><p>좌표는 기준일이 서로 다른 자료를 연결했습니다. 2022~2026 추세는 패널에서 볼 수 있으며, 군·구는 각 연도 4월의 10개 구역 기준입니다. 폐교 현황은 제공 준비 중입니다.{schools.length ? ` 지도에는 분교를 포함한 ${schools.length}개 학교가 표시되며, 본교 집계는 ${schools.filter((school) => !school.branch).length}교입니다.` : ""}</p><Image src="/brand/ice-wordmark.jpg" width={270} height={71} alt="인천광역시교육청 IN CHEON METROPOLITAN CITY OFFICE OF EDUCATION" unoptimized /></div></details>;
 }
 
 export function IncheonMobileInfo({ bundle, legendRef }: { bundle: DataBundle; legendRef: Ref<HTMLDivElement> }) {
   return <section className="ice-mobile-info" id="education-info" aria-label="지도 범례와 인천 교육현황">
     <div id="ice-below-map-legend" ref={legendRef} />
     <div className="ice-mobile-metrics"><h2>인천 교육현황</h2><EducationMetrics bundle={bundle} /></div>
-    <div className="ice-mobile-source"><p><strong>제작</strong> 인천광역시교육청 교육전문직원 홍주형</p><Link href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link><DataProvenance mobile /></div>
+    <div className="ice-mobile-source"><p><strong>제작</strong> 인천광역시교육청 교육전문직원 홍주형</p><Link href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link><DataProvenance bundle={bundle} mobile /></div>
   </section>;
 }
 
@@ -44,9 +53,9 @@ export default function IncheonHeader({ bundle, onExplore }: { bundle: DataBundl
       <p className="ice-disclosure-author"><span>제작</span> 인천광역시교육청 교육전문직원 홍주형</p>
       <Link className="ice-disclosure-link" href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link>
     </aside>
-    <div className="ice-workbar"><div><h2>{current.description}</h2><p>2026년 인천 교육현황</p></div>
+    <div className="ice-workbar"><div><h2>{current.description}</h2><p>{bundle ? `${(bundle.manifest as DataBundle["manifest"] & ProvenanceManifest).latestYear ?? ""}년 ` : ""}인천 교육현황</p></div>
       <EducationMetrics bundle={bundle} />
     </div>
-    <div className="ice-toolbar">{bundle ? <MapTopicMenu series={bundle.series} /> : <span>교육정보를 불러오고 있습니다…</span>}<DataProvenance /></div>
+    <div className="ice-toolbar">{bundle ? <MapTopicMenu series={bundle.series} /> : <span>교육정보를 불러오고 있습니다…</span>}<DataProvenance bundle={bundle} /></div>
   </div>;
 }

@@ -101,12 +101,16 @@ export function useMapQuery(): MapQuery {
     setZeroEntrants(enabled) { void setQuery({ zeroEntrants: enabled ? "on" : "off" }); },
     issueId: definition?.id ?? null,
     issueMetric: definition ? resolveIssueMetric(definition, issueMetric) : null,
+    // The comparison region only exists inside an issue (IssueComparison), so
+    // leaving the issues view or switching/closing the issue clears it — otherwise
+    // the map keeps highlighting it with no control left to clear it.
     setView(next) {
-      void setQuery({ view: next }, { history: "push" });
+      void setQuery({ view: next, ...(next !== "issues" ? { compareRegion: null } : {}) }, { history: "push" });
     },
     setIssue(id, metric) {
       const next = issueById(id);
-      void setQuery({ view: "issues", issue: next?.id ?? null, issueMetric: next ? resolveIssueMetric(next, metric ?? null) : null }, { history: "push" });
+      void setQuery({ view: "issues", issue: next?.id ?? null, issueMetric: next ? resolveIssueMetric(next, metric ?? null) : null,
+        ...(next?.id !== definition?.id ? { compareRegion: null } : {}) }, { history: "push" });
     },
     setIssueMetric(metric) {
       if (definition) void setQuery({ issueMetric: resolveIssueMetric(definition, metric) });

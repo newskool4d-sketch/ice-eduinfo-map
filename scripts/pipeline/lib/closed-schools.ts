@@ -106,7 +106,8 @@ export function parseClosedSchoolsCsv(csvText: string): ParseClosedSchoolsCsvRes
 
     const yearRaw = raw[col["폐교연도"]] ?? "";
     const year = Number(yearRaw);
-    if (!Number.isFinite(year)) {
+    // Number("") is 0: a blank cell must fail like any other non-number.
+    if (yearRaw.trim() === "" || !Number.isFinite(year)) {
       throw new Error(`폐교 CSV ${JSON.stringify(name)}: 폐교연도 값이 숫자가 아닙니다 (${JSON.stringify(yearRaw)})`);
     }
 
@@ -125,7 +126,7 @@ export function parseClosedSchoolsCsv(csvText: string): ParseClosedSchoolsCsvRes
 
     const siteAreaRaw = raw[col["대지"]] ?? "";
     const siteArea = Number(siteAreaRaw);
-    if (!Number.isFinite(siteArea)) {
+    if (siteAreaRaw.trim() === "" || !Number.isFinite(siteArea)) {
       throw new Error(`폐교 CSV ${JSON.stringify(name)}: 대지 값이 숫자가 아닙니다 (${JSON.stringify(siteAreaRaw)})`);
     }
 
