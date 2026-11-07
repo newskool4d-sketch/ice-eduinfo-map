@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import TimeSeriesChart from "@/components/ui/TimeSeriesChart";
 import type { DataBundle } from "@/lib/data/types";
-import { REGION_CODES, regionName } from "@/lib/geo/regions";
+import { REGION_CODES, REGION_UNIT, regionName } from "@/lib/geo/regions";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
 import { GROUP_LABELS, GROUP_ORDER } from "@/lib/indicators/groups";
 import { indicatorById, INDICATORS } from "@/lib/indicators/registry";
@@ -173,7 +173,7 @@ export default function RegionPanel({ bundle, highlightedSchoolId, onHighlightSc
           <span className="ml-1 text-sm text-ink-muted">{def.unit}</span>
         </p>
         <p className="mt-1 text-xs text-ink-muted">
-          {regionRank !== null ? `${REGION_CODES.length}개 시군 중 ${regionRank}위` : "순위 없음"}
+          {regionRank !== null ? `${REGION_CODES.length}개 ${REGION_UNIT} 중 ${regionRank}위` : "순위 없음"}
         </p>
         <p
           data-testid="region-panel-delta"

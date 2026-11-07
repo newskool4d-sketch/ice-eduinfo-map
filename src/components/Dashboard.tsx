@@ -14,7 +14,7 @@ import { issueById } from "@/lib/issues/registry";
 import { buildIssueModel } from "@/lib/issues/model";
 import SchoolExplorer from "@/components/panels/SchoolExplorer";
 import { filterSchools, type SchoolFilters } from "@/lib/schools/filter";
-import { hasCoordinates } from "@/components/map/layers/schoolLayers";
+import { hasCoordinates } from "@/lib/schools/types";
 import MapShell from "@/components/map/MapShell";
 import Footer from "@/components/panels/Footer";
 import { chartValueText } from "@/lib/schools/chart";
@@ -24,7 +24,7 @@ import RegionPanel from "@/components/panels/RegionPanel";
 import TopBar from "@/components/panels/TopBar";
 import { DataProvider, useData, useRetry } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
-import type { RegionCode } from "@/lib/geo/regions";
+import { REGION_UNIT, type RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
 import { GROUP_LABELS } from "@/lib/indicators/groups";
 import { MAP_VIEWS, useMapQuery } from "@/lib/state/urlState";
@@ -286,7 +286,7 @@ function DashboardInner({
         )}
         <aside
           ref={panelRef}
-          aria-label="학교 탐색 및 시군 통계"
+          aria-label={`학교 탐색 및 ${REGION_UNIT} 통계`}
           role={panelOpen ? "dialog" : undefined}
           aria-modal={panelOpen ? true : undefined}
           onKeyDown={(event) => {
@@ -358,7 +358,7 @@ function DashboardInner({
                     ? "학교 탐색"
                     : value === "issues"
                       ? "교육문제"
-                      : "시군 통계"}
+                      : `${REGION_UNIT} 통계`}
                 </button>
               ))}
             </div>

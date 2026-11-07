@@ -38,12 +38,18 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
   const area = scope === "region" ? `${region} · 4월 원자료` : "인천 전체";
   const place = scope === "school" ? school?.name ?? "학교 미선택" : `${area}${level === "all" ? "" : ` · ${HISTORY_LEVELS[level]}`}`;
   const definition = HISTORY_METRICS[metric];
-  const last = points.find(p => p.year === 2026)?.[metric] ?? null;
-  const base = points.find(p => p.year === 2022)?.[metric] ?? null;
+  // Years come from history.json itself (validate-incheon pins them to
+  // HISTORY_YEARS) so a data refresh cannot leave the headline on an old year.
+  const firstYear = data.years[0];
+  const lastYear = data.years[data.years.length - 1];
+  const previousYear = data.years[data.years.length - 2] ?? firstYear;
+  const span = `${firstYear}–${lastYear}`;
+  const last = points.find(p => p.year === lastYear)?.[metric] ?? null;
+  const base = points.find(p => p.year === firstYear)?.[metric] ?? null;
   const change = historyChange(last, base);
-  const previous = historyChange(last, points.find(p => p.year === 2025)?.[metric] ?? null);
+  const previous = historyChange(last, points.find(p => p.year === previousYear)?.[metric] ?? null);
   const content = <section aria-label="인천 연도별 추세" className="ice-trend-content">
-      <div className="ice-trend-heading"><p>2022–2026 · {definition.label}</p>{!expanded && <button ref={expandRef} type="button" className="ice-expand-button" aria-haspopup="dialog" onClick={() => setExpanded(true)}>크게 보기</button>}</div>
+      <div className="ice-trend-heading"><p>{span} · {definition.label}</p>{!expanded && <button ref={expandRef} type="button" className="ice-expand-button" aria-haspopup="dialog" onClick={() => setExpanded(true)}>크게 보기</button>}</div>
       <div className="ice-trend-scopes" aria-label="추세 범위">{([["province", "인천 전체"], ["region", "군·구별"], ["school", "학교별"]] as const).map(([id,label]) => <button type="button" key={id} aria-pressed={scope===id} disabled={id==="school" && !school} onClick={()=>{setScope(id); if(id==="school" && metric==="schools") setMetric("students");}}>{label}</button>)}</div>
       <div className="ice-trend-filters">
       {scope === "region" && <label className="ice-trend-field">비교할 군·구 (4월 기준)<select aria-label="추세 군구" value={region} onChange={e=>setRegion(e.target.value)}>{Object.keys(data.regions).map(name=><option key={name}>{name}</option>)}</select></label>}
@@ -53,9 +59,10 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
       <p className="ice-trend-note">{scope === "school" && school ? `${HISTORY_LEVELS[school.level]} · 선택한 학교 기준` : "추세의 학교급·지표는 지도와 별도로 선택합니다."}</p>
       {scope === "school" && beforeOpening && <p className="ice-trend-note ice-trend-status" role="note">{beforeOpening.note}. 해당 공백은 현재 미개교 상태나 학생 0명을 뜻하지 않습니다.</p>}
       {scope === "region" && <p className="ice-trend-note ice-trend-status">당시 4월의 10개 군·구 기준입니다. 현재 지도와 행정구역 기준이 다릅니다.</p>}
+      {scope !== "school" && currentRegionName && !data.regions[currentRegionName] && <p className="ice-trend-note ice-trend-status" role="note">선택한 {currentRegionName}은(는) 2026년 7월 신설 구역으로 과거 추세 자료가 없어 {scope === "region" ? `${region} (당시 기준)` : "인천 전체"}를 표시합니다.</p>}
       <dl className="ice-trend-metrics" aria-label="추세 핵심 수치">
-        <div className="ice-trend-current"><dt>2026년 {definition.label}</dt><dd>{last === null ? "자료 없음" : <>{number(last)}<small>{definition.unit}</small></>}</dd></div>
-        {([{label:"전년 대비", period:"2025 → 2026", value:previous}, {label:"2022년 대비", period:"2022 → 2026 · 4년", value:change}] as const).map(({label,period,value})=><div key={label}><dt>{label}</dt><dd>{signed(value.percent)}{value.percent !== null && <small>%</small>}</dd><p>{value.difference === null ? "비교 자료 없음" : `${signed(value.difference)}${definition.unit} · ${value.difference > 0 ? "증가" : value.difference < 0 ? "감소" : "변화 없음"}`}</p><span>{period}</span></div>)}
+        <div className="ice-trend-current"><dt>{lastYear}년 {definition.label}</dt><dd>{last === null ? "자료 없음" : <>{number(last)}<small>{definition.unit}</small></>}</dd></div>
+        {([{label:"전년 대비", period:`${previousYear} → ${lastYear}`, value:previous}, {label:`${firstYear}년 대비`, period:`${firstYear} → ${lastYear} · ${lastYear - firstYear}년`, value:change}] as const).map(({label,period,value})=><div key={label}><dt>{label}</dt><dd>{signed(value.percent)}{value.percent !== null && <small>%</small>}</dd><p>{value.difference === null ? "비교 자료 없음" : `${signed(value.difference)}${definition.unit} · ${value.difference > 0 ? "증가" : value.difference < 0 ? "감소" : "변화 없음"}`}</p><span>{period}</span></div>)}
       </dl>
       <div className="ice-trend-visuals">
       <TimeSeriesChart readable data={points.map(p=>({year:p.year,value:p[metric]}))} label={definition.label} place={place} unit={definition.unit} format={number} />
@@ -74,7 +81,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
     </section>;
   return <>
     <details className="ice-trends" open={!!school || undefined}>
-      <summary>2022–2026 추세·증감률 <span>{place}</span></summary>
+      <summary>{span} 추세·증감률 <span>{place}</span></summary>
       {!expanded && content}
     </details>
     <dialog ref={dialogRef} className="ice-trend-dialog" aria-labelledby={dialogTitle} onCancel={event=>{event.preventDefault();setExpanded(false);}} onKeyDown={event=>{
@@ -89,7 +96,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
       const bounds=event.currentTarget.getBoundingClientRect();
       if(event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) setExpanded(false);
     }}>
-      {expanded && <><header className="ice-trend-dialog-header"><div><h2 id={dialogTitle}>2022–2026 추세·증감률</h2><p>{place}</p></div><button ref={closeRef} type="button" className="ice-expand-button" onClick={()=>setExpanded(false)}>닫기</button></header>{content}</>}
+      {expanded && <><header className="ice-trend-dialog-header"><div><h2 id={dialogTitle}>{span} 추세·증감률</h2><p>{place}</p></div><button ref={closeRef} type="button" className="ice-expand-button" onClick={()=>setExpanded(false)}>닫기</button></header>{content}</>}
     </dialog>
   </>;
 }

@@ -75,6 +75,28 @@ describe("Incheon building API", () => {
     expect(upstream).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects non-canonical coordinates and query strings so one tile has exactly one cacheable URL", async () => {
+    const { upstream } = await incheonApi();
+    const { GET } = await import("@/app/api/buildings/v1/[z]/[x]/[y]/route");
+    const call = (url: string, z: string, x: string, y: string) => GET(new Request(url), { params: Promise.resolve({ z, x, y }) });
+    const padded = await call("http://localhost/api", "16", `0${songdo.x}`, String(songdo.y));
+    const paddedZoom = await call("http://localhost/api", "016", String(songdo.x), String(songdo.y));
+    const query = await call("http://localhost/api?v=2", "16", String(songdo.x), String(songdo.y));
+    const spoofedInternal = await call(`http://localhost/api?nxtPx=${songdo.x + 1}`, "16", String(songdo.x), String(songdo.y));
+    for (const response of [padded, paddedZoom, query, spoofedInternal]) {
+      expect(response.status).toBe(400);
+      expect(response.headers.get("cache-control")).toBe("no-store");
+    }
+    expect(upstream).not.toHaveBeenCalled();
+    const canonical = await call("http://localhost/api", "16", String(songdo.x), String(songdo.y));
+    expect(canonical.status).toBe(200);
+    // Next.js route-param keys added by the hosting proxy carry the same values.
+    upstream.mockImplementation(async () => Response.json({ response: { status: "NOT_FOUND" } }));
+    const internal = await call(`http://localhost/api?nxtPz=16&nxtPx=${songdo.x}&nxtPy=${songdo.y}`, "16", String(songdo.x), String(songdo.y));
+    expect(internal.status).toBe(200);
+    expect(upstream).toHaveBeenCalledTimes(2);
+  });
+
   it.each([["VWORLD_BUILDING_KEY", ""], ["BUILDINGS_ENABLED", "false"], ["NEXT_PUBLIC_BUILDINGS_ENABLED", "false"]])("keeps %s failures uncached and avoids upstream requests", async (name, value) => {
     const { get, upstream } = await incheonApi();
     vi.stubEnv(name, value);

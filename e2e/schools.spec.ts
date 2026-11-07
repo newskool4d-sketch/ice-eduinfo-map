@@ -80,13 +80,18 @@ test("학교 선택은 지역 필터를 바꾸지 않고 확대하며 이름과 
         max: labels.sizeMaxPixels,
         units: labels.sizeUnits,
         visible: labels.visible,
-        radius: dots.getRadius,
+        // getRadius became a per-school accessor (Incheon emphasis); evaluate it
+        // on a rendered school instead of serializing the function.
+        radius: typeof dots.getRadius === "function"
+          ? (dots.getRadius as (school: unknown) => number)((dots.data as unknown[])[0])
+          : dots.getRadius,
       };
     });
+  // Label size 12 since commit 260fde0 (2026-09-24, theme-aware basemap).
   const expected = {
-    size: 11,
-    min: 11,
-    max: 11,
+    size: 12,
+    min: 12,
+    max: 12,
     units: "pixels",
     visible: true,
     radius: 5,

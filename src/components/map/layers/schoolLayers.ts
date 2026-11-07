@@ -7,7 +7,7 @@ import {
 
 import { SCHOOL_LEVEL_COLORS } from "@/lib/schoolVisuals";
 import { REGION_MATERIAL } from "@/components/map/lighting";
-import type { School } from "@/lib/schools/types";
+import type { PositionedSchool } from "@/lib/schools/types";
 
 // Task B — module-scope constant, same reasoning as labelLayer.ts's own
 // COLLISION_FILTER_EXTENSION (a fresh instance every render would be
@@ -79,30 +79,10 @@ const COLUMN_DISK_RESOLUTION = 10;
 // instead of the dark theme's white wash, which a light scene would swallow.
 const HIGHLIGHT_COLOR: [number, number, number, number] = [0, 0, 0, 70];
 
-/** A school with a real location match (see fix-round-1: a 특수학교 row has `lat`/`lng: null` and can never be plotted). */
-export type PositionedSchool = School & { lat: number; lng: number };
-
-/**
- * Type guard for a school with a real coordinate. fix-round-2 (review
- * finding #1): this used to be a `withCoordinates()` HELPER that both layer
- * factories called on every invocation, re-filtering (and re-allocating a
- * brand-new array) each time — even when the input hadn't changed at all.
- * Since both factories are built inside DeckMap's `layers` useMemo (whose
- * deps include highlightedSchoolId/handleSchoolClick), that meant every
- * highlight click handed deck.gl a new `data` array identity, which deck.gl
- * treats as "the whole dataset changed" (`invalidateAll()`), defeating the
- * layers' own scoped `updateTriggers` (getLineColor/getLineWidth only).
- * DeckMap.tsx now calls this predicate itself, ONCE, inside its own
- * `useMemo(() => regionSchools.filter(hasCoordinates), [regionSchools])` —
- * that array's identity (and therefore both layers' `data` identity, since
- * they're both handed this SAME array) only changes when the selected
- * region's school set actually changes, never on a highlight-only
- * re-render. See `tests/unit/schoolLayers.test.ts`'s "data reference
- * stability" describe block.
- */
-export function hasCoordinates(school: School): school is PositionedSchool {
-  return school.lat !== null && school.lng !== null;
-}
+// `PositionedSchool`/`hasCoordinates` moved to @/lib/schools/types (deck.gl-free)
+// so Dashboard.tsx can import the predicate without this module's @deck.gl/*
+// side effects; re-exported here for the existing layer/test import sites.
+export { hasCoordinates, type PositionedSchool } from "@/lib/schools/types";
 
 export interface SchoolsLayerOptions {
   /** Same injection point as makeRegionsLayer's elevationOf — schools sit on their region's top face. */

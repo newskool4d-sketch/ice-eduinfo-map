@@ -60,7 +60,10 @@ describe("profile selection and isolation", () => {
     expect(bundle.neighbors.features).toEqual([]);
     expect(fetchImpl).toHaveBeenCalledTimes(13);
     expect(bundle.incheonHistory?.years).toEqual([2022, 2023, 2024, 2025, 2026]);
-    expect(fetchImpl).toHaveBeenCalledWith("/data/incheon/history.json", { cache: "no-store" });
+    // history.json is fetched in the same stage as the indicator files with the
+    // default cache policy (code review #6); a failure hides the trends panel
+    // instead of rejecting the bundle.
+    expect(fetchImpl).toHaveBeenCalledWith("/data/incheon/history.json");
     const { fitOverview } = await import("../../src/components/map/camera");
     const { unionBbox } = await import("../../src/lib/geo/geo");
     const { WebMercatorViewport } = await import("@deck.gl/core");
@@ -83,6 +86,7 @@ describe("profile selection and isolation", () => {
     expect(mapQueryParsers.view.parse("issues")).toBeNull();
     expect(mapQueryParsers.region.parse("28125")).toBe("28125");
   // This integration check loads the published dataset and deck.gl after a
-  // module reset; cold imports can exceed 5 seconds during the full suite.
-  }, 15_000);
+  // module reset; cold imports can exceed 5 seconds during the full suite,
+  // and exceeded 15 seconds under full-suite load on 2026-11-07 (2 s alone).
+  }, 60_000);
 });

@@ -32,7 +32,15 @@ const RAW_DIR = PROFILE_PATHS.raw;
 const INTERIM_DIR = PROFILE_PATHS.interim;
 const PUBLIC_DATA_DIR = PROFILE_PATHS.publicData;
 const ALIASES_PATH = path.join(ROOT, ACTIVE_PROFILE.files.manualDir, "school-aliases.json");
-const KESS_INTERIM_PATH = path.join(INTERIM_DIR, "kess-2026.json");
+// Same rule as build-indicators.ts: the latest kess-<year>.json in interim/ is the
+// statistics source, so an annual KESS refresh cannot split schools.json and
+// indicators/*.json across two years (code review 2026-11-07).
+const KESS_INTERIM_PATH = (() => {
+  const years = (existsSync(INTERIM_DIR) ? readdirSync(INTERIM_DIR) : [])
+    .map((file) => /^kess-(\d{4})\.json$/.exec(file)?.[1]).filter((year): year is string => !!year).sort();
+  if (!years.length) throw new Error(`${path.relative(ROOT, INTERIM_DIR)}/ 에 kess-YYYY.json 이 없습니다. npm run data:kess 를 먼저 실행하세요.`);
+  return path.join(INTERIM_DIR, `kess-${years.at(-1)}.json`);
+})();
 
 /** Scans data/raw/ for a file matching `LOCATION_CSV_PREFIX*.csv` — per the 날짜기준 규칙, the pipeline never hardcodes the date suffix, and fails loudly (naming the exact expected pattern) when no such file exists. */
 function findLocationCsvFile(): string {

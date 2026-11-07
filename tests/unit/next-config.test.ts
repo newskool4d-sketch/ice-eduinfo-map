@@ -26,6 +26,6 @@ describe("next.config headers()", () => {
       url: `https://example.test${pathname}`,
       nextConfig,
     });
-    expect(response.headers.get("Cache-Control")).toBe("public, max-age=3600, stale-while-revalidate=86400");
+    expect(response.headers.get("Cache-Control")).toBe("public, max-age=600, stale-while-revalidate=3600");
   });
 });

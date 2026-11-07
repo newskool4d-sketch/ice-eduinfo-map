@@ -48,7 +48,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     loadBundle()
       .then((bundle) => {
-        assertBundle(bundle);
+        try {
+          assertBundle(bundle);
+        } catch (error) {
+          // assertBundle's message is a developer diagnosis (file names, region
+          // codes). Keep it in the console and show end users the same
+          // temporary-sounding message load.ts uses for a stale manifest.
+          console.error(error);
+          throw new Error("데이터가 갱신 중입니다. 잠시 후 새로고침해 주세요.");
+        }
         const { main, islands } = splitRegionIslands(bundle.regions);
         if (!cancelled) {
           setState({ status: "ready", bundle: { ...bundle, regionsMain: main, regionsIslands: islands } });

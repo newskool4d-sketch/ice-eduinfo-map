@@ -13,6 +13,7 @@ export const incheonProfile: RegionProfile = {
     educationIssues: false, neighborSilhouettes: false, historicalTrends: false,
   },
   province: { name: "인천광역시", shortName: "인천", aggregateCode: "28000" },
+  regionUnit: "군·구",
   regions: [
     { code: "28125", name: "제물포구" }, { code: "28155", name: "영종구" },
     { code: "28177", name: "미추홀구" }, { code: "28185", name: "연수구" },

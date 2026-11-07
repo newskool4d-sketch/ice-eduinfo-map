@@ -23,6 +23,8 @@ export interface RegionProfile {
   /** False until a deployable package and all application consumers are ready. */
   pipelineReady: boolean;
   province: { name: string; shortName: string; aggregateCode: string };
+  /** Name of the map regions in UI text, e.g. "시군" (default) or "군·구". */
+  regionUnit?: string;
   regions: readonly RegionEntry[];
   boundary: {
     sidoCode: string;

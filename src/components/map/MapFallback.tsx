@@ -12,7 +12,7 @@
  */
 import type { IssueMapModel } from "@/lib/issues/types";
 import type { DataBundle } from "@/lib/data/types";
-import { regionName, type RegionCode } from "@/lib/geo/regions";
+import { REGION_UNIT, REGION_UNIT_OBJECT, regionName, type RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
 import { makeColorScale } from "@/lib/colors";
 import { domainOf } from "@/lib/scales";
@@ -73,12 +73,12 @@ export default function MapFallback({ indicatorId, bundle, selectedCode, onSelec
       <p data-testid="map-fallback-reason" className="mb-1 text-sm font-medium text-ink">
         {REASON_TEXT[reason]}
       </p>
-      <p className="mb-3 text-xs text-ink-muted">{label} 기준 · 시군을 클릭하면 선택됩니다</p>
+      <p className="mb-3 text-xs text-ink-muted">{label} 기준 · {REGION_UNIT_OBJECT} 클릭하면 선택됩니다</p>
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-line text-left text-xs text-ink-muted">
             <th scope="col" className="py-1 pr-2 font-normal">
-              시군
+              {REGION_UNIT}
             </th>
             <th scope="col" className="py-1 pr-2 text-right font-normal">
               값

@@ -76,7 +76,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await expect(boundaries).toHaveAttribute("aria-pressed", "false");
 
     await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
-    const panel = page.getByRole("dialog", { name: "학교 탐색 및 시군 통계" });
+    const panel = page.getByRole("dialog", { name: "학교 탐색 및 군·구 통계" });
     await expect(panel).toBeVisible();
     const search = panel.getByRole("searchbox", { name: "학교명 검색" });
     await expect(search).toBeVisible();
@@ -99,6 +99,12 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width + 1);
     expect(await page.locator(".ice-metrics dd").evaluateAll((elements) =>
       elements.every((element) => element.scrollWidth <= element.clientWidth + 1))).toBe(true);
+    // Code review 2026-11-07 #8: school names must also fit with 큰 글씨 on.
+    await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
+    await expect(panel).toBeVisible();
+    const clippedLarge = await panel.locator('button[data-testid^="school-row-"] span.text-sm').evaluateAll((names) =>
+      names.filter((name) => name.scrollWidth > name.clientWidth + 1).map((name) => name.textContent));
+    expect(clippedLarge).toEqual([]);
   });
 }
 
@@ -135,7 +141,7 @@ for (const viewport of [{ width: 700, height: 900 }, { width: 820, height: 780 }
     await expect(boundaries).toHaveAttribute("aria-pressed", "false");
     if (viewport.width < 1024) {
       await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
-      await expect(page.getByRole("dialog", { name: "학교 탐색 및 시군 통계" })).toBeVisible();
+      await expect(page.getByRole("dialog", { name: "학교 탐색 및 군·구 통계" })).toBeVisible();
     }
   });
 }

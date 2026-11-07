@@ -1,4 +1,5 @@
 import type { RGB } from "@/lib/colors";
+import { REGION_UNIT } from "@/lib/geo/regions";
 import { NULL_COLOR } from "@/lib/colors";
 import type { IndicatorDef } from "@/lib/indicators/types";
 import {
@@ -46,7 +47,7 @@ export default function Legend({
 }: LegendProps) {
   // This legend describes the statistics panel, not marker height or size.
   const notes: string[] = [
-    colorBuckets === "quantile" ? "시군별 통계 색 구간" : "색 구간: 등간격",
+    colorBuckets === "quantile" ? `${REGION_UNIT}별 통계 색 구간` : "색 구간: 등간격",
   ];
 
   // Covers both of the brief's sub-conditions (an explicit def.domain override,

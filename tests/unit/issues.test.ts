@@ -8,6 +8,7 @@ import { buildIssueModel, issueValue, studentChange } from "@/lib/issues/model";
 import {
   EDUCATION_ISSUES,
   issueById,
+  METRIC_LABELS,
   PUBLISHED_ISSUES,
 } from "@/lib/issues/registry";
 import { createLoader } from "nuqs/server";
@@ -25,6 +26,11 @@ const regional = () => issueById("regional-sustainability")!;
 const special = () => issueById("special-education")!;
 
 describe("policy-linked education issues", () => {
+  it("labels every metric of every published issue (code review #4: decline-small was missing)", () => {
+    const unlabeled = PUBLISHED_ISSUES.flatMap((issue) => issue.metrics.filter((metric) => !METRIC_LABELS[metric]).map((metric) => `${issue.id}/${metric}`));
+    expect(unlabeled).toEqual([]);
+  });
+
   it("publishes all ten sourced themes", () => {
     expect(EDUCATION_ISSUES).toHaveLength(10);
     expect(PUBLISHED_ISSUES).toHaveLength(10);

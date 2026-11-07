@@ -5,7 +5,7 @@
  * can't be rendered in jsdom, see task-4A-brief.md) and from plain unit
  * tests alike.
  */
-import { REGION_CODES, type RegionCode } from "./geo/regions";
+import { REGION_CODES, REGION_UNIT, type RegionCode } from "./geo/regions";
 import { rank } from "./stats";
 
 /**
@@ -75,6 +75,6 @@ export interface SelectionAnnouncementParams {
  * 70,851명, 14개 시군 중 1위" per the task brief's literal example.
  */
 export function selectionAnnouncement({ name, label, valueText, rank, total }: SelectionAnnouncementParams): string {
-  const rankText = rank !== null ? `${total}개 시군 중 ${rank}위` : "순위 없음";
+  const rankText = rank !== null ? `${total}개 ${REGION_UNIT} 중 ${rank}위` : "순위 없음";
   return `${name} 선택됨, ${label} ${valueText}, ${rankText}`;
 }

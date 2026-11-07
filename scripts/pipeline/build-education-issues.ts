@@ -63,7 +63,7 @@ const years: number[] = manifest.indicators.students_total.years;
 const sum = (rows: SchoolRow[], field: "students" | "classes" | "specialStudents" | "specialClasses") =>
   rows.some(r => r[field] === null) ? null : rows.reduce((n, r) => n + r[field]!, 0);
 for (const trendYear of years) {
-  const snapshot = await read(`data/interim/kess-${trendYear}.json`);
+  const snapshot = await read(path.join(PROFILE_PATHS.interim, `kess-${trendYear}.json`));
   if (snapshot.year !== trendYear || !snapshot.referenceDate.startsWith(`${trendYear}-`))
     throw new Error(`특수교육 추이 기준연도 불일치: ${trendYear}`);
   const rows: SchoolRow[] = snapshot.rows.filter((r: SchoolRow) => INCLUDED_STATUSES.includes(r.status));
