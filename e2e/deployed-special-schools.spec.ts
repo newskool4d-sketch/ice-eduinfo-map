@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { deployedProfile } from "./deployed-profile";
 
 test("deployed special schools expose verified locations and official directions", async ({ page, request }) => {
   const site = process.env.DEPLOYMENT_URL;
   test.skip(!site, "Requires a deployed site URL");
+  test.skip((await deployedProfile(request, site!)) !== "jeonbuk", "Jeonbuk deployment only (Incheon: deployed-incheon.spec.ts)");
   const response = await request.get(`${site}/data/schools.json`);
   expect(response.ok()).toBe(true);
   const data = await response.json();

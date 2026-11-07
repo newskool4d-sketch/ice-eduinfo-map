@@ -63,3 +63,21 @@ export async function openMapSettings(page: Page) {
     if (!(await summary.locator("..").evaluate(el => el.hasAttribute("open")))) await summary.click();
   }
 }
+
+/**
+ * Incheon-only specs: skip on the Jeonbuk profile, but FAIL (not skip) when the
+ * run was started for Incheon and the Incheon header is missing — otherwise the
+ * CI e2e-incheon job could go green with every test skipped (code review round 3).
+ */
+export async function requireIncheon(page: Page) {
+  // Right after goto the Suspense skeleton (no .ice-header) may still be up, so an
+  // immediate count raced: it used to skip Incheon tests at random. Dashboard's
+  // <main> only mounts once data is ready, by which time the header is rendered.
+  await page.locator("main").first().waitFor({ state: "attached", timeout: 30_000 });
+  const present = (await page.locator(".ice-header").count()) > 0;
+  if (process.env.NEXT_PUBLIC_EDU_MAP_PROFILE === "incheon") {
+    expect(present, "Incheon profile run but .ice-header is missing").toBe(true);
+    return;
+  }
+  test.skip(!present, "Incheon profile only");
+}

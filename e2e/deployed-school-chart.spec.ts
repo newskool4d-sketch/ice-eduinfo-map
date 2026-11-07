@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
+import { deployedProfile } from "./deployed-profile";
 
-test("deployed school cylinders follow the metric and remain readable on mobile", async ({ page }) => {
+test("deployed school cylinders follow the metric and remain readable on mobile", async ({ page, request }) => {
   const site = process.env.DEPLOYMENT_URL;
   test.skip(!site, "Requires a deployed site URL");
+  test.skip((await deployedProfile(request, site!)) !== "jeonbuk", "Jeonbuk deployment only (Incheon: deployed-incheon.spec.ts)");
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto(`${site}/?scene=city&schoolChart=columns&region=52110&indicator=students_total`);
@@ -24,9 +26,10 @@ test("deployed school cylinders follow the metric and remain readable on mobile"
   expect(errors).toEqual([]);
 });
 
-test("deployed school counts use short uniform cylinders", async ({ page }) => {
+test("deployed school counts use short uniform cylinders", async ({ page, request }) => {
   const site = process.env.DEPLOYMENT_URL;
   test.skip(!site, "Requires a deployed site URL");
+  test.skip((await deployedProfile(request, site!)) !== "jeonbuk", "Jeonbuk deployment only (Incheon: deployed-incheon.spec.ts)");
   await page.goto(`${site}/?scene=city&schoolChart=columns&region=52110&indicator=schools_total`);
   await expect(page.getByTestId("school-chart-legend")).toContainText("원통 1개 = 학교 1교 · 낮은 동일 높이");
   await expect(page.locator("#school-map")).toHaveAttribute("data-map-ready", "true");

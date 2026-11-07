@@ -2,7 +2,7 @@
  * Streaming "download if missing" helper shared by fetch-kess.ts (and any
  * future pipeline step that needs to pull a large file once and re-use it).
  */
-import { createWriteStream, existsSync, readFileSync, renameSync, statSync } from "node:fs";
+import { closeSync, createWriteStream, existsSync, openSync, readSync, renameSync, statSync } from "node:fs";
 import { mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -60,8 +60,10 @@ export async function downloadIfMissing(url: string, destPath: string): Promise<
   // A portal error page served with HTTP 200 must not become a permanent
   // "already exists" file: spreadsheets and archives must be ZIP containers.
   if (/\.(xlsx|zip)$/i.test(destPath)) {
-    const head = readFileSync(partPath).subarray(0, 4);
-    if (head.length < 4 || head[0] !== 0x50 || head[1] !== 0x4b) {
+    const head = Buffer.alloc(4);
+    const fd = openSync(partPath, "r");
+    const read = (() => { try { return readSync(fd, head, 0, 4, 0); } finally { closeSync(fd); } })();
+    if (read < 4 || head[0] !== 0x50 || head[1] !== 0x4b) {
       await unlink(partPath).catch(() => {});
       throw new Error(`[download] not a ZIP/XLSX file (${formatMB(downloaded)}): ${url}`);
     }

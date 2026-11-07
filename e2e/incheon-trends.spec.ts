@@ -1,11 +1,11 @@
-import { expect, test } from "./fixtures";
+import { expect, test, requireIncheon } from "./fixtures";
 
 // Code review 2026-11-07 #5: history.json uses the April source-era districts,
 // so the four districts created on 2026-07-01 have no trend history. The panel
 // falls back to province-wide figures and must say so.
 test("trends panel explains the fallback for a district created on 2026-07-01", async ({ page }) => {
   await page.goto("/?scene=flat&view=statistics&region=28125");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   const summary = page.locator("details.ice-trends > summary");
   await summary.scrollIntoViewIfNeeded();
@@ -16,7 +16,7 @@ test("trends panel explains the fallback for a district created on 2026-07-01", 
 
 test("trends panel shows no fallback note for a district with history", async ({ page }) => {
   await page.goto("/?scene=flat&view=statistics&region=28185");
-  if (!(await page.locator(".ice-header").count())) test.skip(true, "Incheon profile only");
+  await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   const summary = page.locator("details.ice-trends > summary");
   await summary.scrollIntoViewIfNeeded();

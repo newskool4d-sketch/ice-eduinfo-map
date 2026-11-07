@@ -125,3 +125,43 @@ jobs:
           name: test-results
           path: test-results/
           retention-days: 7
+
+  # Code review round 3 — the e2e job above runs the default Jeonbuk profile,
+  # where every Incheon-only spec self-skips, so nothing exercised the profile
+  # that actually ships. This job builds and serves the Incheon profile and runs
+  # ONLY the Incheon specs: the Jeonbuk specs assert Jeonbuk data (전주시, 52110,
+  # 14 시군) and do not skip under Incheon. requireIncheon() (e2e/fixtures.ts)
+  # turns a missing Incheon header into a failure here, so this job cannot pass
+  # with everything skipped.
+  e2e-incheon:
+    runs-on: ubuntu-latest
+    needs: build-incheon
+    env:
+      NEXT_PUBLIC_EDU_MAP_PROFILE: incheon
+      EDU_MAP_PROFILE: incheon
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Incheon e2e tests
+        run: npx playwright test e2e/incheon-trends.spec.ts e2e/touch-after-school-tap.spec.ts e2e/mobile-optimization.spec.ts
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-incheon
+          path: playwright-report/
+          retention-days: 7
