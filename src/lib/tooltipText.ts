@@ -9,7 +9,7 @@
  * this logic itself.
  */
 import { formatDecimal, formatInt, formatPercent } from "./format";
-import { isRegionCode, REGION_CODES, regionName } from "./geo/regions";
+import { isRegionCode, REGION_CODES, REGION_UNIT, regionName } from "./geo/regions";
 import { ACTIVE_PROFILE } from "./profiles";
 import { SCHOOL_LEVEL_LABELS } from "./schoolVisuals";
 import type { School } from "./schools/types";
@@ -78,7 +78,7 @@ export function makeLinesOf({ def, label, map }: LinesOfParams): (code: string) 
     }
     const valueLine = `${label}: ${formatWithUnit(def, value)}`;
     const r = ranks.get(code);
-    const rankLine = r !== undefined ? `${REGION_CODES.length}개 시군 중 ${r}위` : "순위 없음";
+    const rankLine = r !== undefined ? `${REGION_CODES.length}개 ${REGION_UNIT} 중 ${r}위` : "순위 없음";
     // count-kind indicators' 52000 row is a province-wide *total* (Σ), not
     // an average — "${ACTIVE_PROFILE.province.shortName} 평균 대비 −95,514명" reads as if 52000 were a mean,
     // which misreports the number. count-kind instead shows "${ACTIVE_PROFILE.province.shortName} 대비 비중"

@@ -15,6 +15,7 @@ export function resolveIssueMetric(issue: EducationIssue, metric: string | null)
 }
 export const METRIC_LABELS: Record<string, string> = {
   "school-size": "학교 규모 구간",
+  "decline-small": "학생 감소와 작은학교",
   designation: "인구감소지역 지정",
   "student-change": "학생수 증감률",
   "small-share": "소규모학교 비율",

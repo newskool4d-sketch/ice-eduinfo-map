@@ -4,7 +4,7 @@ import type { MapMetricSpec } from "@/lib/mapMetrics";
 import { chartValueText } from "@/lib/schools/chart";
 import type { School } from "@/lib/schools/types";
 import type { SchoolFilters } from "@/lib/schools/filter";
-import { REGION_CODES, regionName, type RegionCode } from "@/lib/geo/regions";
+import { REGION_CODES, REGION_UNIT, regionName, type RegionCode } from "@/lib/geo/regions";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
 import {
   SCHOOL_LEVEL_COLORS,
@@ -107,7 +107,7 @@ export function SchoolDetail({
         className="mt-3 min-h-10 text-xs font-semibold text-accent-text underline underline-offset-4"
         onClick={() => onStatistics(school.regionCode as RegionCode)}
       >
-        해당 시군 통계 보기
+        해당 {REGION_UNIT} 통계 보기
       </button>
     </section>
   );
@@ -142,7 +142,7 @@ export default function SchoolExplorer({
           <p className="font-semibold">{metric.title}</p>
           <p className="mt-1 text-ink-muted">
             {metric.kind === "region"
-              ? "시군 전체 집계 · 학교 검색은 아래 목록에 적용됩니다."
+              ? `${REGION_UNIT} 전체 집계 · 학교 검색은 아래 목록에 적용됩니다.`
               : "지도와 같은 학교별 지표를 표시합니다."}
           </p>
           {selectedSchool && metric.kind !== "region" && (
@@ -174,7 +174,7 @@ export default function SchoolExplorer({
           />
         </label>
         <label className="block text-xs font-medium">
-          시군
+          {REGION_UNIT}
           <select
             value={filters.regionCode ?? ""}
             onChange={(event) =>

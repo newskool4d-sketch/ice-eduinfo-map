@@ -4,7 +4,7 @@
  */
 import type { ClosedSchoolsFile } from "../closedSchools/types";
 import { ACTIVE_PROFILE } from "../profiles";
-import { isRegionCode, PROVINCE_CODE, REGION_CODES } from "../geo/regions";
+import { isRegionCode, PROVINCE_CODE, REGION_CODES, REGION_UNIT } from "../geo/regions";
 import { INDICATORS } from "../indicators/registry";
 import type { IndicatorFile, Manifest, SeriesFile } from "../indicators/types";
 import type { SchoolsFile } from "../schools/types";
@@ -87,11 +87,24 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
 
   const seriesIds = (ACTIVE_PROFILE.capabilities.historicalTrends ? INDICATORS : []).filter((d) => d.aggregate.kind !== "external").map((d) => d.id);
 
-  const [indicatorFiles, seriesFiles] = await Promise.all([
+  // history.json (Incheon only) backs the optional 2022–2026 trends panel. It is
+  // the largest asset (~1.7 MB), so it is fetched alongside the indicator files
+  // rather than as a third sequential stage, and a failure must not take the
+  // whole dashboard down: Dashboard renders IncheonTrends only when the bundle
+  // carries incheonHistory, so a missing file simply hides the panel.
+  const historyPromise: Promise<import("./incheonHistory").IncheonHistory | undefined> = ACTIVE_PROFILE.id === "incheon"
+    ? fetchJson<import("./incheonHistory").IncheonHistory>(fetchImpl, dataUrl("history.json")).catch((error: unknown) => {
+        console.error("loadBundle: history.json 을 불러오지 못해 추세 패널을 숨깁니다.", error);
+        return undefined;
+      })
+    : Promise.resolve(undefined);
+
+  const [indicatorFiles, seriesFiles, incheonHistory] = await Promise.all([
     Promise.all(
       indicatorIds.map((id) => fetchJson<IndicatorFile>(fetchImpl, dataUrl(`indicators/${id}.json`))),
     ),
     Promise.all(seriesIds.map((id) => fetchJson<SeriesFile>(fetchImpl, dataUrl(`series/${id}.json`)))),
+    historyPromise,
   ]);
 
   const indicators: Record<string, IndicatorFile> = {};
@@ -104,8 +117,6 @@ export async function loadBundle(fetchImpl: FetchImpl = fetch): Promise<DataBund
     series[id] = seriesFiles[i];
   });
 
-  const incheonHistory = ACTIVE_PROFILE.id === "incheon"
-    ? await fetchJson<import("./incheonHistory").IncheonHistory>(url => fetchImpl(url, { cache: "no-store" }), dataUrl("history.json")) : undefined;
   return { regions, neighbors, charset, manifest, schools, closedSchools, indicators, series, ...(incheonHistory ? { incheonHistory } : {}) };
 }
 
@@ -132,7 +143,7 @@ export function assertBundle(bundle: DataBundle): void {
       problems.push(`indicators/${def.id}.json is missing rows for: ${missingRegions.join(", ")}`);
     }
     if (!map.has(PROVINCE_CODE)) {
-      problems.push(`indicators/${def.id}.json is missing the ${PROVINCE_CODE} (전북 전체) row`);
+      problems.push(`indicators/${def.id}.json is missing the ${PROVINCE_CODE} (${ACTIVE_PROFILE.province.shortName} 전체) row`);
     }
   }
 
@@ -152,7 +163,7 @@ export function assertBundle(bundle: DataBundle): void {
     const badRegionSchools = bundle.schools.schools.filter((s) => !isRegionCode(s.regionCode));
     if (badRegionSchools.length > 0) {
       problems.push(
-        `schools.json has ${badRegionSchools.length} school(s) with a regionCode outside the 14 시군: ` +
+        `schools.json has ${badRegionSchools.length} school(s) with a regionCode outside the ${REGION_CODES.length} ${REGION_UNIT}: ` +
           badRegionSchools
             .slice(0, 5)
             .map((s) => `${s.name}(${s.regionCode})`)
@@ -168,7 +179,7 @@ export function assertBundle(bundle: DataBundle): void {
   const badRegionClosedSchools = (bundle.closedSchools?.rows ?? []).filter((r) => !isRegionCode(r.regionCode));
   if (badRegionClosedSchools.length > 0) {
     problems.push(
-      `closed-schools.json has ${badRegionClosedSchools.length} row(s) with a regionCode outside the 14 시군: ` +
+      `closed-schools.json has ${badRegionClosedSchools.length} row(s) with a regionCode outside the ${REGION_CODES.length} ${REGION_UNIT}: ` +
         badRegionClosedSchools
           .slice(0, 5)
           .map((r) => `${r.name}(${r.regionCode})`)

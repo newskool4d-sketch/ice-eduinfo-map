@@ -6,7 +6,11 @@ export const maxDuration = 15;
 const fail = (status: number) => Response.json({ error: "건물 정보를 불러오지 못했습니다" }, { status, headers: { "Cache-Control": "no-store" } });
 export async function GET(request: Request, context: { params: Promise<{ z: string; x: string; y: string }> }) {
   const { z, x, y } = await context.params;
-  if (![z, x, y].every((part) => /^\d+$/.test(part)) || !validBuildingTile(Number(z), Number(x), Number(y))) return fail(400);
+  // Canonical coordinates only: "0012" or "12?v=1" would reach the same upstream
+  // tile through a different URL, bypassing the CDN cache and spending the key quota.
+  const canonical = (part: string) => /^(0|[1-9]\d{0,6})$/.test(part);
+  if (new URL(request.url).search !== "") return fail(400);
+  if (![z, x, y].every(canonical) || !validBuildingTile(Number(z), Number(x), Number(y))) return fail(400);
   const key = process.env.VWORLD_BUILDING_KEY;
   if (!key || process.env.BUILDINGS_ENABLED === "false" || process.env.NEXT_PUBLIC_BUILDINGS_ENABLED === "false") return fail(503);
   try {

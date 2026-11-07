@@ -49,7 +49,7 @@ export function IssueDetails({ bundle, data, model, region }: {
         <p className="text-ink-muted">{resource.regionCode ? regionName(resource.regionCode) : "지역 미확인"}{resource.detail ? ` · ${resource.detail}` : ""}</p>
         {resource.address && <p>{resource.address}</p>}
         {resource.phone && <p>연락처 {resource.phone}</p>}
-        {resource.capacity !== undefined && <p>정원 {resource.capacity ?? "자료 없음"}명 · 현원 {resource.enrolled ?? "자료 없음"}명</p>}
+        {resource.capacity !== undefined && <p>정원 {resource.capacity == null ? "자료 없음" : `${resource.capacity}명`} · 현원 {resource.enrolled == null ? "자료 없음" : `${resource.enrolled}명`}</p>}
         {resource.referenceDate && <p className="text-ink-muted">기관 자료 기준 {resource.referenceDate}</p>}
       </li>)}</ul>
     </section>;

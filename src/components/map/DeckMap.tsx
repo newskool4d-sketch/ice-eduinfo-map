@@ -1329,15 +1329,28 @@ export default function DeckMap({
           radius: mobile ? 14 : 9,
           layerIds: ["schools", "school-columns", "schools-special", "school-clusters"],
         });
+        // Stopping the pointerup keeps deck.gl from also treating this tap as a
+        // region/school click (which would toggle the selection back). deck.gl's
+        // gesture input (mjolnir.js) listens for pointerup on window, so it never
+        // learns the pointer was released: release it with a pointercancel, or the
+        // stale touch pointer turns every later one-finger drag into a pinch
+        // (code review 2026-11-07 #3, e2e/touch-after-school-tap.spec.ts).
+        const consumeTap = () => {
+          event.stopPropagation();
+          window.dispatchEvent(new PointerEvent("pointercancel", {
+            pointerId: event.pointerId, pointerType: event.pointerType, isPrimary: event.isPrimary,
+            clientX: event.clientX, clientY: event.clientY,
+          }));
+        };
         if (hit?.layer?.id === "school-clusters" && hit.object) {
           handleClusterClick(hit.object as SchoolCluster);
-          event.stopPropagation();
+          consumeTap();
           return;
         }
         const schoolId = (hit?.object as { id?: string } | undefined)?.id;
         if (!schoolId) return;
         handleSchoolClick(schoolId);
-        event.stopPropagation();
+        consumeTap();
       }}
       // CI Linux fix — useFontGate's OWN gate: the font itself finished
       // loading. Decoupled from data-map-ready (deck.gl's first render

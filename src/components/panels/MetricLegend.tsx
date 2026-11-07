@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { REGION_UNIT } from "@/lib/geo/regions";
 import type { MapMetricSpec } from "@/lib/mapMetrics";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
 
@@ -52,7 +53,7 @@ export default function MetricLegend({
         {density
           ? "상대 집중도 · 낮음 → 높음"
           : metric.regionOverlay ? "시군 면: 학생 증감률 · 원: 작은학교" : metric.kind === "region"
-            ? "시군 단위"
+            ? `${REGION_UNIT} 단위`
             : `학교 단위 · ${ACTIVE_PROFILE.province.shortName} 전체 기준`}
         <span className="block">{metric.date}</span>
       </p>

@@ -15,10 +15,14 @@ const nextConfig: NextConfig = {
   // affects `next dev` (what `npm run e2e`'s webServer and local dev use).
   devIndicators: false,
   // Task 6, Section D.2 — public/data/**（regions.geojson, indicators/*.json
-  // 등）는 npm run data:build 로만 바뀌는 정적 파일이라 브라우저/CDN이 1시간
-  // 동안은 재검증 없이 쓰고, 그 뒤로도 24시간까지는 백그라운드 재검증 중 이전
-  // 응답을 계속 써도 되는 stale-while-revalidate 로 적당하다 — next start/
-  // Vercel 모두 이 헤더를 public/ 정적 파일 응답에도 그대로 적용한다.
+  // 등）는 npm run data:build 로만 바뀌는 정적 파일이라 브라우저/CDN이 짧게
+  // 재검증 없이 쓰고, 그 뒤로는 백그라운드 재검증 중 이전 응답을 써도 되는
+  // stale-while-revalidate 로 적당하다 — next start/Vercel 모두 이 헤더를
+  // public/ 정적 파일 응답에도 그대로 적용한다.
+  // 2026-11-07 코드 리뷰 #7 — 파일명에 해시가 없어 manifest.json(no-cache)만
+  // 갱신되고 schools/regions/indicators 는 최대 25시간(1h + SWR 24h) 묵은 짝이
+  // 될 수 있었다. 창을 10분 + SWR 1시간으로 줄여 재배포 뒤 불일치 노출 시간을
+  // 최대 70분으로 제한한다(근본 해결은 파이프라인의 콘텐츠 해시 파일명).
   async headers() {
     return [
       {
@@ -26,7 +30,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=3600, stale-while-revalidate=86400",
+            value: "public, max-age=600, stale-while-revalidate=3600",
           },
         ],
       },

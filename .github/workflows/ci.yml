@@ -41,6 +41,38 @@ jobs:
       - name: Build
         run: npm run build
 
+  # Production (ice-eduinfo-map.vercel.app) deploys NEXT_PUBLIC_EDU_MAP_PROFILE=
+  # incheon, but every step above runs the default jeonbuk profile — the unit
+  # suite and validate.ts carry Jeonbuk fixtures/official figures. This job
+  # gates what actually ships: the committed public/data/incheon package
+  # (validate-incheon.ts) and a production build of the Incheon profile.
+  build-incheon:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_EDU_MAP_PROFILE: incheon
+      EDU_MAP_PROFILE: incheon
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Incheon data package
+        run: npm run data:validate:incheon
+
+      - name: Typecheck (Incheon profile)
+        run: npm run typecheck
+
+      - name: Build (Incheon profile)
+        run: npm run build
+
   # Task 6, Section D.1 — separate job (not extra steps in `build`) so a
   # typecheck/lint/unit-test/build failure fails fast without waiting on the
   # much slower browser install + e2e run; `needs: build` still skips this

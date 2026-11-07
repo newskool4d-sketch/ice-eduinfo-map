@@ -76,7 +76,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await expect(boundaries).toHaveAttribute("aria-pressed", "false");
 
     await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
-    const panel = page.getByRole("dialog", { name: "학교 탐색 및 시군 통계" });
+    const panel = page.getByRole("dialog", { name: "학교 탐색 및 군·구 통계" });
     await expect(panel).toBeVisible();
     const search = panel.getByRole("searchbox", { name: "학교명 검색" });
     await expect(search).toBeVisible();
@@ -135,7 +135,7 @@ for (const viewport of [{ width: 700, height: 900 }, { width: 820, height: 780 }
     await expect(boundaries).toHaveAttribute("aria-pressed", "false");
     if (viewport.width < 1024) {
       await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
-      await expect(page.getByRole("dialog", { name: "학교 탐색 및 시군 통계" })).toBeVisible();
+      await expect(page.getByRole("dialog", { name: "학교 탐색 및 군·구 통계" })).toBeVisible();
     }
   });
 }

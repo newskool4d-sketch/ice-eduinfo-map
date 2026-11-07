@@ -53,6 +53,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
       <p className="ice-trend-note">{scope === "school" && school ? `${HISTORY_LEVELS[school.level]} · 선택한 학교 기준` : "추세의 학교급·지표는 지도와 별도로 선택합니다."}</p>
       {scope === "school" && beforeOpening && <p className="ice-trend-note ice-trend-status" role="note">{beforeOpening.note}. 해당 공백은 현재 미개교 상태나 학생 0명을 뜻하지 않습니다.</p>}
       {scope === "region" && <p className="ice-trend-note ice-trend-status">당시 4월의 10개 군·구 기준입니다. 현재 지도와 행정구역 기준이 다릅니다.</p>}
+      {scope !== "school" && currentRegionName && !data.regions[currentRegionName] && <p className="ice-trend-note ice-trend-status" role="note">선택한 {currentRegionName}은(는) 2026년 7월 신설 구역으로 과거 추세 자료가 없어 {scope === "region" ? `${region} (당시 기준)` : "인천 전체"}를 표시합니다.</p>}
       <dl className="ice-trend-metrics" aria-label="추세 핵심 수치">
         <div className="ice-trend-current"><dt>2026년 {definition.label}</dt><dd>{last === null ? "자료 없음" : <>{number(last)}<small>{definition.unit}</small></>}</dd></div>
         {([{label:"전년 대비", period:"2025 → 2026", value:previous}, {label:"2022년 대비", period:"2022 → 2026 · 4년", value:change}] as const).map(({label,period,value})=><div key={label}><dt>{label}</dt><dd>{signed(value.percent)}{value.percent !== null && <small>%</small>}</dd><p>{value.difference === null ? "비교 자료 없음" : `${signed(value.difference)}${definition.unit} · ${value.difference > 0 ? "증가" : value.difference < 0 ? "감소" : "변화 없음"}`}</p><span>{period}</span></div>)}

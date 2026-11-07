@@ -3,6 +3,8 @@ import { ACTIVE_PROFILE } from "../profiles";
 /** Administrative areas for the selected provincial profile. */
 export const PROVINCE_CODE = ACTIVE_PROFILE.province.aggregateCode;
 export const REGIONS = ACTIVE_PROFILE.regions;
+/** UI word for one map region ("시군" for Jeonbuk, "군·구" for Incheon). */
+export const REGION_UNIT = ACTIVE_PROFILE.regionUnit ?? "시군";
 export type RegionCode = string;
 export const REGION_CODES: RegionCode[] = REGIONS.map((region) => region.code);
 const NAME_BY_CODE = new Map(REGIONS.map((region) => [region.code, region.name]));
