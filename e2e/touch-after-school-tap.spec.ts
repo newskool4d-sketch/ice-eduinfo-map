@@ -14,8 +14,12 @@ const viewOf = (page: Page) => page.evaluate(() => {
 });
 
 async function waitStill(page: Page) {
+  // Compare reads taken a real interval apart: two reads within one frame look
+  // "still" even mid-flight, and a drag sent during the fly-to was the source of
+  // an intermittent failure in serial runs.
   let settled = await viewOf(page);
   await expect.poll(async () => {
+    await page.waitForTimeout(300);
     const now = await viewOf(page);
     const still = Math.abs(now.zoom - settled.zoom) < 1e-5 && Math.abs(now.latitude - settled.latitude) < 1e-7;
     settled = now;
