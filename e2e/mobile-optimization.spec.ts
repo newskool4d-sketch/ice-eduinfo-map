@@ -99,6 +99,12 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width + 1);
     expect(await page.locator(".ice-metrics dd").evaluateAll((elements) =>
       elements.every((element) => element.scrollWidth <= element.clientWidth + 1))).toBe(true);
+    // Code review 2026-11-07 #8: school names must also fit with 큰 글씨 on.
+    await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
+    await expect(panel).toBeVisible();
+    const clippedLarge = await panel.locator('button[data-testid^="school-row-"] span.text-sm').evaluateAll((names) =>
+      names.filter((name) => name.scrollWidth > name.clientWidth + 1).map((name) => name.textContent));
+    expect(clippedLarge).toEqual([]);
   });
 }
 

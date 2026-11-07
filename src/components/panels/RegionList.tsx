@@ -2,7 +2,7 @@
 
 import { makeColorScale } from "@/lib/colors";
 import type { DataBundle } from "@/lib/data/types";
-import { REGION_UNIT, regionName } from "@/lib/geo/regions";
+import { REGION_UNIT_OBJECT, regionName } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
 import { regionRankList } from "@/lib/selection";
 import { displayLabel, rank, valueMap } from "@/lib/stats";
@@ -53,7 +53,7 @@ export default function RegionList({ bundle }: RegionListProps) {
           onShowStudents={indicatorId === "students_change_5y" ? () => setIndicator("students_total") : undefined}
         />
       </div>}
-      <p className="mb-3 text-sm text-ink-muted">{REGION_UNIT === "시군" ? "시군을" : `${REGION_UNIT}를`} 클릭하거나 목록에서 선택하세요</p>
+      <p className="mb-3 text-sm text-ink-muted">{REGION_UNIT_OBJECT} 클릭하거나 목록에서 선택하세요</p>
       <p className="mb-2 text-xs text-ink-muted">{label} 기준</p>
       <ul className="flex flex-col gap-1">
         {orderedCodes.map((code) => {
