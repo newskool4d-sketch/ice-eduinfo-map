@@ -47,6 +47,7 @@ export function SchoolDetail({
   return (
     <section
       aria-label="선택한 학교"
+      data-selected-school
       className="rounded-xl border border-accent/30 bg-accent-soft p-3"
     >
       <div className="flex items-start justify-between gap-2">
@@ -234,7 +235,7 @@ export default function SchoolExplorer({
           검색 조건에 맞는 학교가 없습니다.
         </p>
       ) : (
-        <ul className="space-y-1" aria-label="학교 목록">
+        <ul className="ice-school-list space-y-1" aria-label="학교 목록">
           {schools.map((school) => (
             <li key={school.id}>
               <button

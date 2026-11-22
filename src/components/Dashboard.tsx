@@ -26,7 +26,7 @@ import { DataProvider, useData, useRetry } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
 import { REGION_UNIT, type RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
-import { GROUP_LABELS } from "@/lib/indicators/groups";
+import { GROUP_LABELS, QUICK_TOPIC_LABELS } from "@/lib/indicators/groups";
 import { MAP_VIEWS, useMapQuery } from "@/lib/state/urlState";
 
 function CenteredMessage({ children }: { children: ReactNode }) {
@@ -61,13 +61,6 @@ function DataErrorMessage({ error }: { error: string }) {
     </div>
   );
 }
-
-const INCH_TOPIC_LABELS: Record<string, string> = {
-  students_total: "학생 분포",
-  students_per_class: "교육여건",
-  small_schools: "작은학교",
-  students_change_5y: "지역 변화",
-};
 
 function DashboardInner({
   bundle,
@@ -161,6 +154,7 @@ function DashboardInner({
   const [schoolFocusNonce, setSchoolFocusNonce] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
   const panelButtonRef = useRef<HTMLButtonElement>(null);
+  const panelCloseRef = useRef<HTMLButtonElement>(null);
   const panelReturnFocusRef = useRef<HTMLElement | null>(null);
   const filteredSchools = useMemo(
     () =>
@@ -182,7 +176,7 @@ function DashboardInner({
   }, [issueModel, filteredSchools, bundle, name, level]);
   const selectedSchool =
     mapSchools.find((s) => s.id === highlightedSchoolId) ?? null;
-  const currentTopic = issueById(issueId)?.title ?? INCH_TOPIC_LABELS[indicatorId] ?? GROUP_LABELS[def.group];
+  const currentTopic = issueById(issueId)?.title ?? QUICK_TOPIC_LABELS[indicatorId] ?? GROUP_LABELS[def.group];
   const currentRegion = bundle.regions.features.find((feature) => feature.properties.code === regionCode)?.properties.name ?? "인천 전체";
   useEffect(() => {
     if (highlightedSchoolId && !selectedSchool)
@@ -193,7 +187,7 @@ function DashboardInner({
     if (!selectedSchool || tab === "statistics" || collapsed) return;
     if (window.matchMedia("(max-width: 1023px)").matches && !panelOpen) return;
     panelRef.current
-      ?.querySelector('[aria-label="선택한 학교"]')
+      ?.querySelector("[data-selected-school]")
       ?.scrollIntoView({ block: "nearest" });
   }, [selectedSchool, tab, collapsed, panelOpen]);
 
@@ -203,9 +197,7 @@ function DashboardInner({
       panelReturnFocusRef.current ??
       (document.activeElement as HTMLElement | null);
     const opener = panelButtonRef.current;
-    panelRef.current
-      ?.querySelector<HTMLButtonElement>('[aria-label="패널 닫기"]')
-      ?.focus();
+    panelCloseRef.current?.focus();
     const close = (event: KeyboardEvent) => {
       // A trend dialog handles its own Escape; keep the underlying mobile sheet open.
       if (event.target instanceof Element && event.target.closest("dialog[open]")) return;
@@ -367,6 +359,7 @@ function DashboardInner({
               ))}
             </div>
             <button
+              ref={panelCloseRef}
               type="button"
               aria-label="패널 닫기"
               onClick={() => {
@@ -565,7 +558,7 @@ function DashboardInner({
                 if (tab !== "issues") setTab("schools");
                 requestAnimationFrame(() =>
                   panelRef.current
-                    ?.querySelector('[aria-label="선택한 학교"]')
+                    ?.querySelector("[data-selected-school]")
                     ?.scrollIntoView({ block: "nearest" }),
                 );
               }}

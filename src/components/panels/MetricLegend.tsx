@@ -41,7 +41,7 @@ export default function MetricLegend({
     <section
       aria-label="선택 지표 범례"
       data-testid="metric-legend"
-      className={`pointer-events-none absolute ${schoolSelected ? "bottom-36 lg:bottom-4" : "bottom-4"} right-3 z-10 w-80 max-w-[calc(100%_-_72px)] rounded-xl border border-line bg-surface/95 p-3 shadow-sm`}
+      className={`ice-metric-legend pointer-events-none absolute ${schoolSelected ? "bottom-36 lg:bottom-4" : "bottom-4"} right-3 z-10 w-80 max-w-[calc(100%_-_72px)] rounded-xl border border-line bg-surface/95 p-3 shadow-sm`}
     >
       <h2
         data-testid="legend-indicator-label"
@@ -101,7 +101,7 @@ function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelect
   const labelOf = (label: string) => numeric && metric.unit && label.endsWith(metric.unit)
     ? label.slice(0, -metric.unit.length) : label;
   return <section aria-label="선택 지표 범례" data-testid="metric-legend"
-    className={`ice-map-legend ${schoolSelected ? "ice-map-legend-raised" : ""}`}>
+    className={`ice-metric-legend ice-map-legend ${schoolSelected ? "ice-map-legend-raised" : ""}`}>
     <div className="ice-legend-heading">
       <h2 data-testid="legend-indicator-label">{metric.title}</h2>
       {numeric && <span>단위: {metric.unit}</span>}

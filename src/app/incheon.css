@@ -33,21 +33,21 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-toggle-track>span { width:16px; height:16px; border-radius:50%; background:var(--color-ink); transition:transform .18s; }
 .ice-theme-toggle[aria-pressed="true"] .ice-toggle-track>span { transform:translateX(16px); background:var(--color-accent); }
 .ice-workbar { display:flex; align-items:center; justify-content:space-between; gap:clamp(16px,2.5vw,32px); min-width:0; padding:12px clamp(16px,2vw,28px); background:var(--ice-hero); color:var(--ice-hero-ink); }
-.ice-workbar h2 { font-size:var(--ice-heading); line-height:1.4; font-weight:700; letter-spacing:-.45px; margin:0; }
-.ice-workbar p { font-size:var(--ice-small); color:var(--ice-hero-muted); margin-top:3px; }
+.ice-app .ice-workbar h2 { font-size:var(--ice-heading); line-height:1.45; font-weight:700; letter-spacing:-.4px; margin:0; }
+.ice-app .ice-workbar p { display:block; font-size:var(--ice-small); color:var(--ice-hero-muted); margin-top:2px; }
 .ice-metrics { display:flex; gap:0; min-width:0; flex-shrink:0; font-variant-numeric:tabular-nums; }
-.ice-metrics>div { padding:0 16px; border-left:1px solid var(--ice-hero-line); }
+.ice-metrics>div { padding:0 20px; border-left:1px solid var(--ice-hero-line); }
 .ice-metrics dt { font-size:var(--ice-small); color:var(--ice-hero-muted); margin-bottom:2px; }
-.ice-metrics dd { font-size:clamp(23px,2vw,29px); line-height:1.3; letter-spacing:-.7px; font-weight:700; white-space:nowrap; }
+.ice-metrics dd { font-size:clamp(23px,2vw,29px); line-height:1.35; letter-spacing:-.7px; font-weight:700; white-space:nowrap; }
 .ice-metrics small { font-size:var(--ice-small); margin-left:4px; font-weight:500; color:var(--ice-hero-muted); }
 .ice-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; padding:6px clamp(16px,2vw,28px); border-top:1px solid var(--color-line); border-bottom:1px solid var(--color-line); background:var(--color-paper); }
 .ice-current-view { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 16px; min-width:0; min-height:36px; padding:5px clamp(16px,2vw,28px); border-bottom:1px solid var(--color-line); background:var(--color-surface); font-size:var(--ice-small); line-height:1.35; }
 .ice-current-view p { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; min-width:0; }
 .ice-current-view>p>strong { color:var(--color-accent-text); white-space:nowrap; }
 .ice-current-school button { min-height:36px; border:1px solid var(--color-line); border-radius:8px; padding:4px 10px; color:var(--color-accent-text); font-weight:700; }
-.ice-app .ice-toolbar nav[aria-label="교육현황 빠른 선택"] { flex-wrap:wrap; }
-.ice-app .ice-toolbar nav[aria-label="교육현황 빠른 선택"]>button { font-size:var(--ice-small); font-weight:600; transition:background-color .16s,color .16s,transform .16s; }
-.ice-app .ice-toolbar nav[aria-label="교육현황 빠른 선택"]>button:hover { transform:translateY(-1px); }
+.ice-app .ice-toolbar nav.ice-topic-chips { flex-wrap:wrap; }
+.ice-app .ice-toolbar nav.ice-topic-chips>button { font-size:var(--ice-small); font-weight:600; transition:background-color .16s,color .16s,transform .16s; }
+.ice-app .ice-toolbar nav.ice-topic-chips>button:hover { transform:translateY(-1px); }
 .ice-app .ice-toolbar select { font-size:var(--ice-body); }
 .ice-provenance { min-width:0; font-size:var(--ice-small); flex-shrink:1; }
 .ice-provenance summary { min-height:40px; cursor:pointer; color:var(--color-accent-text); padding:8px 0; }
@@ -57,25 +57,25 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-provenance img { background:white; border-radius:4px; padding:8px; width:270px; height:auto; }
 .ice-sidebar { min-width:0; background:var(--color-surface); }
 .ice-app .ice-sidebar [role="tablist"] { gap:8px; }
-.ice-app .ice-sidebar [role="tab"] { min-height:44px; border-radius:10px; font-size:var(--ice-small); padding:0 14px; font-weight:600; }
+.ice-app .ice-sidebar [role="tab"] { min-height:44px; border-radius:10px; font-size:var(--ice-body); padding:0 14px; font-weight:600; }
 .ice-app .ice-sidebar [role="tab"][aria-selected="true"] { background:var(--color-accent-text); color:var(--color-surface); box-shadow:0 4px 12px #00678f24; }
-.ice-app .ice-sidebar [role="tabpanel"] { padding:22px; }
-.ice-app .ice-sidebar [aria-label="학교 목록"]>li+li { border-top:1px solid var(--color-line); }
-.ice-app .ice-sidebar [aria-label="학교 목록"] button { padding:17px 8px; }
-.ice-app .ice-sidebar [aria-label="학교 목록"] button .text-sm { font-size:var(--ice-body); font-weight:600; }
-.ice-app input[type="search"] { height:50px; border-radius:10px; font-size:16px; }
+.ice-app .ice-sidebar [role="tabpanel"] { padding:18px; }
+.ice-app .ice-sidebar .ice-school-list>li+li { border-top:1px solid var(--color-line); }
+.ice-app .ice-sidebar .ice-school-list button { padding:14px 8px; }
+.ice-app .ice-sidebar .ice-school-list button .text-sm { font-size:var(--ice-body); font-weight:600; }
+.ice-app input[type="search"] { height:50px; border-radius:10px; font-size:var(--ice-body); }
 .ice-app input[type="search"]:focus { outline:2px solid var(--color-accent); outline-offset:2px; }
 .ice-app button:focus-visible,.ice-app select:focus-visible,.ice-app summary:focus-visible { outline:2px solid var(--color-accent); outline-offset:3px; }
 .ice-app button { cursor:pointer; }
 .ice-check-marker::before { content:"✓"; }
-.ice-app [aria-label="선택 지표 범례"] { border-color:var(--color-line); border-radius:16px; box-shadow:0 14px 38px #00152624; }
-.ice-comparison>p { margin:10px 0 20px; color:var(--color-ink-muted); font-size:12px; }
+.ice-app .ice-metric-legend { max-width:min(370px,calc(100% - 88px)); border-color:var(--color-line); border-radius:16px; box-shadow:0 14px 38px #00152624; }
+.ice-comparison>p { margin:10px 0 20px; color:var(--color-ink-muted); font-size:var(--ice-small); }
 .ice-section-heading { display:flex; align-items:center; justify-content:space-between; }
 .ice-section-heading h2 { font-size:24px; font-weight:600; margin-top:4px; letter-spacing:-1px; }
-.ice-section-heading>span { color:var(--color-ink-muted); font-size:12px; }
+.ice-section-heading>span { color:var(--color-ink-muted); font-size:var(--ice-small); }
 .ice-table-scroll { overflow-x:auto; }
-.ice-comparison table { width:100%; font-size:13px; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-.ice-comparison thead { color:var(--color-ink-muted); font-size:11px; }
+.ice-comparison table { width:100%; font-size:var(--ice-body); border-collapse:collapse; font-variant-numeric:tabular-nums; }
+.ice-comparison thead { color:var(--color-ink-muted); font-size:var(--ice-small); }
 .ice-comparison th,.ice-comparison td { padding:14px 10px; text-align:right; border-bottom:1px solid var(--color-line); white-space:nowrap; }
 .ice-comparison th:first-child { text-align:left; }
 .ice-comparison th button { text-align:left; min-height:30px; font-weight:600; }
@@ -87,67 +87,36 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 @media(prefers-reduced-motion:reduce) { .ice-app * { transition:none!important; } }
 /* Historical statistics use the source's April geography, separately from the map. */
 .ice-app .ice-trends { margin-bottom: 16px; border: 1px solid var(--color-line); border-radius: 12px; background: var(--color-surface); }
-.ice-app .ice-trends > summary { padding: 14px; cursor: pointer; font-weight: 700; font-size: 13px; }
-.ice-app .ice-trends > summary > span { display: block; margin-top: 5px; font-size: 11px; font-weight: 400; color: var(--color-ink-muted); }
-.ice-app .ice-trend-content { padding: 0 12px 14px; }
-.ice-app .ice-trend-scopes { display: flex; gap: 4px; margin-bottom: 12px; }
-.ice-app .ice-trend-scopes button { flex: 1; min-height: 40px; border: 1px solid var(--color-line); border-radius: 8px; font-size: 12px; }
+.ice-app .ice-trends > summary { padding: 14px 16px; cursor: pointer; font-weight: 700; font-size: var(--ice-body); }
+.ice-app .ice-trends > summary > span { display: block; margin-top: 5px; font-size: var(--ice-small); font-weight: 400; color: var(--color-ink-muted); }
+.ice-app .ice-trend-content { padding: 0 14px 16px; }
+.ice-app .ice-trend-scopes { display: flex; gap: 6px; margin-bottom: 6px; }
+.ice-app .ice-trend-scopes button { flex: 1; min-height: 44px; padding: 8px 4px; border: 1px solid var(--color-line); border-radius: 8px; font-size: var(--ice-small); }
 .ice-app .ice-trend-scopes button[aria-pressed="true"] { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
 .ice-app .ice-trend-scopes button:disabled { opacity: .45; cursor: not-allowed; }
-.ice-app .ice-trend-field { display: grid; gap: 5px; margin: 12px 0; font-size: 12px; }
-.ice-app .ice-trend-field select { min-width: 0; width: 100%; min-height: 40px; padding: 8px; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-surface); color: var(--color-ink); }
-.ice-app .ice-trend-table { margin-top: 12px; overflow-x: auto; }
-.ice-app .ice-trend-table table { width: 100%; border-collapse: collapse; font-size: 11px; font-variant-numeric: tabular-nums; }
-.ice-app .ice-trend-table th, .ice-app .ice-trend-table td { padding: 9px 3px; border-bottom: 1px solid var(--color-line); text-align: right; }
+.ice-app .ice-trend-field { display: grid; gap: 5px; min-width: 0; margin: 8px 0; font-size: var(--ice-small); }
+.ice-app .ice-trend-field select { min-width: 0; width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-surface); color: var(--color-ink); font-size: var(--ice-body); }
+.ice-app .ice-trend-table { margin-top: 10px; overflow-x: auto; }
+.ice-app .ice-trend-table table { width: 100%; min-width: 350px; border-collapse: collapse; font-size: var(--ice-body); font-variant-numeric: tabular-nums; }
+.ice-app .ice-trend-table th, .ice-app .ice-trend-table td { padding: 12px 8px; border-bottom: 1px solid var(--color-line); text-align: right; white-space: nowrap; }
 .ice-app .ice-trend-table th:first-child { text-align: left; }
-.ice-app .ice-trend-note { margin-top: 12px; font-size: 11px; line-height: 1.7; color: var(--color-ink-muted); }
-.ice-app .ice-trend-note summary { cursor: pointer; min-height: 32px; }
+.ice-app .ice-trend-note { margin-top: 10px; font-size: var(--ice-small); line-height: 1.7; color: var(--color-ink-muted); }
+.ice-app .ice-trend-note summary { cursor: pointer; min-height: 44px; padding: 10px 0; font-weight: 600; }
 .ice-app .ice-trend-note a { text-decoration: underline; }
 .ice-app .ice-trends svg text { fill: var(--color-ink-muted); }
 
 /* Shared readability settings for all three layouts and both colour modes. */
 .ice-app .text-sm { font-size:var(--ice-body); line-height:1.65; }
 .ice-app :is(.text-xs,[class~="text-[11px]"],[class~="text-[10px]"]) { font-size:var(--ice-small); line-height:1.65; }
-.ice-app .ice-sidebar [aria-label="학교 목록"] button .text-sm { font-size:var(--ice-body); }
-.ice-app .ice-sidebar [aria-label="학교 목록"] button { padding:14px 8px; }
-.ice-app input[type="search"], .ice-app .ice-sidebar [role="tab"] { font-size:var(--ice-body); }
-.ice-app [aria-label="선택 지표 범례"] { max-width:min(370px,calc(100% - 88px)); }
-.ice-display-controls { display:flex; align-items:end; gap:10px; margin-left:auto; }
-.ice-masthead { min-height:74px; padding:10px clamp(16px,2vw,28px); gap:clamp(12px,1.7vw,24px); }
-.ice-design-picker { margin-left:0; }
-.ice-design-picker>span,.ice-theme-toggle { font-size:var(--ice-small); }
-.ice-design-picker select { font-size:var(--ice-small); min-height:44px; }
-.ice-text-toggle { min-height:44px; border:1px solid var(--color-line); border-radius:10px; padding:8px 12px; font-size:var(--ice-small); white-space:nowrap; }
 .ice-text-toggle[aria-pressed="true"] { border-color:var(--color-accent-text); background:var(--color-accent-soft); color:var(--color-accent-text); font-weight:700; }
 .ice-app .ice-workbar { padding:12px clamp(16px,2vw,28px); gap:clamp(16px,2.5vw,32px); }
-.ice-app .ice-workbar h2 { font-size:var(--ice-heading); line-height:1.45; letter-spacing:-.4px; margin:0; }
-.ice-app .ice-workbar p { display:block; font-size:var(--ice-small); margin-top:2px; }
-.ice-metrics>div { padding:0 20px; }
-.ice-metrics dt,.ice-metrics small { font-size:var(--ice-small); }
-.ice-metrics dd { line-height:1.35; }
 .ice-app[data-text-size="large"] .ice-metrics dd { font-size:30px; }
-.ice-toolbar { padding:6px clamp(16px,2vw,28px); }
-.ice-provenance { font-size:var(--ice-small); }
-.ice-comparison>p,.ice-section-heading>span { font-size:var(--ice-small); }
-.ice-comparison table { font-size:var(--ice-body); }
-.ice-comparison thead { font-size:var(--ice-small); }
-.ice-primary { font-size:var(--ice-body); }
-.ice-app .ice-sidebar [role="tabpanel"] { padding:18px; }
 
-.ice-app .ice-trends > summary { font-size:var(--ice-body); padding:14px 16px; }
-.ice-app .ice-trends > summary > span { font-size:var(--ice-small); }
-.ice-app .ice-trend-content { padding:0 14px 16px; }
 .ice-trend-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
 .ice-trend-heading p { font-size:var(--ice-small); color:var(--color-ink-muted); }
 .ice-expand-button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; flex-shrink:0; border:1px solid var(--color-accent-text); border-radius:8px; padding:8px 14px; color:var(--color-accent-text); background:var(--color-surface); font-size:var(--ice-small); font-weight:700; }
-.ice-app .ice-trend-scopes { gap:6px; margin-bottom:6px; }
-.ice-app .ice-trend-scopes button { font-size:var(--ice-small); min-height:44px; padding:8px 4px; }
 .ice-trend-filters { display:grid; grid-template-columns:1fr; gap:0 16px; }
-.ice-app .ice-trend-field { min-width:0; font-size:var(--ice-small); margin:8px 0; }
-.ice-app .ice-trend-field select { min-height:44px; font-size:var(--ice-body); }
-.ice-app .ice-trend-note { font-size:var(--ice-small); line-height:1.7; margin-top:10px; }
 .ice-app details.ice-trend-note { border-top:1px solid var(--color-line); padding-top:4px; }
-.ice-app .ice-trend-note summary { min-height:44px; padding:10px 0; font-weight:600; }
 .ice-trend-status { padding:10px 12px; border-left:3px solid var(--color-accent-text); border-radius:4px; background:var(--color-accent-soft); }
 .ice-trend-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:16px 0; font-variant-numeric:tabular-nums; }
 .ice-trend-metrics>div { min-width:0; border:1px solid var(--color-line); border-radius:10px; padding:14px 12px; }
@@ -163,10 +132,7 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-trend-visuals h3 { font-size:var(--ice-body); font-weight:700; }
 .ice-trend-table-section h3 { display:flex; flex-wrap:wrap; align-items:baseline; gap:8px; }
 .ice-trend-table-section h3 small { font-size:var(--ice-small); color:var(--color-ink-muted); font-weight:400; }
-.ice-app .ice-trend-table { margin-top:10px; }
 .ice-app .ice-trend-table:focus-visible { outline:2px solid var(--color-accent-text); outline-offset:2px; }
-.ice-app .ice-trend-table table { font-size:var(--ice-body); min-width:350px; }
-.ice-app .ice-trend-table th,.ice-app .ice-trend-table td { padding:12px 8px; white-space:nowrap; }
 .ice-app .ice-trend-table thead th { font-size:var(--ice-small); background:var(--color-paper); }
 .ice-app .ice-trend-table tbody tr:last-child { background:var(--color-accent-soft); font-weight:700; }
 .ice-app .ice-trend-table td small { font-size:var(--ice-small); white-space:normal; min-width:90px; font-weight:400; }
@@ -219,11 +185,6 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-cluster-dialog li button { display:flex; flex-direction:column; gap:4px; width:100%; min-height:56px; padding:14px 8px; text-align:left; }
 .ice-cluster-dialog li button:hover { background:var(--color-accent-soft); }
 .ice-cluster-dialog li strong { font-size:var(--ice-body); }
-@media(max-width:1023px) {
-  .ice-map-shortcuts { top:64px; }
-  .ice-app .ice-map-legend { max-height:calc(100% - 128px); }
-  .ice-app .ice-map-legend-raised { bottom:144px; max-height:calc(100% - 264px); }
-}
 @media(max-width:380px) {
   .ice-legend-items { grid-template-columns:1fr; }
   .ice-map-shortcuts button { padding:8px 10px; }
@@ -270,6 +231,9 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 }
 .ice-more-info,.ice-mobile-info { display:none; }
 @media(max-width:1023px) {
+  .ice-map-shortcuts { top:64px; }
+  .ice-app .ice-map-legend { max-height:calc(100% - 128px); }
+  .ice-app .ice-map-legend-raised { bottom:144px; max-height:calc(100% - 264px); }
   html:has(.ice-app), body:has(.ice-app) { height:auto; min-height:100%; overflow-x:hidden; overflow-y:auto; overscroll-behavior-y:auto; }
   .ice-app.grid { height:auto; min-height:100dvh; grid-template-rows:auto minmax(544px,1fr) auto; }
   .ice-dashboard-inner { overflow:visible; }
