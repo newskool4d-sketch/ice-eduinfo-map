@@ -249,6 +249,10 @@
   .ice-app[data-design] .ice-sidebar { width:var(--ice-panel-width); }
   .ice-app[data-design="night"] .ice-sidebar { margin:12px; border:1px solid var(--color-line); border-radius:18px; height:calc(100% - 24px); box-shadow:0 12px 32px #00152618; }
   .ice-app[data-design="night"] .ice-workbar p { display:none; }
+  /* A closed panel puts its reopen button in the map's top-left corner, where the shortcuts sit. */
+  .ice-app main[data-panel-collapsed="true"] .ice-map-shortcuts { top:64px; }
+  .ice-app main[data-panel-collapsed="true"] .ice-map-touch-toggle { top:116px; }
+  .ice-app main[data-panel-collapsed="true"] .ice-map-legend { max-height:calc(100% - 136px); }
 }
 @media(max-width:1360px) {
   .ice-vision { display:none; }
@@ -354,6 +358,7 @@
   .ice-dashboard-inner { height:544px; }
   .ice-map-touch-toggle { top:64px; }
   .ice-app .ice-map-legend { max-height:calc(100% - 128px); }
+  .ice-app main[data-panel-collapsed="true"] .ice-map-legend { max-height:calc(100% - 184px); }
 }
 @media(min-width:768px) and (max-width:1023px) and (max-height:500px) {
   .ice-masthead { flex-wrap:nowrap; padding:4px 12px; }

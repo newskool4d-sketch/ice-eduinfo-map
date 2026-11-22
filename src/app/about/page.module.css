@@ -1,3 +1,12 @@
+/* globals.css locks html/body to the viewport for the map page. This page is an
+   ordinary document, so scrolling goes back to the browser while it is mounted. */
+html:has(.page),
+body:has(.page) {
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
 .page {
   min-height: 100svh;
   padding: 22px 20px 48px;

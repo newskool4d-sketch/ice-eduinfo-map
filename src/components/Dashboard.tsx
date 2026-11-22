@@ -497,7 +497,7 @@ function DashboardInner({
             )}
           </div>
         </aside>
-        <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+        <main data-panel-collapsed={collapsed} className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <MapShell
             legendHost={legendHost}
             mapMetric={mapMetric}
