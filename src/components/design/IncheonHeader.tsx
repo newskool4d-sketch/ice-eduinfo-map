@@ -5,8 +5,7 @@ import Link from "next/link";
 import type { DataBundle } from "@/lib/data/types";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
 import { valueMap } from "@/lib/stats";
-import { useMapQuery } from "@/lib/state/urlState";
-import { DESIGNS, useDesign, type DesignId } from "./DesignProvider";
+import { useDesign } from "./DesignProvider";
 import MapTopicMenu from "../panels/MapTopicMenu";
 
 const metrics = [["students_total", "학생", "명"], ["schools_total", "본교", "교"], ["teachers_total", "교원", "명"], ["small_schools", "소규모학교", "교"]];
@@ -36,15 +35,13 @@ export function IncheonMobileInfo({ bundle, legendRef }: { bundle: DataBundle; l
   </section>;
 }
 
-export default function IncheonHeader({ bundle, onExplore }: { bundle: DataBundle | null; onExplore: () => void }) {
-  const { design, setDesign, colorMode, setColorMode, textSize, setTextSize } = useDesign();
-  const { setView } = useMapQuery();
-  const current = DESIGNS.find(d => d.id === design)!;
+export default function IncheonHeader({ bundle }: { bundle: DataBundle | null }) {
+  const { colorMode, setColorMode, textSize, setTextSize } = useDesign();
   return <div className="ice-header">
     <header className="ice-masthead">
       <div className="ice-brand"><Image src="/brand/ice-symbol.jpg" width={30} height={45} alt="인천광역시교육청 심벌" unoptimized /><div><span className="ice-eyebrow">INCHEON EDUCATION ATLAS</span><h1>인천 교육지도</h1></div></div>
       <Image className="ice-vision" src="/brand/ice-vision.png" width={320} height={33} alt="읽걷쓰AI로 학생성공시대 완성" unoptimized />
-      <div className="ice-display-controls"><label className="ice-design-picker"><span>화면 버전</span><select aria-label="화면 버전" value={design} onChange={e => { const id = e.target.value as DesignId; setDesign(id); setView(id === "desk" ? "statistics" : "schools"); onExplore(); }}>{DESIGNS.map(d => <option value={d.id} key={d.id}>{d.label}</option>)}</select></label>
+      <div className="ice-display-controls">
       <button className="ice-text-toggle" type="button" aria-pressed={textSize === "large"} onClick={() => setTextSize(textSize === "large" ? "normal" : "large")}>큰 글씨</button>
       <button className="ice-theme-toggle" type="button" aria-label="어두운 화면" aria-pressed={colorMode === "dark"} onClick={() => setColorMode(colorMode === "dark" ? "light" : "dark")}>{colorMode === "dark" ? "다크" : "라이트"}<span aria-hidden className="ice-toggle-track"><span /></span></button>
       </div>
@@ -54,7 +51,7 @@ export default function IncheonHeader({ bundle, onExplore }: { bundle: DataBundl
       <p className="ice-disclosure-author"><span>제작</span> 인천광역시교육청 교육전문직원 홍주형</p>
       <Link className="ice-disclosure-link" href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link>
     </aside>
-    <div className="ice-workbar"><div><h2>{current.description}</h2><p>{bundle ? `${(bundle.manifest as DataBundle["manifest"] & ProvenanceManifest).latestYear ?? ""}년 ` : ""}인천 교육현황</p></div>
+    <div className="ice-workbar"><div><h2>학교를 찾고, 지역을 살펴보세요.</h2><p>{bundle ? `${(bundle.manifest as DataBundle["manifest"] & ProvenanceManifest).latestYear ?? ""}년 ` : ""}인천 교육현황</p></div>
       <EducationMetrics bundle={bundle} />
     </div>
     <div className="ice-toolbar">{bundle ? <MapTopicMenu series={bundle.series} /> : <span>교육정보를 불러오고 있습니다…</span>}<DataProvenance bundle={bundle} /></div>

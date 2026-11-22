@@ -24,9 +24,6 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-eyebrow { font-size:11px; font-weight:700; letter-spacing:1.5px; color:var(--color-ink-muted); }
 .ice-vision { width:clamp(180px,18vw,270px); height:auto; object-fit:contain; margin-left:clamp(0px,1vw,16px); flex-shrink:1; }
 .ice-display-controls { display:flex; align-items:end; gap:10px; min-width:0; margin-left:auto; }
-.ice-design-picker { min-width:0; margin-left:0; display:flex; flex-direction:column; gap:4px; }
-.ice-design-picker>span { font-size:var(--ice-small); color:var(--color-ink-muted); }
-.ice-design-picker select { min-width:150px; min-height:44px; border:1px solid var(--color-line); border-radius:10px; padding:0 32px 0 12px; background:var(--color-surface); color:var(--color-ink); font-size:var(--ice-small); font-weight:700; }
 .ice-text-toggle { min-height:44px; border:1px solid var(--color-line); border-radius:10px; padding:8px 12px; background:var(--color-surface); font-size:var(--ice-small); white-space:nowrap; }
 .ice-theme-toggle { display:flex; align-items:center; gap:9px; font-size:var(--ice-small); min-height:44px; cursor:pointer; white-space:nowrap; }
 .ice-toggle-track { width:38px; height:22px; display:inline-flex; align-items:center; padding:3px; border-radius:20px; background:var(--color-line); }
@@ -203,15 +200,11 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
   .ice-trend-dialog .ice-trend-visuals { grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:24px; align-items:start; }
 }
 @media(min-width:1024px) {
-  .ice-app[data-design="atlas"] { --ice-panel-width:clamp(340px,29vw,430px); }
-  .ice-app[data-design="night"] { --ice-panel-width:clamp(308px,25vw,390px); }
-  .ice-app[data-design="desk"] { --ice-panel-width:clamp(500px,44vw,660px); }
-  .ice-app[data-text-size="large"][data-design="atlas"] { --ice-panel-width:clamp(380px,32vw,490px); }
-  .ice-app[data-text-size="large"][data-design="night"] { --ice-panel-width:clamp(338px,28vw,440px); }
-  .ice-app[data-text-size="large"][data-design="desk"] { --ice-panel-width:clamp(540px,48vw,740px); }
-  .ice-app[data-design] .ice-sidebar { width:var(--ice-panel-width); }
-  .ice-app[data-design="night"] .ice-sidebar { margin:12px; border:1px solid var(--color-line); border-radius:18px; height:calc(100% - 24px); box-shadow:0 12px 32px #00152618; }
-  .ice-app[data-design="night"] .ice-workbar p { display:none; }
+  /* The panel width follows the open tab: the comparison table needs the wide one. */
+  .ice-app .ice-sidebar { --ice-panel-width:clamp(340px,29vw,430px); width:var(--ice-panel-width); }
+  .ice-app .ice-sidebar[data-view="statistics"] { --ice-panel-width:clamp(500px,44vw,660px); }
+  .ice-app[data-text-size="large"] .ice-sidebar { --ice-panel-width:clamp(380px,32vw,490px); }
+  .ice-app[data-text-size="large"] .ice-sidebar[data-view="statistics"] { --ice-panel-width:clamp(540px,48vw,740px); }
   /* A closed panel puts its reopen button in the map's top-left corner, where the shortcuts sit. */
   .ice-app main[data-panel-collapsed="true"] .ice-map-shortcuts { top:64px; }
   .ice-app main[data-panel-collapsed="true"] .ice-map-touch-toggle { top:116px; }
@@ -268,9 +261,6 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
   .ice-brand .ice-eyebrow { display:none; }
   .ice-brand>img { width:20px; height:30px; }
   .ice-display-controls { display:grid; width:100%; grid-template-columns:minmax(0,1fr) auto auto; gap:5px; margin:0; }
-  .ice-design-picker { min-width:0; grid-column:1; grid-row:1; display:flex; flex-direction:column; align-items:stretch; gap:0; }
-  .ice-design-picker>span { display:none; }
-  .ice-design-picker select { width:100%; min-width:0; min-height:44px; padding:0 22px 0 7px; font-size:13px; }
   .ice-text-toggle { grid-column:2; grid-row:1; min-height:44px; padding:6px 7px; }
   .ice-theme-toggle { grid-column:3; grid-row:1; margin:0; gap:4px; min-height:44px; }
   .ice-toggle-track { width:34px; height:20px; padding:2px; }
@@ -329,8 +319,6 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 @media(min-width:768px) and (max-width:1023px) and (max-height:500px) {
   .ice-masthead { flex-wrap:nowrap; padding:4px 12px; }
   .ice-display-controls { display:flex; width:auto; }
-  .ice-design-picker { display:flex; }
-  .ice-design-picker select { width:auto; min-width:145px; }
   .ice-disclosure { grid-template-columns:minmax(0,1fr) auto auto; align-items:center; }
   .ice-disclosure-copy,.ice-disclosure-author,.ice-disclosure-link { grid-column:auto; }
   .ice-disclosure-author,.ice-disclosure-link { white-space:nowrap; }
@@ -342,7 +330,6 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
   .ice-app .ice-map-legend { max-height:calc(100% - 120px); }
 }
 @media(max-width:300px) {
-  .ice-design-picker select { padding-right:12px; }
   .ice-theme-toggle { padding:0 4px; border:1px solid var(--color-line); border-radius:10px; }
   .ice-theme-toggle[aria-pressed="true"] { background:var(--color-accent-soft); color:var(--color-accent-text); }
   .ice-theme-toggle .ice-toggle-track { display:none; }

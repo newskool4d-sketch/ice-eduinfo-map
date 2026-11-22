@@ -76,7 +76,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await expect(boundaries).toHaveAttribute("aria-pressed", "false");
 
     await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
-    const panel = page.getByRole("dialog", { name: "학교 탐색 및 군·구 통계" });
+    const panel = page.getByRole("dialog", { name: "학교·지역 탐색" });
     await expect(panel).toBeVisible();
     const search = panel.getByRole("searchbox", { name: "학교명 검색" });
     await expect(search).toBeVisible();
@@ -141,7 +141,7 @@ for (const viewport of [{ width: 700, height: 900 }, { width: 820, height: 780 }
     await expect(boundaries).toHaveAttribute("aria-pressed", "false");
     if (viewport.width < 1024) {
       await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
-      await expect(page.getByRole("dialog", { name: "학교 탐색 및 군·구 통계" })).toBeVisible();
+      await expect(page.getByRole("dialog", { name: "학교·지역 탐색" })).toBeVisible();
     }
   });
 }
@@ -232,16 +232,23 @@ test("one-finger swipe starting on the mobile map scrolls to its lower controls"
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(50);
 });
 
-test("all Incheon designs survive large text, dark mode, and landscape resize", async ({ page }) => {
+test("every Incheon panel tab survives large text, dark mode, and landscape resize", async ({ page }) => {
   await page.setViewportSize({ width: 430, height: 932 });
   await page.goto("/?scene=flat");
   await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
   await page.getByRole("button", { name: "큰 글씨" }).click();
   await page.getByRole("button", { name: "어두운 화면" }).click();
-  for (const design of ["atlas", "night", "desk"]) {
-    await page.getByRole("combobox", { name: "화면 버전" }).selectOption(design);
-    await expect(page.locator(".ice-app")).toHaveAttribute("data-design", design);
+  // The retired screen-version picker is gone; the panel tabs replace it.
+  await expect(page.getByRole("combobox", { name: "화면 버전" })).toHaveCount(0);
+  await expect(page.locator(".ice-app")).not.toHaveAttribute("data-design");
+  await page.getByRole("button", { name: "학교 찾기", exact: true }).click();
+  const tabs = page.getByRole("dialog", { name: "학교·지역 탐색" }).getByRole("tab");
+  const count = await tabs.count();
+  expect(count).toBeGreaterThanOrEqual(2);
+  for (let index = 0; index < count; index++) {
+    await tabs.nth(index).click();
+    await expect(tabs.nth(index)).toHaveAttribute("aria-selected", "true");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(431);
     expect(await page.locator(".ice-metrics dd").evaluateAll((elements) =>
       elements.every((element) => element.scrollWidth <= element.clientWidth + 1))).toBe(true);

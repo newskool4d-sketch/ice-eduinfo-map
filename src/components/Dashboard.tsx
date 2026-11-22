@@ -4,7 +4,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ACTIVE_PROFILE } from "@/lib/profiles";
-import { DesignProvider, useDesign } from "./design/DesignProvider";
+import { DesignProvider, takeLegacyDesign, useDesign } from "./design/DesignProvider";
 import IncheonHeader, { IncheonMobileInfo } from "./design/IncheonHeader";
 import RegionalComparison from "./design/RegionalComparison";
 import IncheonTrends from "./design/IncheonTrends";
@@ -77,8 +77,10 @@ function DashboardInner({
   exploreRequest: number;
   legendHost: HTMLElement | null;
 }) {
-  const { design } = useDesign();
   const isIncheon = ACTIVE_PROFILE.id === "incheon";
+  // A returning visitor of the retired screen versions starts where that version
+  // put them: 02 넓은 지도 with the panel closed, 03 통계 중심 on the comparison.
+  const [legacyDesign] = useState(() => (isIncheon ? takeLegacyDesign() : null));
   const def = indicatorById(indicatorId);
   if (!def) throw new Error(`Dashboard: unknown indicatorId "${indicatorId}"`);
   const {
@@ -143,8 +145,15 @@ function DashboardInner({
     parseAsString.withOptions({ history: "push", shallow: true }),
   );
   const [collapsed, setCollapsed] = useState(
-    !isIncheon && !regionCode && tab === "schools" && !highlightedSchoolId,
+    isIncheon ? legacyDesign === "night" : !regionCode && tab === "schools" && !highlightedSchoolId,
   );
+  const migratedView = useRef(false);
+  useEffect(() => {
+    if (migratedView.current || legacyDesign !== "desk") return;
+    migratedView.current = true;
+    // A shared link's own view wins; replace, so Back does not return to the bare URL.
+    if (!new URLSearchParams(window.location.search).has("view")) setTab("statistics", "replace");
+  }, [legacyDesign, setTab]);
   const [handledExplore, setHandledExplore] = useState(0);
   if (handledExplore !== exploreRequest) {
     setHandledExplore(exploreRequest);
@@ -282,7 +291,8 @@ function DashboardInner({
         )}
         <aside
           ref={panelRef}
-          aria-label={`학교 탐색 및 ${REGION_UNIT} 통계`}
+          data-view={tab}
+          aria-label={isIncheon ? "학교·지역 탐색" : `학교 탐색 및 ${REGION_UNIT} 통계`}
           role={panelOpen ? "dialog" : undefined}
           aria-modal={panelOpen ? true : undefined}
           onKeyDown={(event) => {
@@ -470,8 +480,18 @@ function DashboardInner({
                     </ul>
                     <p className="text-xs text-ink-muted">{issueModel.note}</p>
                   </section>
-                ) : isIncheon && design === "desk" ? (
-                  <RegionalComparison bundle={bundle} />
+                ) : isIncheon ? (
+                  <div className="space-y-6">
+                    {regionCode && (
+                      <RegionPanel
+                        bundle={bundle}
+                        highlightedSchoolId={highlightedSchoolId}
+                        onHighlightSchool={selectSchool}
+                        showSchools={false}
+                      />
+                    )}
+                    <RegionalComparison bundle={bundle} />
+                  </div>
                 ) : regionCode ? (
                   <RegionPanel
                     bundle={bundle}
@@ -587,7 +607,7 @@ function DashboardInner({
 }
 
 function DashboardBody() {
-  const { design, colorMode, textSize } = useDesign();
+  const { colorMode, textSize } = useDesign();
   // URL is the source of truth for indicatorId (nuqs) — this replaces Task
   // 2's local useState. Called unconditionally here (not inside the
   // status === "ready" branch below), so the URL is established immediately
@@ -600,8 +620,8 @@ function DashboardBody() {
   const bundle = state.status === "ready" ? state.bundle : null;
 
   return (
-    <div data-design={ACTIVE_PROFILE.id === "incheon" ? design : undefined} data-color={colorMode} data-text-size={textSize} className={`${ACTIVE_PROFILE.id === "incheon" ? "ice-app" : ""} grid h-full grid-rows-[auto_minmax(0,1fr)] bg-paper text-ink`}>
-      {ACTIVE_PROFILE.id === "incheon" ? <IncheonHeader bundle={bundle} onExplore={() => setExploreRequest(n => n + 1)} /> : <TopBar indicatorId={indicatorId} bundle={bundle} onExploreIssues={() => setExploreRequest(n => n + 1)} />}
+    <div data-color={colorMode} data-text-size={textSize} className={`${ACTIVE_PROFILE.id === "incheon" ? "ice-app" : ""} grid h-full grid-rows-[auto_minmax(0,1fr)] bg-paper text-ink`}>
+      {ACTIVE_PROFILE.id === "incheon" ? <IncheonHeader bundle={bundle} /> : <TopBar indicatorId={indicatorId} bundle={bundle} onExploreIssues={() => setExploreRequest(n => n + 1)} />}
       {state.status === "loading" && (
         <CenteredMessage>데이터 불러오는 중…</CenteredMessage>
       )}
