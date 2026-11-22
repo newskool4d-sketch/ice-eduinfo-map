@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PickingInfo } from "@deck.gl/core";
 
-import { makeTooltip } from "@/components/map/tooltip";
+import { makeTooltip, tooltipStyle } from "@/components/map/tooltip";
 import { THEME } from "@/lib/theme";
 
 function infoFor(code: string | undefined): PickingInfo {
@@ -59,5 +59,10 @@ describe("makeTooltip", () => {
       padding: "8px 10px",
       fontSize: "13px",
     });
+  });
+
+  it("offers the Incheon dark card and large text without changing the light default", () => {
+    expect(tooltipStyle()).toEqual(makeTooltip(() => ["전주시"])(infoFor("52110"))?.style);
+    expect(tooltipStyle({ dark: true, large: true })).toMatchObject({ background: "#132b3c", color: "#e8f2f7", fontSize: "15px" });
   });
 });

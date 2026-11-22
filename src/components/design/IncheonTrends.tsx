@@ -11,10 +11,23 @@ const signed = (n: number | null) => n === null ? "산출 불가" : signedFormat
 
 /** Historical administrative names intentionally do not mutate the current-boundary map filter. */
 export default function IncheonTrends({ data, school, currentRegionName }: { data: IncheonHistory; school: School | null; currentRegionName?: string }) {
-  const [scope, setScope] = useState<"province" | "region" | "school">(school ? "school" : currentRegionName && data.regions[currentRegionName] ? "region" : "province");
-  const [region, setRegion] = useState(currentRegionName && data.regions[currentRegionName] ? currentRegionName : Object.keys(data.regions)[0]);
+  const hasHistory = !!currentRegionName && !!data.regions[currentRegionName];
+  const followScope = school ? "school" : hasHistory ? "region" : "province";
+  const [scope, setScope] = useState<"province" | "region" | "school">(followScope);
+  const [region, setRegion] = useState(hasHistory ? currentRegionName : Object.keys(data.regions)[0]);
   const [metric, setMetric] = useState<HistoryMetric>("students");
   const [level, setLevel] = useState<HistoryLevel>("all");
+  // The panel stays mounted across map selections (Dashboard no longer keys it on
+  // them), so the chosen metric and school level survive. The scope and region
+  // still follow a newly selected school or region, as a remount used to do.
+  const [followed, setFollowed] = useState({ school: school?.id, region: currentRegionName });
+  if (followed.school !== school?.id || followed.region !== currentRegionName) {
+    setFollowed({ school: school?.id, region: currentRegionName });
+    setScope(followScope);
+    if (hasHistory) setRegion(currentRegionName);
+    // School trends have no school-count metric (see the metric select below).
+    if (followScope === "school" && metric === "schools") setMetric("students");
+  }
   const [expanded, setExpanded] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const expandRef = useRef<HTMLButtonElement>(null);

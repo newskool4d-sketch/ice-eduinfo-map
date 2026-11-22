@@ -93,7 +93,9 @@ export function useMapQuery(): MapQuery {
   const definition = issueById(issue);
   return {
     view,
-    compareRegion: region && compareRegion !== region ? compareRegion : null,
+    // Only an open issue has a control to clear the comparison, so a shared link
+    // carrying compareRegion without one must not leave an outline on the map.
+    compareRegion: definition && region && compareRegion !== region ? compareRegion : null,
     issueLevel,
     zeroEntrants: zeroEntrants === "on",
     setCompareRegion(code) { void setQuery({ compareRegion: code === region ? null : code }); },

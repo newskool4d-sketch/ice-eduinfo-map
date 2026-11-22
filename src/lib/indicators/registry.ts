@@ -310,11 +310,28 @@ const ALL_INDICATORS: IndicatorDef[] = [
   },
 ];
 
+/**
+ * Incheon wording. The Jeonbuk text above reads indicators from a rural-consolidation
+ * angle ("통폐합 논의의 직접 대상", "낮을수록 소규모·분산 배치"), which a "전북→인천"
+ * swap carried over unchanged. These state what each figure counts, without that
+ * reading. The 60-student line stays labelled as the map's own criterion (caveat).
+ */
+const INCHEON_DESCRIPTIONS: Record<string, string> = {
+  students_total: "초·중·고·특수학교 재학생 수 합계입니다(분교 포함).",
+  schools_total: "운영 중인 본교 수입니다(분교장 제외).",
+  classes_total: "전체 학급수입니다(분교 포함). 학급당 학생수와 함께 보면 학급 규모를 비교할 수 있습니다.",
+  students_per_class: "학생수를 학급수로 나눈 값입니다. 인천 평균과 비교할 수 있습니다.",
+  teachers_total: "재직 교원 총수입니다. 교원 1인당 학생수와 함께 보면 지역별 교원 배치를 비교할 수 있습니다.",
+  students_per_teacher: "학생수를 교원수로 나눈 값입니다. 낮을수록 교원 1명이 맡는 학생이 적습니다.",
+  small_schools: "학생수 60명 이하인 본교 수입니다(분교장 제외).",
+  small_school_share: "전체 본교 중 학생수 60명 이하 본교가 차지하는 비율입니다.",
+};
+
 export const INDICATORS: IndicatorDef[] = ALL_INDICATORS
   .filter((def) => !ACTIVE_PROFILE.indicatorIds || ACTIVE_PROFILE.indicatorIds.includes(def.id))
   .map((def) => ACTIVE_PROFILE.id === "incheon" ? {
     ...def, byLevel: true,
-    description: def.description.replaceAll("전북", "인천"),
+    description: INCHEON_DESCRIPTIONS[def.id] ?? def.description.replaceAll("전북", "인천"),
     ...(def.id === "teachers_total" || def.id === "students_per_teacher" ? {
       caveat: "정규·기간제 교원 합계(휴직 포함, 퇴직·강사 제외). 같은 기준일의 인천 독립 총계는 미확보 상태입니다.",
     } : {}),

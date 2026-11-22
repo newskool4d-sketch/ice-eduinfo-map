@@ -69,7 +69,7 @@ import {
   hasCoordinates,
   makeSchoolLabelsLayer,
 } from "@/components/map/layers/schoolLayers";
-import { makeSchoolTooltip, makeTooltip } from "@/components/map/tooltip";
+import { makeSchoolTooltip, makeTooltip, tooltipStyle } from "@/components/map/tooltip";
 import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
 import { useCamera } from "@/components/map/useCamera";
 import { unionBbox } from "@/lib/geo/geo";
@@ -320,6 +320,7 @@ export default function DeckMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const deckRef = useRef<DeckGLRef | null>(null);
   const pointerDownRef = useRef<{ x: number; y: number; id: number } | null>(null);
+  const activePointersRef = useRef(new Set<number>());
   const mapReadyRef = useRef(false);
   const lastLabelViewportKey = useRef("");
   const lastLabelUpdateTime = useRef(0);
@@ -509,6 +510,14 @@ export default function DeckMap({
       total: REGION_CODES.length,
     });
   }, [selectedCode, map, def, label, issueModel]);
+  // A camera hint ("도심으로 이동했습니다") is spoken in place of the selection
+  // announcement, and only until that announcement changes. It used to be appended
+  // to every later announcement without a separator, because nothing cleared it.
+  const [hintAnnouncement, setHintAnnouncement] = useState(announcement);
+  if (hintAnnouncement !== announcement) {
+    setHintAnnouncement(announcement);
+    setMapHint("");
+  }
 
   const labelTextOf = useCallback(
     (code: string): string => {
@@ -738,18 +747,25 @@ export default function DeckMap({
       ]),
     [chartMetric],
   );
+  // One card style for every tooltip kind (cluster and resource tooltips used to
+  // fall back to deck.gl's own dark default), following the Incheon dark mode and
+  // text size.
+  const cardStyle = useMemo(() => tooltipStyle({ dark, large: incheon && textSize === "large" }), [dark, incheon, textSize]);
   // School dots have plain School objects; boundaries have GeoJSON properties.
   const getTooltip = useCallback(
-    (info: Parameters<typeof getRegionTooltip>[0]) =>
-      info.layer?.id === "school-clusters"
-        ? info.object ? { text: `${(info.object as SchoolCluster).schools.length}개 학교·분교 위치\n클릭하여 확대하거나 학교 선택` } : null
-      : info.layer?.id === "issue-resources"
-        ? info.object ? { text: `${(info.object as IssueResource).name}\n${(info.object as IssueResource).address ?? ""}` } : null
-      : info.layer?.id?.startsWith("schools") ||
-      info.layer?.id === "school-columns"
-        ? getSchoolTooltip(info)
-        : getRegionTooltip(info),
-    [getRegionTooltip, getSchoolTooltip],
+    (info: Parameters<typeof getRegionTooltip>[0]) => {
+      const result =
+        info.layer?.id === "school-clusters"
+          ? info.object ? { text: `${(info.object as SchoolCluster).schools.length}개 학교·분교 위치\n클릭하여 확대하거나 학교 선택` } : null
+        : info.layer?.id === "issue-resources"
+          ? info.object ? { text: `${(info.object as IssueResource).name}\n${(info.object as IssueResource).address ?? ""}` } : null
+        : info.layer?.id?.startsWith("schools") ||
+        info.layer?.id === "school-columns"
+          ? getSchoolTooltip(info)
+          : getRegionTooltip(info);
+      return result && { ...result, style: cardStyle };
+    },
+    [getRegionTooltip, getSchoolTooltip, cardStyle],
   );
 
   const getCursor = useCallback(
@@ -1322,12 +1338,18 @@ export default function DeckMap({
       // 브라우저 컨텍스트 메뉴가 뜨지 않게 한다.
       onContextMenu={(event) => event.preventDefault()}
       onPointerDownCapture={(event) => {
-        pointerDownRef.current = event.button === 0 && event.target instanceof HTMLCanvasElement && event.target.id === "deckgl-overlay"
+        // A primary pointer means no other pointer of its kind is down, so this
+        // also drops an id whose pointerup happened outside the map.
+        if (event.isPrimary) activePointersRef.current.clear();
+        activePointersRef.current.add(event.pointerId);
+        // A second finger makes this a pinch, not a tap: neither finger may select.
+        pointerDownRef.current = activePointersRef.current.size === 1 && event.button === 0 && event.target instanceof HTMLCanvasElement && event.target.id === "deckgl-overlay"
           ? { x: event.clientX, y: event.clientY, id: event.pointerId }
           : null;
       }}
-      onPointerCancelCapture={() => { pointerDownRef.current = null; }}
+      onPointerCancelCapture={(event) => { activePointersRef.current.delete(event.pointerId); pointerDownRef.current = null; }}
       onPointerUpCapture={(event) => {
+        activePointersRef.current.delete(event.pointerId);
         const start = pointerDownRef.current;
         pointerDownRef.current = null;
         if (!start || start.id !== event.pointerId || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
@@ -1534,8 +1556,7 @@ export default function DeckMap({
         </div>
       )}
       <div aria-live="polite" className="sr-only">
-        {announcement}
-        {mapHint}
+        {mapHint || announcement}
       </div>
     </div>
   );

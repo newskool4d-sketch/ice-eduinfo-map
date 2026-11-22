@@ -116,3 +116,16 @@ it("panel changes preserve the selected issue; selecting an indicator clears it 
   expect(params.get("issue")).toBeNull();
   expect(params.get("issueMetric")).toBeNull();
 });
+
+function CompareHarness() {
+  const query = useMapQuery();
+  return <span data-testid="compare">{query.compareRegion ?? "none"}</span>;
+}
+
+it("ignores a compareRegion link without an open issue, which would leave an outline with no control to clear it", () => {
+  const { unmount } = render(<CompareHarness />, { wrapper: withNuqsTestingAdapter({ searchParams: `?region=${A}&compareRegion=${B}` }) });
+  expect(screen.getByTestId("compare")).toHaveTextContent("none");
+  unmount();
+  render(<CompareHarness />, { wrapper: withNuqsTestingAdapter({ searchParams: `?issue=special-education&region=${A}&compareRegion=${B}` }) });
+  expect(screen.getByTestId("compare")).toHaveTextContent(B);
+});

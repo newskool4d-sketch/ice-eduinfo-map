@@ -271,9 +271,13 @@ function DashboardInner({
         className="sr-only"
         data-testid="indicator-announcement"
       >{`지표 변경: ${mapMetric.title}`}</span>
-      {isIncheon && <div className="ice-current-view" role="status" aria-live="polite">
+      {/* Not a live region as a whole: indicator changes are already spoken by the
+          span above and region selections by the map, so only the school line is. */}
+      {isIncheon && <div className="ice-current-view">
         <p><strong>현재 보기</strong><span>{currentTopic} · {mapMetric.title} · {currentRegion}</span></p>
-        {selectedSchool && <p className="ice-current-school"><span>선택 학교: <strong>{selectedSchool.name}</strong></span><button type="button" onClick={() => selectSchool(null)}>선택 해제</button></p>}
+        <div aria-live="polite">
+          {selectedSchool && <p className="ice-current-school"><span>선택 학교: <strong>{selectedSchool.name}</strong></span><button type="button" onClick={() => selectSchool(null)}>선택 해제</button></p>}
+        </div>
       </div>}
       <div className="ice-map-row relative flex min-h-0 flex-1 overflow-hidden">
         {panelOpen && (
@@ -381,7 +385,6 @@ function DashboardInner({
             aria-labelledby={`tab-${tab}`}
           >
             {isIncheon && bundle.incheonHistory && <IncheonTrends
-              key={`${tab}-${regionCode ?? "province"}-${selectedSchool?.id ?? "none"}`}
               data={bundle.incheonHistory}
               school={tab === "schools" ? selectedSchool : null}
               currentRegionName={bundle.regions.features.find(f => f.properties.code === regionCode)?.properties.name}
