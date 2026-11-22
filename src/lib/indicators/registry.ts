@@ -331,6 +331,7 @@ export const INDICATORS: IndicatorDef[] = ALL_INDICATORS
   .filter((def) => !ACTIVE_PROFILE.indicatorIds || ACTIVE_PROFILE.indicatorIds.includes(def.id))
   .map((def) => ACTIVE_PROFILE.id === "incheon" ? {
     ...def, byLevel: true,
+    ...(def.id === "students_per_class" ? { group: "teacherInfra" as const } : {}),
     description: INCHEON_DESCRIPTIONS[def.id] ?? def.description.replaceAll("전북", "인천"),
     ...(def.id === "teachers_total" || def.id === "students_per_teacher" ? {
       caveat: "정규·기간제 교원 합계(휴직 포함, 퇴직·강사 제외). 같은 기준일의 인천 독립 총계는 미확보 상태입니다.",

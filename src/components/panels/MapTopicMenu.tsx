@@ -2,7 +2,7 @@
 import { useMapQuery } from "@/lib/state/urlState";
 import type { SeriesFile } from "@/lib/indicators/types";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
-import { INDICATOR_IDS } from "@/lib/indicators/registry";
+import { INDICATOR_IDS, indicatorById } from "@/lib/indicators/registry";
 import { QUICK_TOPICS } from "@/lib/indicators/groups";
 import IndicatorMenu from "./IndicatorMenu";
 
@@ -15,12 +15,15 @@ export default function MapTopicMenu({
   onExploreIssues?: () => void;
 }) {
   const query = useMapQuery();
+  const group = indicatorById(query.indicatorId)?.group;
   const active =
     query.issueId === "special-education"
       ? query.issueId
-      : !query.issueId && availableChoices.some(([, id]) => id === query.indicatorId)
-        ? query.indicatorId
-        : "";
+      : query.issueId
+        ? ""
+        : availableChoices.find(([, id]) => id === query.indicatorId)?.[1]
+          ?? (ACTIVE_PROFILE.id === "incheon" ? availableChoices.find(([, id]) => indicatorById(id)?.group === group)?.[1] : undefined)
+          ?? "";
   const select = (id: string) =>
     id === "special-education" ? query.setIssue(id) : query.setIndicator(id);
   return (
