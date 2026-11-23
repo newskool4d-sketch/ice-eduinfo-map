@@ -64,7 +64,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
   const change = historyChange(last, base);
   const previous = historyChange(last, points.find(p => p.year === previousYear)?.[metric] ?? null);
   const content = <section aria-label="인천 연도별 추세" className="ice-trend-content">
-      <div className="ice-trend-heading"><p>{span} · {definition.label}</p>{!expanded && <button ref={expandRef} type="button" className="ice-expand-button" aria-haspopup="dialog" onClick={() => setExpanded(true)}>크게 보기</button>}</div>
+      <div className="ice-trend-heading"><p>{definition.label}</p>{!expanded && <button ref={expandRef} type="button" className="ice-expand-button" aria-haspopup="dialog" onClick={() => setExpanded(true)}>크게 보기</button>}</div>
       <div className="ice-trend-scopes" aria-label="추세 범위">{([["province", "인천 전체"], ["region", "군·구별"], ["school", "학교별"]] as const).map(([id,label]) => <button type="button" key={id} aria-pressed={scope===id} disabled={id==="school" && !school} onClick={()=>{setScope(id); if(id==="school" && metric==="schools") setMetric("students");}}>{label}</button>)}</div>
       <div className="ice-trend-filters">
       {scope === "region" && <label className="ice-trend-field">비교할 군·구 (4월 기준)<select aria-label="추세 군구" value={region} onChange={e=>setRegion(e.target.value)}>{Object.keys(data.regions).map(name=><option key={name}>{name}</option>)}</select></label>}
