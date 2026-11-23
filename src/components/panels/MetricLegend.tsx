@@ -96,7 +96,7 @@ export default function MetricLegend({
   );
 }
 
-function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelected, mobile, clustered, targetsSeparate, attribution, children }: MetricLegendProps) {
+function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelected, clustered, targetsSeparate, attribution, children }: MetricLegendProps) {
   const numeric = !density && metric.kind !== "category" && !metric.regionOverlay;
   const labelOf = (label: string) => numeric && metric.unit && label.endsWith(metric.unit)
     ? label.slice(0, -metric.unit.length) : label;
@@ -104,11 +104,14 @@ function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelect
     className={`ice-metric-legend ice-map-legend ${schoolSelected ? "ice-map-legend-raised" : ""}`}>
     <div className="ice-legend-heading">
       <h2 data-testid="legend-indicator-label">{metric.title}</h2>
+      <p className="ice-legend-total">{metric.summary}</p>
       {numeric && <span>단위: {metric.unit}</span>}
     </div>
-    <p className="ice-legend-total">{metric.summary}</p>
-    <details className="ice-legend-details" open={!mobile}>
-      <summary>{density ? "집중도 범례" : "색상 범례"}<span aria-hidden="true">접기 / 펼치기</span></summary>
+    {/* Collapsed by default so the map stays visible; the strip previews the colours. */}
+    <details className="ice-legend-details">
+      <summary>{density ? "집중도 범례" : "색상 범례"}
+        <span aria-hidden="true" className="ice-legend-strip" style={{ background: `linear-gradient(to right, ${(density ? METRIC_RAMP : metric.legend.map((item) => item.color)).map((c) => `rgb(${c.slice(0, 3).join(",")})`).join(",")})` }} />
+        <span aria-hidden="true">펼치기 / 접기</span></summary>
       <div className="ice-legend-body">
         <p className="ice-legend-scope">{density ? "상대 집중도 · 낮음 → 높음" : metric.kind === "region" ? "군·구 단위" : "개별 학교의 색상 · 인천 전체 기준"}</p>
         {density ? <div className="ice-legend-density">
