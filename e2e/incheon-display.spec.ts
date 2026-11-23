@@ -50,3 +50,21 @@ test("the loaded app keeps large text and dark, and switching back to light clea
   expect(await background(page, ".ice-header")).toBe("rgb(255, 255, 255)");
   expect(await page.locator(".ice-app").evaluate((element) => getComputedStyle(element).fontSize)).toBe("16px");
 });
+
+test("the about page follows a stored dark choice from the first paint", async ({ page }) => {
+  if (process.env.NEXT_PUBLIC_EDU_MAP_PROFILE !== "incheon") test.skip(true, "Incheon only");
+  await store(page, { "ice-map-color-v1": "dark" });
+  await page.route(/\/_next\/static\/chunks\/.*\.js(\?|$)/, (route) => route.abort());
+  await page.goto("/about");
+  const main = page.locator("main");
+  await expect(main.getByRole("heading", { level: 1 })).toBeVisible();
+  expect(await main.evaluate((element) => getComputedStyle(element).color)).toBe("rgb(232, 242, 247)");
+  expect(await main.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("rgb(12, 29, 44)");
+  expect(await background(page, "body")).toBe(DARK_PAPER);
+});
+
+test("the about page stays light without a stored choice", async ({ page }) => {
+  if (process.env.NEXT_PUBLIC_EDU_MAP_PROFILE !== "incheon") test.skip(true, "Incheon only");
+  await page.goto("/about");
+  expect(await page.locator("main").evaluate((element) => getComputedStyle(element).color)).toBe("rgb(22, 52, 76)");
+});
