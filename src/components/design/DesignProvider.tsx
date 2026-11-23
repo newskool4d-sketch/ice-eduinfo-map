@@ -1,5 +1,6 @@
 "use client";
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { ACTIVE_PROFILE } from "@/lib/profiles";
 
 export type ColorMode = "light" | "dark";
 /** What the viewer picked; "system" follows the device setting. */
@@ -55,6 +56,14 @@ export function DesignProvider({ children }: { children: ReactNode }) {
   const colorMode = useSyncExternalStore(subscribe, readMode, () => "light" as const);
   const colorPreference = useSyncExternalStore(subscribe, readPreference, () => "light" as const);
   const textSize = useSyncExternalStore(subscribe, readText, () => "normal" as const);
+  // The Incheon styles key off <html> (set before paint in layout.tsx). Read the store
+  // itself, not the rendered values: during hydration those are the server defaults.
+  useEffect(() => {
+    if (ACTIVE_PROFILE.id !== "incheon") return;
+    const root = document.documentElement;
+    if (readMode() === "dark") root.setAttribute("data-ice-color", "dark"); else root.removeAttribute("data-ice-color");
+    if (readText() === "large") root.setAttribute("data-ice-text", "large"); else root.removeAttribute("data-ice-text");
+  }, [colorMode, textSize]);
   const setTextSize = (size: TextSize) => { fallbackText = size; try { localStorage.setItem(TEXT_KEY, size); } catch {} window.dispatchEvent(new Event("ice-design")); };
   const setColorPreference = (preference: ColorPreference) => { fallbackPreference = preference; try { localStorage.setItem(MODE_KEY, preference); } catch {} window.dispatchEvent(new Event("ice-design")); };
   return <Context.Provider value={{ colorMode, colorPreference, setColorPreference, textSize, setTextSize }}>{children}</Context.Provider>;

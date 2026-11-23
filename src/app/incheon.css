@@ -1,10 +1,13 @@
 /* Scoped to the Incheon workspace. Geography and metric colours remain data driven. */
 .ice-app { --color-paper:#eaf2f6; --color-surface:#fff; --color-ink:#16344c; --color-ink-muted:#526b7f; --color-line:#d5e2ea; --color-accent:#007cad; --color-accent-text:#00678f; --color-accent-soft:#e3f3fa; --color-positive-text:#156956; --ice-body:16px; --ice-small:14px; --ice-heading:20px; --ice-panel-width:360px; --ice-hero:linear-gradient(112deg,#10384d 0%,#145670 66%,#087cad 100%); --ice-hero-ink:#f7fbfe; --ice-hero-muted:#c5dce7; --ice-hero-line:#ffffff3d; --ice-hero-metric:#ffffff12; min-width:0; grid-template-columns:minmax(0,1fr); font-size:var(--ice-body); line-height:1.65; }
-.ice-app[data-text-size="large"] { --ice-body:18px; --ice-small:16px; --ice-heading:22px; }
+:root[data-ice-text="large"] .ice-app { --ice-body:18px; --ice-small:16px; --ice-heading:22px; }
 .ice-app { word-break:keep-all; overflow-wrap:anywhere; }
 /* The page behind the app (overscroll, below the content on phones) follows the dark mode too. */
-html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { color-scheme:dark; background:#0c1d2c; color:#e8f2f7; }
-.ice-app[data-color="dark"] { color-scheme:dark; --color-paper:#0c1d2c; --color-surface:#132b3c; --color-ink:#e8f2f7; --color-ink-muted:#b0c5d2; --color-line:#2e4a5c; --color-accent:#56cbea; --color-accent-text:#82def4; --color-accent-soft:#1b4053; --color-positive-text:#77dfb6; --ice-hero:linear-gradient(112deg,#132b3c,#132b3c); --ice-hero-ink:var(--color-ink); --ice-hero-muted:var(--color-ink-muted); --ice-hero-line:var(--color-line); --ice-hero-metric:#ffffff08; }
+/* Set on <html> before the first paint (layout.tsx), then kept in sync by DesignProvider.
+   The base tokens follow too, so the loading shell is already dark. */
+:root[data-ice-color="dark"] { color-scheme:dark; --color-paper:#0c1d2c; --color-surface:#132b3c; --color-ink:#e8f2f7; --color-ink-muted:#b0c5d2; --color-line:#2e4a5c; }
+:root[data-ice-color="dark"], :root[data-ice-color="dark"] body { background:#0c1d2c; color:#e8f2f7; }
+:root[data-ice-color="dark"] .ice-app { color-scheme:dark; --color-paper:#0c1d2c; --color-surface:#132b3c; --color-ink:#e8f2f7; --color-ink-muted:#b0c5d2; --color-line:#2e4a5c; --color-accent:#56cbea; --color-accent-text:#82def4; --color-accent-soft:#1b4053; --color-positive-text:#77dfb6; --ice-hero:linear-gradient(112deg,#132b3c,#132b3c); --ice-hero-ink:var(--color-ink); --ice-hero-muted:var(--color-ink-muted); --ice-hero-line:var(--color-line); --ice-hero-metric:#ffffff08; }
 .ice-header { position:relative; z-index:40; min-width:0; background:var(--color-surface); }
 .ice-masthead { display:flex; align-items:center; gap:clamp(12px,1.7vw,24px); min-width:0; min-height:56px; padding:4px clamp(16px,2vw,28px); border-top:3px solid var(--color-accent); border-bottom:1px solid var(--color-line); }
 /* The unofficial notice stays in the first row at every width (completion criterion #7). */
@@ -17,9 +20,9 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-disclosure-author span { font-weight:800; }
 .ice-disclosure-link { display:inline-flex; align-items:center; justify-content:flex-end; gap:5px; min-height:24px; padding:0; color:#005a7d; font-size:var(--ice-small); font-weight:800; text-decoration:underline; text-underline-offset:3px; white-space:nowrap; }
 .ice-disclosure-link:focus-visible { outline:2px solid var(--color-accent); outline-offset:2px; }
-.ice-app[data-color="dark"] .ice-disclosure { border-color:#65552e; background:#322b1b; color:#f7edcf; }
-.ice-app[data-color="dark"] .ice-disclosure-badge { background:#ebc86e; color:#2a210e; }
-.ice-app[data-color="dark"] .ice-disclosure-link { color:#9bdced; }
+:root[data-ice-color="dark"] .ice-app .ice-disclosure { border-color:#65552e; background:#322b1b; color:#f7edcf; }
+:root[data-ice-color="dark"] .ice-app .ice-disclosure-badge { background:#ebc86e; color:#2a210e; }
+:root[data-ice-color="dark"] .ice-app .ice-disclosure-link { color:#9bdced; }
 .ice-brand { display:flex; align-items:center; gap:12px; flex-shrink:0; }
 .ice-brand>img { width:26px; height:39px; object-fit:contain; background:white; border-radius:5px; padding:2px; }
 .ice-brand h1 { font-size:20px; font-weight:700; letter-spacing:-.6px; line-height:1.3; }
@@ -177,7 +180,7 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-legend-density p { display:flex; justify-content:space-between; margin-top:4px; }
 .ice-legend-clusters { border-top:1px solid var(--color-line); padding-top:10px; margin-top:10px; margin-bottom:10px; line-height:1.7; }
 .ice-legend-clusters>span { float:left; display:grid; place-items:center; width:32px; height:32px; margin:3px 10px 0 0; border-radius:50%; background:#264254; color:white; font-size:var(--ice-small); font-weight:700; }
-.ice-app[data-color="dark"] .ice-legend-clusters>span { background:#d6e9f2; color:#162b38; }
+:root[data-ice-color="dark"] .ice-app .ice-legend-clusters>span { background:#d6e9f2; color:#162b38; }
 .ice-legend-note { margin-top:4px; color:var(--color-ink-muted); line-height:1.7; }
 .ice-legend-note>summary { cursor:pointer; min-height:44px; padding-top:10px; }
 .ice-legend-attribution { margin-top:4px; padding-top:4px; border-top:1px solid var(--color-line); color:var(--color-ink-muted); font-size:10px; line-height:1.3; }
@@ -213,8 +216,8 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
   /* The panel width follows the open tab: the comparison table needs the wide one. */
   .ice-app .ice-sidebar { --ice-panel-width:clamp(340px,29vw,430px); width:var(--ice-panel-width); }
   .ice-app .ice-sidebar[data-view="statistics"] { --ice-panel-width:clamp(500px,44vw,660px); }
-  .ice-app[data-text-size="large"] .ice-sidebar { --ice-panel-width:clamp(380px,32vw,490px); }
-  .ice-app[data-text-size="large"] .ice-sidebar[data-view="statistics"] { --ice-panel-width:clamp(540px,48vw,740px); }
+  :root[data-ice-text="large"] .ice-app .ice-sidebar { --ice-panel-width:clamp(380px,32vw,490px); }
+  :root[data-ice-text="large"] .ice-app .ice-sidebar[data-view="statistics"] { --ice-panel-width:clamp(540px,48vw,740px); }
   /* A closed panel puts its reopen button in the map's top-left corner, where the shortcuts sit. */
   .ice-app main[data-panel-collapsed="true"] .ice-map-shortcuts { top:64px; }
   .ice-app main[data-panel-collapsed="true"] .ice-map-touch-toggle { top:116px; }
@@ -253,7 +256,7 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
   .ice-current-view { padding:5px 12px; }
   .ice-current-school button { min-height:44px; }
   .ice-app { --ice-body:14px; --ice-small:12px; --ice-heading:18px; line-height:1.5; }
-  .ice-app[data-text-size="large"] { --ice-body:16px; --ice-small:14px; --ice-heading:20px; }
+  :root[data-ice-text="large"] .ice-app { --ice-body:16px; --ice-small:14px; --ice-heading:20px; }
   .ice-masthead { flex-wrap:wrap; gap:4px; padding:5px 12px 6px; min-height:0; }
   .ice-disclosure { order:3; flex:1 1 100%; grid-template-columns:minmax(0,1fr) auto; gap:2px 6px; margin:0; padding:4px 8px; }
   .ice-disclosure-copy { grid-column:1/-1; gap:6px; }
@@ -272,8 +275,8 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
   .ice-metrics dt { font-size:11px; line-height:1.2; white-space:nowrap; }
   .ice-metrics dd { font-size:15px; line-height:1.2; letter-spacing:-.4px; text-align:center; }
   .ice-metrics small { display:block; font-size:10px; line-height:1.2; margin-left:0; }
-  .ice-app[data-text-size="large"] .ice-metrics dt { font-size:12px; }
-  .ice-app[data-text-size="large"] .ice-metrics dd { font-size:17px; }
+  :root[data-ice-text="large"] .ice-app .ice-metrics dt { font-size:12px; }
+  :root[data-ice-text="large"] .ice-app .ice-metrics dd { font-size:17px; }
   .ice-toolbar { align-items:flex-start; justify-content:flex-start; flex-wrap:wrap; gap:0; padding:3px 12px; }
   .ice-app .ice-toolbar>:first-child { flex:1 1 100%; max-width:100%; min-width:0; }
   .ice-app .ice-topic-menu { gap:4px; }
