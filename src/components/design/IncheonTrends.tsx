@@ -95,10 +95,11 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
       <details className="ice-trend-note"><summary>출처와 비교 기준</summary><p>{data.quality.note}</p><p>교원 수는 휴직 포함, 강사 제외입니다. 그래프 세로축은 값 범위에 맞춰 확대되어 있습니다.</p><a href={data.source.url} target="_blank" rel="noreferrer">{data.source.name}</a></details>
     </section>;
   return <>
-    <details className="ice-trends" open={!!school || undefined}>
-      <summary>{span} 추세·증감률 <span>{place}</span></summary>
+    <div className="ice-trends">
+      <h2 className="ice-trends-title">{span} 추세·증감률</h2>
+      <p className="ice-trends-place">{place}</p>
       {!expanded && content}
-    </details>
+    </div>
     <dialog ref={dialogRef} className="ice-trend-dialog" aria-labelledby={dialogTitle} onCancel={event=>{event.preventDefault();setExpanded(false);}} onKeyDown={event=>{
       event.stopPropagation();
       if (event.key !== "Tab") return;

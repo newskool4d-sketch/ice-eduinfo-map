@@ -83,10 +83,8 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
 .ice-primary { min-height:46px; width:100%; background:var(--color-accent-text); color:var(--color-surface); border-radius:10px; font-size:var(--ice-body); margin-top:22px; padding:10px; font-weight:700; }
 @media(prefers-reduced-motion:reduce) { .ice-app * { transition:none!important; } }
 /* Historical statistics use the source's April geography, separately from the map. */
-.ice-app .ice-trends { margin-bottom: 16px; border: 1px solid var(--color-line); border-radius: 12px; background: var(--color-surface); }
-.ice-app .ice-trends > summary { padding: 14px 16px; cursor: pointer; font-weight: 700; font-size: var(--ice-body); }
-.ice-app .ice-trends > summary > span { display: block; margin-top: 5px; font-size: var(--ice-small); font-weight: 400; color: var(--color-ink-muted); }
-.ice-app .ice-trend-content { padding: 0 14px 16px; }
+.ice-app .ice-trends-title { font-size: var(--ice-heading); font-weight: 700; line-height: 1.4; }
+.ice-app .ice-trends-place { margin: 2px 0 14px; font-size: var(--ice-small); color: var(--color-ink-muted); }
 .ice-app .ice-trend-scopes { display: flex; gap: 6px; margin-bottom: 6px; }
 .ice-app .ice-trend-scopes button { flex: 1; min-height: 44px; padding: 8px 4px; border: 1px solid var(--color-line); border-radius: 8px; font-size: var(--ice-small); }
 .ice-app .ice-trend-scopes button[aria-pressed="true"] { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
@@ -287,9 +285,6 @@ html:has(.ice-app[data-color="dark"]), body:has(.ice-app[data-color="dark"]) { c
   .ice-provenance summary { min-height:26px; padding:2px 0; font-size:var(--ice-small); }
   .ice-app .ice-sidebar [role="tabpanel"] { padding:10px; }
   .ice-app .ice-panel-tabs { padding:4px 8px; }
-  .ice-app .ice-trends { margin-bottom:8px; }
-  .ice-app .ice-trends>summary { padding:8px 10px; }
-  .ice-app .ice-trends>summary>span { margin-top:2px; }
   .ice-app .ice-school-explorer> :not([hidden]) ~ :not([hidden]) { margin-block-start:8px; }
   .ice-app .ice-school-metric { padding:8px 10px; }
   .ice-app .ice-school-metric p { margin-top:0; }

@@ -361,10 +361,12 @@ function DashboardInner({
                   className={`min-h-11 rounded-lg px-3 text-sm ${tab === value ? "bg-accent-soft font-semibold text-accent-text" : "text-ink-muted hover:bg-paper"}`}
                 >
                   {value === "schools"
-                    ? "학교 탐색"
+                    ? isIncheon ? "학교 찾기" : "학교 탐색"
                     : value === "issues"
                       ? "교육문제"
-                      : `${REGION_UNIT} 통계`}
+                      : value === "trends"
+                        ? "추세"
+                        : isIncheon ? "지역 비교" : `${REGION_UNIT} 통계`}
                 </button>
               ))}
             </div>
@@ -387,11 +389,6 @@ function DashboardInner({
             id={`panel-${tab}`}
             aria-labelledby={`tab-${tab}`}
           >
-            {isIncheon && bundle.incheonHistory && <IncheonTrends
-              data={bundle.incheonHistory}
-              school={tab === "schools" ? selectedSchool : null}
-              currentRegionName={bundle.regions.features.find(f => f.properties.code === regionCode)?.properties.name}
-            />}
             {tab === "schools" ? (
               <SchoolExplorer
                 metric={mapMetric}
@@ -402,6 +399,13 @@ function DashboardInner({
                 selectedSchool={selectedSchool}
                 onSelect={selectSchool}
                 onStatistics={showStatistics}
+                onTrends={isIncheon && bundle.incheonHistory ? () => setTab("trends") : undefined}
+              />
+            ) : tab === "trends" ? (
+              bundle.incheonHistory && <IncheonTrends
+                data={bundle.incheonHistory}
+                school={selectedSchool}
+                currentRegionName={bundle.regions.features.find(f => f.properties.code === regionCode)?.properties.name}
               />
             ) : tab === "issues" ? (
               issueState.status === "ready" ? (

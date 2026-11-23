@@ -16,8 +16,11 @@ import { parseAsStringLiteral, useQueryStates } from "nuqs";
 import { ISSUE_IDS, ISSUE_METRICS, issueById, resolveIssueMetric } from "../issues/registry";
 
 import { ACTIVE_PROFILE } from "../profiles";
-export type MapPanelView = "schools" | "issues" | "statistics";
-export const MAP_VIEWS: readonly MapPanelView[] = ACTIVE_PROFILE.capabilities.educationIssues ? ["schools", "issues", "statistics"] : ["schools", "statistics"];
+export type MapPanelView = "schools" | "issues" | "statistics" | "trends";
+/** Incheon's panel is organised by task: 학교 찾기 / 지역 비교 / 추세 (redesign plan §4.3). */
+export const MAP_VIEWS: readonly MapPanelView[] = ACTIVE_PROFILE.capabilities.educationIssues
+  ? ["schools", "issues", "statistics"]
+  : ACTIVE_PROFILE.id === "incheon" ? ["schools", "statistics", "trends"] : ["schools", "statistics"];
 
 
 import { REGION_CODES, type RegionCode } from "../geo/regions";
