@@ -75,6 +75,8 @@ export interface EmdBoundaryLayerOptions {
   triggerKey: string | number;
   /** deck.gl `transitions` duration (ms) for getPath. Defaults to 600 — pass 0 when `prefers-reduced-motion: reduce` (Task 6, Section A.4 convention, mirrored from regionLayers.ts/schoolLayers.ts). */
   transitionDuration?: number;
+  /** Incheon dark mode: a light line, since the dark gray one vanishes on the dark top face. */
+  dark?: boolean;
 }
 
 /**
@@ -97,7 +99,7 @@ export function makeEmdBoundaryLayer(fc: FeatureCollection, opts: EmdBoundaryLay
     getWidth: 1,
     // 밝은 디오라마 (spec §4) — translucent gray on the pastel top face (the
     // dark theme's translucent white would vanish on it).
-    getColor: [60, 60, 70, 110] as RGBA,
+    getColor: (opts.dark ? [178, 214, 230, 130] : [60, 60, 70, 110]) as RGBA,
     jointRounded: true,
     // Same rationale as makeRegionTopRingsLayer's own shadowEnabled: false —
     // not part of PathLayer's public TS prop type (deck.gl's shadow pass
@@ -109,6 +111,7 @@ export function makeEmdBoundaryLayer(fc: FeatureCollection, opts: EmdBoundaryLay
     pickable: false,
     updateTriggers: {
       getPath: [opts.triggerKey, opts.elevation],
+      getColor: opts.dark,
     },
     // Omitted when 0 — see regionLayers.ts (collision FBO re-render per frame).
     transitions: transitionDuration > 0 ? { getPath: transitionDuration } : undefined,

@@ -1008,9 +1008,10 @@ export default function DeckMap({
             issueActive: !!issueModel,
             retry: buildingRetry,
             onStatus: onBuildingStatus,
+            dark,
           })
         : null,
-    [buildingsVisible, mobile, issueModel, buildingRetry, onBuildingStatus],
+    [buildingsVisible, mobile, issueModel, buildingRetry, onBuildingStatus, dark],
   );
   // deck.gl only reports tile unloads on cache eviction; removing the layer
   // (zoom-out → buildingsVisible false → finalize) fires no callback, so a
@@ -1072,6 +1073,7 @@ export default function DeckMap({
             elevation: 1,
             triggerKey: indicatorId,
             transitionDuration,
+            dark,
           })
         : null,
       columnsVisible
