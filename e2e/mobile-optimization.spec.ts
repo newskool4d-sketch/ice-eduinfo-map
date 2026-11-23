@@ -1,4 +1,4 @@
-import { expect, test, openMapSettings, requireIncheon } from "./fixtures";
+import { expect, test, openMapSettings, requireIncheon, setViewSettings } from "./fixtures";
 
 test.use({ hasTouch: true, isMobile: true });
 
@@ -92,8 +92,7 @@ for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }
     await page.getByRole("button", { name: "선택 해제", exact: true }).click();
     await expect(page.locator(".ice-current-view")).not.toContainText("선택 학교:");
 
-    await page.getByRole("button", { name: "큰 글씨" }).click();
-    await page.getByRole("button", { name: "어두운 화면" }).click();
+    await setViewSettings(page, { large: true, color: "다크" });
     await expect(page.locator(".ice-app")).toHaveAttribute("data-text-size", "large");
     await expect(page.locator(".ice-app")).toHaveAttribute("data-color", "dark");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width + 1);
@@ -237,8 +236,7 @@ test("every Incheon panel tab survives large text, dark mode, and landscape resi
   await page.goto("/?scene=flat");
   await requireIncheon(page);
   await expect(page.locator('[data-map-ready="true"]')).toBeAttached({ timeout: 20000 });
-  await page.getByRole("button", { name: "큰 글씨" }).click();
-  await page.getByRole("button", { name: "어두운 화면" }).click();
+  await setViewSettings(page, { large: true, color: "다크" });
   // The retired screen-version picker is gone; the panel tabs replace it.
   await expect(page.getByRole("combobox", { name: "화면 버전" })).toHaveCount(0);
   await expect(page.locator(".ice-app")).not.toHaveAttribute("data-design");

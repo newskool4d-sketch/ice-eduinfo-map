@@ -2,13 +2,24 @@
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 
 export type ColorMode = "light" | "dark";
+/** What the viewer picked; "system" follows the device setting. */
+export type ColorPreference = ColorMode | "system";
 export type TextSize = "normal" | "large";
 const MODE_KEY = "ice-map-color-v1";
 const TEXT_KEY = "ice-map-text-v1";
-let fallbackMode: ColorMode = "light";
+let fallbackPreference: ColorPreference = "light";
 let fallbackText: TextSize = "normal";
 function readText(): TextSize { try { return localStorage.getItem(TEXT_KEY) === "large" ? "large" : "normal"; } catch { return fallbackText; } }
-function readMode(): ColorMode { try { return localStorage.getItem(MODE_KEY) === "dark" ? "dark" : "light"; } catch { return fallbackMode; } }
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+function readPreference(): ColorPreference {
+  try { const value = localStorage.getItem(MODE_KEY); return value === "dark" || value === "system" ? value : "light"; }
+  catch { return fallbackPreference; }
+}
+function readMode(): ColorMode {
+  const preference = readPreference();
+  if (preference !== "system") return preference;
+  return typeof window.matchMedia === "function" && window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
+}
 
 /**
  * The retired "화면 버전" picker (01 학교 탐색 / 02 넓은 지도 / 03 통계 중심)
@@ -35,14 +46,17 @@ export function resetLegacyDesignForTests() { legacyDesign = undefined; }
 
 function subscribe(notify: () => void) {
   window.addEventListener("ice-design", notify); window.addEventListener("storage", notify);
-  return () => { window.removeEventListener("ice-design", notify); window.removeEventListener("storage", notify); };
+  const device = typeof window.matchMedia === "function" ? window.matchMedia(DARK_QUERY) : null;
+  device?.addEventListener("change", notify);
+  return () => { window.removeEventListener("ice-design", notify); window.removeEventListener("storage", notify); device?.removeEventListener("change", notify); };
 }
-const Context = createContext<{ colorMode: ColorMode; setColorMode: (mode: ColorMode) => void; textSize: TextSize; setTextSize: (size: TextSize) => void }>({ colorMode: "light", setColorMode: () => {}, textSize: "normal", setTextSize: () => {} });
+const Context = createContext<{ colorMode: ColorMode; colorPreference: ColorPreference; setColorPreference: (preference: ColorPreference) => void; textSize: TextSize; setTextSize: (size: TextSize) => void }>({ colorMode: "light", colorPreference: "light", setColorPreference: () => {}, textSize: "normal", setTextSize: () => {} });
 export function DesignProvider({ children }: { children: ReactNode }) {
   const colorMode = useSyncExternalStore(subscribe, readMode, () => "light" as const);
+  const colorPreference = useSyncExternalStore(subscribe, readPreference, () => "light" as const);
   const textSize = useSyncExternalStore(subscribe, readText, () => "normal" as const);
   const setTextSize = (size: TextSize) => { fallbackText = size; try { localStorage.setItem(TEXT_KEY, size); } catch {} window.dispatchEvent(new Event("ice-design")); };
-  const setColorMode = (mode: ColorMode) => { fallbackMode = mode; try { localStorage.setItem(MODE_KEY, mode); } catch {} window.dispatchEvent(new Event("ice-design")); };
-  return <Context.Provider value={{ colorMode, setColorMode, textSize, setTextSize }}>{children}</Context.Provider>;
+  const setColorPreference = (preference: ColorPreference) => { fallbackPreference = preference; try { localStorage.setItem(MODE_KEY, preference); } catch {} window.dispatchEvent(new Event("ice-design")); };
+  return <Context.Provider value={{ colorMode, colorPreference, setColorPreference, textSize, setTextSize }}>{children}</Context.Provider>;
 }
 export const useDesign = () => useContext(Context);

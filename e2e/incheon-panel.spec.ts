@@ -71,5 +71,19 @@ test("chips, 지표 menu and 현재 보기 use the same group names", async ({ p
   await ready(page);
   await expect(page.locator("nav.ice-topic-chips > button")).toHaveText([/학생·학교/, /교육여건/, /소규모학교/]);
   await expect(page.locator("nav.ice-topic-chips > button[aria-pressed=true]")).toHaveText(/학생·학교/);
+  // On desktop the row is visually hidden (its school line stays a live region).
   await expect(page.locator(".ice-current-view")).toContainText("학생·학교 · 학급수");
+});
+
+test("the toolbar figures follow the selected district, including the 2026-07-01 districts", async ({ page }) => {
+  await page.goto("/?scene=flat&region=28185");
+  await ready(page);
+  const status = page.locator(".ice-toolbar-status");
+  await expect(status).toContainText("연수구");
+  await expect(status).toContainText("51,679");
+  await page.goto("/?scene=flat&region=28125");
+  await ready(page);
+  await expect(status).toContainText("제물포구");
+  await expect(status.locator("dd")).toHaveCount(4);
+  await expect(status.locator("dd").filter({ hasText: "—" })).toHaveCount(0);
 });

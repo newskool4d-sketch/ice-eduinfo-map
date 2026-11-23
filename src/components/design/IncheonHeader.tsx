@@ -1,17 +1,27 @@
 "use client";
-import type { Ref } from "react";
+import { useEffect, useRef, type Ref } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { DataBundle } from "@/lib/data/types";
+import { regionName } from "@/lib/geo/regions";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
 import { valueMap } from "@/lib/stats";
-import { useDesign } from "./DesignProvider";
+import { useMapQuery } from "@/lib/state/urlState";
+import { useDesign, type ColorPreference } from "./DesignProvider";
 import MapTopicMenu from "../panels/MapTopicMenu";
 
 const metrics = [["students_total", "학생", "명"], ["schools_total", "본교", "교"], ["teachers_total", "교원", "명"], ["small_schools", "소규모학교", "교"]];
 
-function EducationMetrics({ bundle }: { bundle: DataBundle | null }) {
-  return <dl className="ice-metrics">{metrics.map(([id, label, unit]) => <div key={id}><dt>{label}</dt><dd>{bundle ? valueMap(bundle.indicators[id]).get("28000")?.toLocaleString("ko-KR") ?? "—" : "—"}<small>{unit}</small></dd></div>)}</dl>;
+/** The four headline figures for the selected district, or all of Incheon (decision 2). */
+function EducationMetrics({ bundle, code }: { bundle: DataBundle | null; code: string }) {
+  return <dl className="ice-metrics">{metrics.map(([id, label, unit]) => <div key={id}><dt>{label}</dt><dd>{bundle ? valueMap(bundle.indicators[id]).get(code)?.toLocaleString("ko-KR") ?? "—" : "—"}<small>{unit}</small></dd></div>)}</dl>;
+}
+
+function useScope() {
+  const { regionCode } = useMapQuery();
+  return regionCode
+    ? { code: regionCode, place: regionName(regionCode) }
+    : { code: ACTIVE_PROFILE.province.aggregateCode, place: `${ACTIVE_PROFILE.province.shortName} 전체` };
 }
 
 type ProvenanceManifest = { statisticsDate?: string; geographyDate?: string; latestYear?: number;
@@ -28,32 +38,60 @@ function DataProvenance({ bundle, mobile = false }: { bundle: DataBundle | null;
 }
 
 export function IncheonMobileInfo({ bundle, legendRef }: { bundle: DataBundle; legendRef: Ref<HTMLDivElement> }) {
+  const { code, place } = useScope();
   return <section className="ice-mobile-info" id="education-info" aria-label="지도 범례와 인천 교육현황">
     <div id="ice-below-map-legend" ref={legendRef} />
-    <div className="ice-mobile-metrics"><h2>인천 교육현황</h2><EducationMetrics bundle={bundle} /></div>
+    <div className="ice-mobile-metrics"><h2>{place} 교육현황</h2><EducationMetrics bundle={bundle} code={code} /></div>
     <div className="ice-mobile-source"><p><strong>제작</strong> 인천광역시교육청 교육전문직원 홍주형</p><Link href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link><DataProvenance bundle={bundle} mobile /></div>
   </section>;
 }
 
+const COLOR_OPTIONS: [ColorPreference, string][] = [["light", "라이트"], ["dark", "다크"], ["system", "기기 설정"]];
+
+/** Text size and colour live behind one button: they are set once, not used while reading the map (plan §4.5). */
+function ViewSettings() {
+  const { colorPreference, setColorPreference, textSize, setTextSize } = useDesign();
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const details = ref.current!;
+    const closeOutside = (event: PointerEvent) => { if (details.open && !details.contains(event.target as Node)) details.open = false; };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !details.open) return;
+      details.open = false;
+      details.querySelector("summary")?.focus();
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    details.addEventListener("keydown", closeOnEscape);
+    return () => { document.removeEventListener("pointerdown", closeOutside); details.removeEventListener("keydown", closeOnEscape); };
+  }, []);
+  return <details ref={ref} className="ice-view-settings">
+    <summary><span aria-hidden="true">⚙</span> 보기 설정</summary>
+    <div className="ice-view-settings-panel">
+      <button className="ice-text-toggle" type="button" aria-pressed={textSize === "large"} onClick={() => setTextSize(textSize === "large" ? "normal" : "large")}>큰 글씨</button>
+      <fieldset className="ice-color-options"><legend>화면 밝기</legend>
+        {COLOR_OPTIONS.map(([value, label]) => <label key={value}><input type="radio" name="ice-color" value={value} checked={colorPreference === value} onChange={() => setColorPreference(value)} />{label}</label>)}
+      </fieldset>
+    </div>
+  </details>;
+}
+
 export default function IncheonHeader({ bundle }: { bundle: DataBundle | null }) {
-  const { colorMode, setColorMode, textSize, setTextSize } = useDesign();
+  const { code, place } = useScope();
   return <div className="ice-header">
     <header className="ice-masthead">
       <div className="ice-brand"><Image src="/brand/ice-symbol.jpg" width={30} height={45} alt="인천광역시교육청 심벌" unoptimized /><div><span className="ice-eyebrow">INCHEON EDUCATION ATLAS</span><h1>인천 교육지도</h1></div></div>
       <Image className="ice-vision" src="/brand/ice-vision.png" width={320} height={33} alt="읽걷쓰AI로 학생성공시대 완성" unoptimized />
-      <div className="ice-display-controls">
-      <button className="ice-text-toggle" type="button" aria-pressed={textSize === "large"} onClick={() => setTextSize(textSize === "large" ? "normal" : "large")}>큰 글씨</button>
-      <button className="ice-theme-toggle" type="button" aria-label="어두운 화면" aria-pressed={colorMode === "dark"} onClick={() => setColorMode(colorMode === "dark" ? "light" : "dark")}>{colorMode === "dark" ? "다크" : "라이트"}<span aria-hidden className="ice-toggle-track"><span /></span></button>
-      </div>
+      <section className="ice-disclosure" aria-label="지도 제작 및 배포 안내">
+        <div className="ice-disclosure-copy"><span className="ice-disclosure-badge">비공식 안내</span><p>이 지도는 인천광역시교육청에서 공식 배포한 지도가 아닙니다.</p></div>
+        <p className="ice-disclosure-author"><span>제작</span> 인천광역시교육청 교육전문직원 홍주형</p>
+        <Link className="ice-disclosure-link" href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link>
+      </section>
+      <ViewSettings />
     </header>
-    <aside className="ice-disclosure" aria-label="지도 제작 및 배포 안내">
-      <div className="ice-disclosure-copy"><span className="ice-disclosure-badge">비공식 안내</span><p>이 지도는 인천광역시교육청에서 공식 배포한 지도가 아닙니다.</p></div>
-      <p className="ice-disclosure-author"><span>제작</span> 인천광역시교육청 교육전문직원 홍주형</p>
-      <Link className="ice-disclosure-link" href="/about">자료 기준·출처·GitHub <span aria-hidden="true">↗</span></Link>
-    </aside>
-    <div className="ice-workbar"><div><h2>학교를 찾고, 지역을 살펴보세요.</h2><p>{bundle ? `${(bundle.manifest as DataBundle["manifest"] & ProvenanceManifest).latestYear ?? ""}년 ` : ""}인천 교육현황</p></div>
-      <EducationMetrics bundle={bundle} />
+    <div className="ice-toolbar">
+      {bundle ? <MapTopicMenu series={bundle.series} /> : <span>교육정보를 불러오고 있습니다…</span>}
+      <div className="ice-toolbar-status"><strong>{place}</strong><EducationMetrics bundle={bundle} code={code} /></div>
+      <DataProvenance bundle={bundle} />
     </div>
-    <div className="ice-toolbar">{bundle ? <MapTopicMenu series={bundle.series} /> : <span>교육정보를 불러오고 있습니다…</span>}<DataProvenance bundle={bundle} /></div>
   </div>;
 }

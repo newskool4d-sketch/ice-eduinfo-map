@@ -55,6 +55,16 @@ export async function openPanel(page: Page) {
   const opener = page.getByRole("button", { name: /^(학교 찾기|학교·통계)$/ });
   if (await opener.isVisible()) await opener.click();
 }
+/** Incheon: 큰 글씨 and 화면 밝기 sit behind the "보기 설정" button. */
+export async function setViewSettings(page: Page, { large, color }: { large?: boolean; color?: "라이트" | "다크" | "기기 설정" }) {
+  const details = page.locator("details.ice-view-settings");
+  if (!(await details.evaluate((element) => element.hasAttribute("open")))) await details.locator("summary").click();
+  const textSize = page.getByRole("button", { name: "큰 글씨" });
+  if (large !== undefined && (await textSize.getAttribute("aria-pressed")) !== String(large)) await textSize.click();
+  if (color) await page.getByRole("radio", { name: color }).check();
+  await page.keyboard.press("Escape");
+  await expect(details).not.toHaveAttribute("open");
+}
 export async function openMapSettings(page: Page) {
   const summary = page.locator("summary").filter({ hasText: "지도 설정" });
   await expect(summary).toBeVisible();
