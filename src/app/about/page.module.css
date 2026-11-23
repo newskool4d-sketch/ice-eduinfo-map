@@ -45,7 +45,8 @@ body:has(.page) {
   padding: clamp(28px, 5vw, 54px);
   border-radius: 24px;
   color: #f7fbfe;
-  background: linear-gradient(112deg, #10384d 0%, #145670 66%, #087cad 100%);
+  /* Ends at #06577a, not #087cad: the light eyebrow and paragraph keep 4.5:1 across it. */
+  background: linear-gradient(112deg, #10384d 0%, #145670 66%, #06577a 100%);
   box-shadow: 0 18px 44px #153d5421;
 }
 
