@@ -5,7 +5,7 @@ import { schoolChartMetric } from "./schools/chart";
 import { indicatorById } from "./indicators/registry";
 import { displayLabel, valueMap } from "./stats";
 import { makeColorScale, paletteFor } from "./colors";
-import { PROVINCE_CODE, REGION_CODES, REGION_UNIT } from "./geo/regions";
+import { PROVINCE_CODE, REGION_CODES, REGION_UNIT, regionName } from "./geo/regions";
 import { ACTIVE_PROFILE } from "./profiles";
 
 export type MetricColor = [number, number, number, number];
@@ -20,6 +20,8 @@ export interface MapMetricSpec {
   proportional?: boolean;
   regionOverlay?: boolean;
   summary: string;
+  /** The summary for a selected region (the province-wide one when null or for an issue). */
+  summaryOf?: (code: string | null) => string;
   specialEducation: boolean;
   value: (school: School) => number | null;
   color: (school: School) => MetricColor;
@@ -203,6 +205,11 @@ export function buildMapMetric(
   const summary =
     issue?.provinceText ??
     `${ACTIVE_PROFILE.province.shortName} 전체 ${province == null ? "자료 없음" : `${def.format(province)}${def.unit}`}`;
+  const summaryOf = (code: string | null) => {
+    if (!code || issue) return summary;
+    const v = map.get(code);
+    return `${regionName(code)} ${v == null ? "자료 없음" : `${def.format(v)}${def.unit}`}`;
+  };
   return {
     kind,
     proportional: issue?.metric === "school-size" || (issue?.issue.id === "special-education" && issue.metric !== "special-schools"),
@@ -211,6 +218,7 @@ export function buildMapMetric(
     unit,
     maximum,
     summary,
+    summaryOf,
     value,
     color,
     regionColor,
