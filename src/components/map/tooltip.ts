@@ -8,14 +8,23 @@ export interface TooltipResult {
   style: Partial<CSSStyleDeclaration>;
 }
 
-const TOOLTIP_STYLE: Partial<CSSStyleDeclaration> = {
-  background: THEME.surface,
-  color: THEME.ink,
-  border: `1px solid ${THEME.line}`,
-  borderRadius: "8px",
-  padding: "8px 10px",
-  fontSize: "13px",
-};
+/**
+ * The card style for every map tooltip. Defaults to the light card; the Incheon
+ * workspace passes its dark mode and "큰 글씨" setting (colours match the
+ * `.ice-app[data-color="dark"]` tokens in src/app/incheon.css).
+ */
+export function tooltipStyle({ dark = false, large = false } = {}): Partial<CSSStyleDeclaration> {
+  return {
+    background: dark ? "#132b3c" : THEME.surface,
+    color: dark ? "#e8f2f7" : THEME.ink,
+    border: `1px solid ${dark ? "#2e4a5c" : THEME.line}`,
+    borderRadius: "8px",
+    padding: "8px 10px",
+    fontSize: large ? "15px" : "13px",
+  };
+}
+
+const TOOLTIP_STYLE = tooltipStyle();
 
 const HTML_ESCAPES: Record<string, string> = {
   "&": "&amp;",

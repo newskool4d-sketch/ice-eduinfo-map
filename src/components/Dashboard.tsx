@@ -4,7 +4,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ACTIVE_PROFILE } from "@/lib/profiles";
-import { DesignProvider, useDesign } from "./design/DesignProvider";
+import { DesignProvider, takeLegacyDesign, useDesign } from "./design/DesignProvider";
 import IncheonHeader, { IncheonMobileInfo } from "./design/IncheonHeader";
 import RegionalComparison from "./design/RegionalComparison";
 import IncheonTrends from "./design/IncheonTrends";
@@ -26,7 +26,7 @@ import { DataProvider, useData, useRetry } from "@/lib/data/DataProvider";
 import type { DataBundle } from "@/lib/data/types";
 import { REGION_UNIT, type RegionCode } from "@/lib/geo/regions";
 import { indicatorById } from "@/lib/indicators/registry";
-import { GROUP_LABELS } from "@/lib/indicators/groups";
+import { GROUP_LABELS, QUICK_TOPIC_LABELS } from "@/lib/indicators/groups";
 import { MAP_VIEWS, useMapQuery } from "@/lib/state/urlState";
 
 function CenteredMessage({ children }: { children: ReactNode }) {
@@ -62,13 +62,6 @@ function DataErrorMessage({ error }: { error: string }) {
   );
 }
 
-const INCH_TOPIC_LABELS: Record<string, string> = {
-  students_total: "학생 분포",
-  students_per_class: "교육여건",
-  small_schools: "작은학교",
-  students_change_5y: "지역 변화",
-};
-
 function DashboardInner({
   bundle,
   indicatorId,
@@ -84,8 +77,10 @@ function DashboardInner({
   exploreRequest: number;
   legendHost: HTMLElement | null;
 }) {
-  const { design } = useDesign();
   const isIncheon = ACTIVE_PROFILE.id === "incheon";
+  // A returning visitor of the retired screen versions starts where that version
+  // put them: 02 넓은 지도 with the panel closed, 03 통계 중심 on the comparison.
+  const [legacyDesign] = useState(() => (isIncheon ? takeLegacyDesign() : null));
   const def = indicatorById(indicatorId);
   if (!def) throw new Error(`Dashboard: unknown indicatorId "${indicatorId}"`);
   const {
@@ -150,8 +145,15 @@ function DashboardInner({
     parseAsString.withOptions({ history: "push", shallow: true }),
   );
   const [collapsed, setCollapsed] = useState(
-    !isIncheon && !regionCode && tab === "schools" && !highlightedSchoolId,
+    isIncheon ? legacyDesign === "night" : !regionCode && tab === "schools" && !highlightedSchoolId,
   );
+  const migratedView = useRef(false);
+  useEffect(() => {
+    if (migratedView.current || legacyDesign !== "desk") return;
+    migratedView.current = true;
+    // A shared link's own view wins; replace, so Back does not return to the bare URL.
+    if (!new URLSearchParams(window.location.search).has("view")) setTab("statistics", "replace");
+  }, [legacyDesign, setTab]);
   const [handledExplore, setHandledExplore] = useState(0);
   if (handledExplore !== exploreRequest) {
     setHandledExplore(exploreRequest);
@@ -161,6 +163,7 @@ function DashboardInner({
   const [schoolFocusNonce, setSchoolFocusNonce] = useState(0);
   const panelRef = useRef<HTMLElement>(null);
   const panelButtonRef = useRef<HTMLButtonElement>(null);
+  const panelCloseRef = useRef<HTMLButtonElement>(null);
   const panelReturnFocusRef = useRef<HTMLElement | null>(null);
   const filteredSchools = useMemo(
     () =>
@@ -182,7 +185,7 @@ function DashboardInner({
   }, [issueModel, filteredSchools, bundle, name, level]);
   const selectedSchool =
     mapSchools.find((s) => s.id === highlightedSchoolId) ?? null;
-  const currentTopic = issueById(issueId)?.title ?? INCH_TOPIC_LABELS[indicatorId] ?? GROUP_LABELS[def.group];
+  const currentTopic = issueById(issueId)?.title ?? QUICK_TOPIC_LABELS[indicatorId] ?? GROUP_LABELS[def.group];
   const currentRegion = bundle.regions.features.find((feature) => feature.properties.code === regionCode)?.properties.name ?? "인천 전체";
   useEffect(() => {
     if (highlightedSchoolId && !selectedSchool)
@@ -193,7 +196,7 @@ function DashboardInner({
     if (!selectedSchool || tab === "statistics" || collapsed) return;
     if (window.matchMedia("(max-width: 1023px)").matches && !panelOpen) return;
     panelRef.current
-      ?.querySelector('[aria-label="선택한 학교"]')
+      ?.querySelector("[data-selected-school]")
       ?.scrollIntoView({ block: "nearest" });
   }, [selectedSchool, tab, collapsed, panelOpen]);
 
@@ -203,9 +206,7 @@ function DashboardInner({
       panelReturnFocusRef.current ??
       (document.activeElement as HTMLElement | null);
     const opener = panelButtonRef.current;
-    panelRef.current
-      ?.querySelector<HTMLButtonElement>('[aria-label="패널 닫기"]')
-      ?.focus();
+    panelCloseRef.current?.focus();
     const close = (event: KeyboardEvent) => {
       // A trend dialog handles its own Escape; keep the underlying mobile sheet open.
       if (event.target instanceof Element && event.target.closest("dialog[open]")) return;
@@ -271,9 +272,13 @@ function DashboardInner({
         className="sr-only"
         data-testid="indicator-announcement"
       >{`지표 변경: ${mapMetric.title}`}</span>
-      {isIncheon && <div className="ice-current-view" role="status" aria-live="polite">
+      {/* Not a live region as a whole: indicator changes are already spoken by the
+          span above and region selections by the map, so only the school line is. */}
+      {isIncheon && <div className="ice-current-view">
         <p><strong>현재 보기</strong><span>{currentTopic} · {mapMetric.title} · {currentRegion}</span></p>
-        {selectedSchool && <p className="ice-current-school"><span>선택 학교: <strong>{selectedSchool.name}</strong></span><button type="button" onClick={() => selectSchool(null)}>선택 해제</button></p>}
+        <div aria-live="polite">
+          {selectedSchool && <p className="ice-current-school"><span>선택 학교: <strong>{selectedSchool.name}</strong></span><button type="button" onClick={() => selectSchool(null)}>선택 해제</button></p>}
+        </div>
       </div>}
       <div className="ice-map-row relative flex min-h-0 flex-1 overflow-hidden">
         {panelOpen && (
@@ -286,7 +291,8 @@ function DashboardInner({
         )}
         <aside
           ref={panelRef}
-          aria-label={`학교 탐색 및 ${REGION_UNIT} 통계`}
+          data-view={tab}
+          aria-label={isIncheon ? "학교·지역 탐색" : `학교 탐색 및 ${REGION_UNIT} 통계`}
           role={panelOpen ? "dialog" : undefined}
           aria-modal={panelOpen ? true : undefined}
           onKeyDown={(event) => {
@@ -355,14 +361,17 @@ function DashboardInner({
                   className={`min-h-11 rounded-lg px-3 text-sm ${tab === value ? "bg-accent-soft font-semibold text-accent-text" : "text-ink-muted hover:bg-paper"}`}
                 >
                   {value === "schools"
-                    ? "학교 탐색"
+                    ? isIncheon ? "학교 찾기" : "학교 탐색"
                     : value === "issues"
                       ? "교육문제"
-                      : `${REGION_UNIT} 통계`}
+                      : value === "trends"
+                        ? "추세"
+                        : isIncheon ? "지역 비교" : `${REGION_UNIT} 통계`}
                 </button>
               ))}
             </div>
             <button
+              ref={panelCloseRef}
               type="button"
               aria-label="패널 닫기"
               onClick={() => {
@@ -380,12 +389,6 @@ function DashboardInner({
             id={`panel-${tab}`}
             aria-labelledby={`tab-${tab}`}
           >
-            {isIncheon && bundle.incheonHistory && <IncheonTrends
-              key={`${tab}-${regionCode ?? "province"}-${selectedSchool?.id ?? "none"}`}
-              data={bundle.incheonHistory}
-              school={tab === "schools" ? selectedSchool : null}
-              currentRegionName={bundle.regions.features.find(f => f.properties.code === regionCode)?.properties.name}
-            />}
             {tab === "schools" ? (
               <SchoolExplorer
                 metric={mapMetric}
@@ -396,6 +399,13 @@ function DashboardInner({
                 selectedSchool={selectedSchool}
                 onSelect={selectSchool}
                 onStatistics={showStatistics}
+                onTrends={isIncheon && bundle.incheonHistory ? () => setTab("trends") : undefined}
+              />
+            ) : tab === "trends" ? (
+              bundle.incheonHistory && <IncheonTrends
+                data={bundle.incheonHistory}
+                school={selectedSchool}
+                currentRegionName={bundle.regions.features.find(f => f.properties.code === regionCode)?.properties.name}
               />
             ) : tab === "issues" ? (
               issueState.status === "ready" ? (
@@ -474,8 +484,18 @@ function DashboardInner({
                     </ul>
                     <p className="text-xs text-ink-muted">{issueModel.note}</p>
                   </section>
-                ) : isIncheon && design === "desk" ? (
-                  <RegionalComparison bundle={bundle} />
+                ) : isIncheon ? (
+                  <div className="space-y-6">
+                    {regionCode && (
+                      <RegionPanel
+                        bundle={bundle}
+                        highlightedSchoolId={highlightedSchoolId}
+                        onHighlightSchool={selectSchool}
+                        showSchools={false}
+                      />
+                    )}
+                    <RegionalComparison bundle={bundle} />
+                  </div>
                 ) : regionCode ? (
                   <RegionPanel
                     bundle={bundle}
@@ -497,7 +517,7 @@ function DashboardInner({
             )}
           </div>
         </aside>
-        <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+        <main data-panel-collapsed={collapsed} className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <MapShell
             legendHost={legendHost}
             mapMetric={mapMetric}
@@ -562,7 +582,7 @@ function DashboardInner({
                 if (tab !== "issues") setTab("schools");
                 requestAnimationFrame(() =>
                   panelRef.current
-                    ?.querySelector('[aria-label="선택한 학교"]')
+                    ?.querySelector("[data-selected-school]")
                     ?.scrollIntoView({ block: "nearest" }),
                 );
               }}
@@ -591,7 +611,7 @@ function DashboardInner({
 }
 
 function DashboardBody() {
-  const { design, colorMode, textSize } = useDesign();
+  const { colorMode, textSize } = useDesign();
   // URL is the source of truth for indicatorId (nuqs) — this replaces Task
   // 2's local useState. Called unconditionally here (not inside the
   // status === "ready" branch below), so the URL is established immediately
@@ -604,8 +624,8 @@ function DashboardBody() {
   const bundle = state.status === "ready" ? state.bundle : null;
 
   return (
-    <div data-design={ACTIVE_PROFILE.id === "incheon" ? design : undefined} data-color={colorMode} data-text-size={textSize} className={`${ACTIVE_PROFILE.id === "incheon" ? "ice-app" : ""} grid h-full grid-rows-[auto_minmax(0,1fr)] bg-paper text-ink`}>
-      {ACTIVE_PROFILE.id === "incheon" ? <IncheonHeader bundle={bundle} onExplore={() => setExploreRequest(n => n + 1)} /> : <TopBar indicatorId={indicatorId} bundle={bundle} onExploreIssues={() => setExploreRequest(n => n + 1)} />}
+    <div data-color={colorMode} data-text-size={textSize} className={`${ACTIVE_PROFILE.id === "incheon" ? "ice-app" : ""} grid h-full grid-rows-[auto_minmax(0,1fr)] bg-paper text-ink`}>
+      {ACTIVE_PROFILE.id === "incheon" ? <IncheonHeader bundle={bundle} /> : <TopBar indicatorId={indicatorId} bundle={bundle} onExploreIssues={() => setExploreRequest(n => n + 1)} />}
       {state.status === "loading" && (
         <CenteredMessage>데이터 불러오는 중…</CenteredMessage>
       )}

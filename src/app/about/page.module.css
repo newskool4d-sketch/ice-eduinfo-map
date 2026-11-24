@@ -1,3 +1,12 @@
+/* globals.css locks html/body to the viewport for the map page. This page is an
+   ordinary document, so scrolling goes back to the browser while it is mounted. */
+html:has(.page),
+body:has(.page) {
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
+
 .page {
   min-height: 100svh;
   padding: 22px 20px 48px;
@@ -36,7 +45,8 @@
   padding: clamp(28px, 5vw, 54px);
   border-radius: 24px;
   color: #f7fbfe;
-  background: linear-gradient(112deg, #10384d 0%, #145670 66%, #087cad 100%);
+  /* Ends at #06577a, not #087cad: the light eyebrow and paragraph keep 4.5:1 across it. */
+  background: linear-gradient(112deg, #10384d 0%, #145670 66%, #06577a 100%);
   box-shadow: 0 18px 44px #153d5421;
 }
 
@@ -154,6 +164,53 @@
 
 .pageFooter { display: flex; justify-content: space-between; gap: 14px; margin-top: 30px; padding-top: 18px; border-top: 1px solid #d4e0e7; color: #526b7f; font-size: 14px; }
 .page a:focus-visible { outline: 3px solid #e2a62d; outline-offset: 3px; border-radius: 4px; }
+
+/* Dark mode: the map's 보기 설정 choice, put on <html> before paint (layout.tsx).
+   The light rules above stay as they are; these only override colours. */
+:global(:root[data-ice-color="dark"]) .page { color: #e8f2f7; background: linear-gradient(180deg, #10273a 0, #0c1d2c 320px, #0c1d2c 100%); }
+:global(:root[data-ice-color="dark"]) .topNav,
+:global(:root[data-ice-color="dark"]) .stats dt,
+:global(:root[data-ice-color="dark"]) .stats>div>span,
+:global(:root[data-ice-color="dark"]) .sectionHeading>p:last-child,
+:global(:root[data-ice-color="dark"]) .sourceDate,
+:global(:root[data-ice-color="dark"]) .pageFooter { color: #b0c5d2; }
+:global(:root[data-ice-color="dark"]) .backLink,
+:global(:root[data-ice-color="dark"]) .pageFooter a,
+:global(:root[data-ice-color="dark"]) .sourceList a,
+:global(:root[data-ice-color="dark"]) .documentLink,
+:global(:root[data-ice-color="dark"]) .stats dd,
+:global(:root[data-ice-color="dark"]) .sectionHeading .sectionEyebrow,
+:global(:root[data-ice-color="dark"]) .githubCard .sectionEyebrow { color: #82def4; }
+:global(:root[data-ice-color="dark"]) .sourceList a:hover,
+:global(:root[data-ice-color="dark"]) .documentLink:hover,
+:global(:root[data-ice-color="dark"]) .backLink:hover,
+:global(:root[data-ice-color="dark"]) .pageFooter a:hover { color: #b5ecf9; }
+:global(:root[data-ice-color="dark"]) .hero { border: 1px solid #2e4a5c; background: linear-gradient(112deg, #132b3c 0%, #173a50 100%); box-shadow: none; }
+:global(:root[data-ice-color="dark"]) .disclaimer { border-color: #65552e; border-left-color: #ebc86e; background: #322b1b; color: #f7edcf; }
+:global(:root[data-ice-color="dark"]) .noticeLabel { color: #ebc86e; }
+:global(:root[data-ice-color="dark"]) .stats>div,
+:global(:root[data-ice-color="dark"]) .card,
+:global(:root[data-ice-color="dark"]) .sourceList,
+:global(:root[data-ice-color="dark"]) .qualitySection { border-color: #2e4a5c; background: #132b3c; box-shadow: none; }
+:global(:root[data-ice-color="dark"]) .cardNumber { background: #1b4053; color: #82def4; }
+:global(:root[data-ice-color="dark"]) .card p,
+:global(:root[data-ice-color="dark"]) .indicatorList li,
+:global(:root[data-ice-color="dark"]) .indicatorStrip p,
+:global(:root[data-ice-color="dark"]) .qualityList,
+:global(:root[data-ice-color="dark"]) .githubCard p:last-child { color: #c9d8e1; }
+:global(:root[data-ice-color="dark"]) .card strong,
+:global(:root[data-ice-color="dark"]) .indicatorStrip strong,
+:global(:root[data-ice-color="dark"]) .qualityList strong,
+:global(:root[data-ice-color="dark"]) .githubCard h2 { color: #e8f2f7; }
+:global(:root[data-ice-color="dark"]) .indicatorList li::before { background: #56cbea; }
+:global(:root[data-ice-color="dark"]) .smallNote { border-top-color: #2e4a5c; color: #b0c5d2 !important; }
+:global(:root[data-ice-color="dark"]) .indicatorStrip,
+:global(:root[data-ice-color="dark"]) .githubCard { background: #1b4053; }
+:global(:root[data-ice-color="dark"]) .sourceList li+li,
+:global(:root[data-ice-color="dark"]) .pageFooter { border-color: #2e4a5c; }
+:global(:root[data-ice-color="dark"]) .qualityList li::marker { color: #56cbea; }
+:global(:root[data-ice-color="dark"]) .githubButton { background: #82def4; color: #0c1d2c; }
+:global(:root[data-ice-color="dark"]) .githubButton:hover { background: #b5ecf9; }
 
 @media (max-width: 820px) {
   .methodGrid { grid-template-columns: 1fr; }

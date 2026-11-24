@@ -16,8 +16,11 @@ import { parseAsStringLiteral, useQueryStates } from "nuqs";
 import { ISSUE_IDS, ISSUE_METRICS, issueById, resolveIssueMetric } from "../issues/registry";
 
 import { ACTIVE_PROFILE } from "../profiles";
-export type MapPanelView = "schools" | "issues" | "statistics";
-export const MAP_VIEWS: readonly MapPanelView[] = ACTIVE_PROFILE.capabilities.educationIssues ? ["schools", "issues", "statistics"] : ["schools", "statistics"];
+export type MapPanelView = "schools" | "issues" | "statistics" | "trends";
+/** Incheon's panel is organised by task: 학교 찾기 / 지역 비교 / 추세 (redesign plan §4.3). */
+export const MAP_VIEWS: readonly MapPanelView[] = ACTIVE_PROFILE.capabilities.educationIssues
+  ? ["schools", "issues", "statistics"]
+  : ACTIVE_PROFILE.id === "incheon" ? ["schools", "statistics", "trends"] : ["schools", "statistics"];
 
 
 import { REGION_CODES, type RegionCode } from "../geo/regions";
@@ -59,7 +62,7 @@ export interface MapQuery {
   setZeroEntrants: (enabled: boolean) => void;
   issueId: string | null;
   issueMetric: string | null;
-  setView: (view: MapPanelView) => void;
+  setView: (view: MapPanelView, history?: "push" | "replace") => void;
   setIssue: (id: string | null, metric?: string) => void;
   setIssueMetric: (metric: string) => void;
   indicatorId: string;
@@ -93,7 +96,9 @@ export function useMapQuery(): MapQuery {
   const definition = issueById(issue);
   return {
     view,
-    compareRegion: region && compareRegion !== region ? compareRegion : null,
+    // Only an open issue has a control to clear the comparison, so a shared link
+    // carrying compareRegion without one must not leave an outline on the map.
+    compareRegion: definition && region && compareRegion !== region ? compareRegion : null,
     issueLevel,
     zeroEntrants: zeroEntrants === "on",
     setCompareRegion(code) { void setQuery({ compareRegion: code === region ? null : code }); },
@@ -104,8 +109,8 @@ export function useMapQuery(): MapQuery {
     // The comparison region only exists inside an issue (IssueComparison), so
     // leaving the issues view or switching/closing the issue clears it — otherwise
     // the map keeps highlighting it with no control left to clear it.
-    setView(next) {
-      void setQuery({ view: next, ...(next !== "issues" ? { compareRegion: null } : {}) }, { history: "push" });
+    setView(next, history = "push") {
+      void setQuery({ view: next, ...(next !== "issues" ? { compareRegion: null } : {}) }, { history });
     },
     setIssue(id, metric) {
       const next = issueById(id);

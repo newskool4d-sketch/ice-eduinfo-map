@@ -97,6 +97,20 @@ describe("Incheon building API", () => {
     expect(upstream).toHaveBeenCalledTimes(2);
   });
 
+  it("stops tile URL variants in the proxy, where Next has not yet hidden them from the handler", async () => {
+    const { NextRequest } = await import("next/server");
+    const { proxy } = await import("@/proxy");
+    const tile = `http://localhost/api/buildings/v1/16/${songdo.x}/${songdo.y}`;
+    const status = (url: string) => proxy(new NextRequest(url)).status;
+    // With skipProxyUrlNormalize the proxy gets the URL as sent; the handler would
+    // never see the nxtP… keys below.
+    for (const url of [`${tile}?foo=1`, `${tile}?nxtPfoo=1`, `${tile}?nxtPfoo=1&nxtPfoo=2`, `${tile}?nxtPz=16&nxtPz=16`,
+      `${tile}?nxtPx=${songdo.x + 1}`, `${tile}?z=16`, `${tile}?&&`, `${tile}?nxtPz=%31%36`, tile.replace("/16/", "/%31%36/"), tile.replace("/16/", "/016/"), `${tile}/`]) {
+      expect(status(url), url).toBe(400);
+    }
+    for (const url of [tile, `${tile}?nxtPz=16&nxtPx=${songdo.x}&nxtPy=${songdo.y}`]) expect(status(url), url).toBe(200);
+  });
+
   it.each([["VWORLD_BUILDING_KEY", ""], ["BUILDINGS_ENABLED", "false"], ["NEXT_PUBLIC_BUILDINGS_ENABLED", "false"]])("keeps %s failures uncached and avoids upstream requests", async (name, value) => {
     const { get, upstream } = await incheonApi();
     vi.stubEnv(name, value);

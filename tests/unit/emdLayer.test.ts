@@ -90,6 +90,12 @@ describe("makeEmdBoundaryLayer", () => {
     expect(layer.props.getColor).toEqual([60, 60, 70, 110]);
   });
 
+  it("uses a light line in the Incheon dark mode and redraws when the mode changes", () => {
+    const layer = makeEmdBoundaryLayer(fixture(), { elevation: 100, triggerKey: "v1", dark: true });
+    expect(layer.props.getColor).toEqual([178, 214, 230, 130]);
+    expect(layer.props.updateTriggers.getColor).toBe(true);
+  });
+
   it("flattens every Polygon/MultiPolygon ring (outer + holes) into {path} data, one entry per ring", () => {
     const layer = makeEmdBoundaryLayer(fixture(), { elevation: 0, triggerKey: "v1" });
     const data = layer.props.data as { path: [number, number][] }[];

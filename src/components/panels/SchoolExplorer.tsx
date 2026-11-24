@@ -37,16 +37,20 @@ export function SchoolDetail({
   school,
   onClose,
   onStatistics,
+  onTrends,
 }: {
   school: School;
   onClose: () => void;
   onStatistics: (code: RegionCode) => void;
+  /** Incheon: opens the 추세 tab on this school. */
+  onTrends?: () => void;
 }) {
   const number = (value: number | null) =>
     value === null ? "자료 없음" : value.toLocaleString("ko-KR");
   return (
     <section
       aria-label="선택한 학교"
+      data-selected-school
       className="rounded-xl border border-accent/30 bg-accent-soft p-3"
     >
       <div className="flex items-start justify-between gap-2">
@@ -109,6 +113,15 @@ export function SchoolDetail({
       >
         해당 {REGION_UNIT} 통계 보기
       </button>
+      {onTrends && (
+        <button
+          type="button"
+          className="ml-4 mt-3 min-h-10 text-xs font-semibold text-accent-text underline underline-offset-4"
+          onClick={onTrends}
+        >
+          이 학교 추세
+        </button>
+      )}
     </section>
   );
 }
@@ -122,6 +135,7 @@ export default function SchoolExplorer({
   onSelect,
   selectedSchool,
   onStatistics,
+  onTrends,
 }: {
   metric?: MapMetricSpec;
   schools: School[];
@@ -131,6 +145,7 @@ export default function SchoolExplorer({
   onSelect: (id: string | null) => void;
   selectedSchool: School | null;
   onStatistics: (code: RegionCode) => void;
+  onTrends?: () => void;
 }) {
   const located = schools.filter(
     (s) => s.lat !== null && s.lng !== null,
@@ -213,6 +228,7 @@ export default function SchoolExplorer({
           school={selectedSchool}
           onClose={() => onSelect(null)}
           onStatistics={onStatistics}
+          onTrends={onTrends}
         />
       )}
       <div className="flex items-center justify-between gap-2 border-t border-line pt-3 text-xs text-ink-muted">
@@ -234,7 +250,7 @@ export default function SchoolExplorer({
           검색 조건에 맞는 학교가 없습니다.
         </p>
       ) : (
-        <ul className="space-y-1" aria-label="학교 목록">
+        <ul className="ice-school-list space-y-1" aria-label="학교 목록">
           {schools.map((school) => (
             <li key={school.id}>
               <button

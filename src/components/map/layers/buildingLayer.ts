@@ -18,6 +18,8 @@ export class BuildingTileset extends Tileset2D {
 const extensions = [new ClipExtension()];
 export function makeBuildingLayer(options: {
   mobile: boolean; issueActive: boolean; retry: number;
+  /** Incheon dark mode: lighter blue-gray buildings that stay visible on the dark basemap. */
+  dark?: boolean;
   onStatus: (id: string, error: boolean, fetchedAt?: string) => void;
 }) {
   const coverage = buildingCoverage();
@@ -33,7 +35,7 @@ export function makeBuildingLayer(options: {
     refinementStrategy: "no-overlap",
     pickable: false,
     // Rebuild only the sublayers when the issue overlay changes; retain tile data.
-    updateTriggers: { getFillColor: options.issueActive },
+    updateTriggers: { getFillColor: [options.issueActive, options.dark], getLineColor: options.dark },
     getTileData: async ({ index, signal, id }) => {
       try {
         const response = await fetch(`/api/buildings/v1/16/${index.x}/${index.y}`, { signal });
@@ -58,8 +60,8 @@ export function makeBuildingLayer(options: {
       const common = {
         ...props, data: props.data, pickable: false,
         extensions, clipBounds: [west, south, east, north] as [number, number, number, number], clipByInstance: false,
-        getFillColor: [135, 145, 153, options.issueActive ? 38 : 46] as [number, number, number, number],
-        getLineColor: [105, 115, 125, 75] as [number, number, number, number],
+        getFillColor: (options.dark ? [168, 196, 212, options.issueActive ? 40 : 52] : [135, 145, 153, options.issueActive ? 38 : 46]) as [number, number, number, number],
+        getLineColor: (options.dark ? [150, 184, 200, 95] : [105, 115, 125, 75]) as [number, number, number, number],
         lineWidthUnits: "pixels" as const, getLineWidth: 1,
         parameters: { depthWriteEnabled: false },
       };

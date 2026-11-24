@@ -11,10 +11,23 @@ const signed = (n: number | null) => n === null ? "산출 불가" : signedFormat
 
 /** Historical administrative names intentionally do not mutate the current-boundary map filter. */
 export default function IncheonTrends({ data, school, currentRegionName }: { data: IncheonHistory; school: School | null; currentRegionName?: string }) {
-  const [scope, setScope] = useState<"province" | "region" | "school">(school ? "school" : currentRegionName && data.regions[currentRegionName] ? "region" : "province");
-  const [region, setRegion] = useState(currentRegionName && data.regions[currentRegionName] ? currentRegionName : Object.keys(data.regions)[0]);
+  const hasHistory = !!currentRegionName && !!data.regions[currentRegionName];
+  const followScope = school ? "school" : hasHistory ? "region" : "province";
+  const [scope, setScope] = useState<"province" | "region" | "school">(followScope);
+  const [region, setRegion] = useState(hasHistory ? currentRegionName : Object.keys(data.regions)[0]);
   const [metric, setMetric] = useState<HistoryMetric>("students");
   const [level, setLevel] = useState<HistoryLevel>("all");
+  // The panel stays mounted across map selections (Dashboard no longer keys it on
+  // them), so the chosen metric and school level survive. The scope and region
+  // still follow a newly selected school or region, as a remount used to do.
+  const [followed, setFollowed] = useState({ school: school?.id, region: currentRegionName });
+  if (followed.school !== school?.id || followed.region !== currentRegionName) {
+    setFollowed({ school: school?.id, region: currentRegionName });
+    setScope(followScope);
+    if (hasHistory) setRegion(currentRegionName);
+    // School trends have no school-count metric (see the metric select below).
+    if (followScope === "school" && metric === "schools") setMetric("students");
+  }
   const [expanded, setExpanded] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const expandRef = useRef<HTMLButtonElement>(null);
@@ -51,7 +64,7 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
   const change = historyChange(last, base);
   const previous = historyChange(last, points.find(p => p.year === previousYear)?.[metric] ?? null);
   const content = <section aria-label="인천 연도별 추세" className="ice-trend-content">
-      <div className="ice-trend-heading"><p>{span} · {definition.label}</p>{!expanded && <button ref={expandRef} type="button" className="ice-expand-button" aria-haspopup="dialog" onClick={() => setExpanded(true)}>크게 보기</button>}</div>
+      <div className="ice-trend-heading"><p>{definition.label}</p>{!expanded && <button ref={expandRef} type="button" className="ice-expand-button" aria-haspopup="dialog" onClick={() => setExpanded(true)}>크게 보기</button>}</div>
       <div className="ice-trend-scopes" aria-label="추세 범위">{([["province", "인천 전체"], ["region", "군·구별"], ["school", "학교별"]] as const).map(([id,label]) => <button type="button" key={id} aria-pressed={scope===id} disabled={id==="school" && !school} onClick={()=>{setScope(id); if(id==="school" && metric==="schools") setMetric("students");}}>{label}</button>)}</div>
       <div className="ice-trend-filters">
       {scope === "region" && <label className="ice-trend-field">비교할 군·구 (4월 기준)<select aria-label="추세 군구" value={region} onChange={e=>setRegion(e.target.value)}>{Object.keys(data.regions).map(name=><option key={name}>{name}</option>)}</select></label>}
@@ -82,10 +95,11 @@ export default function IncheonTrends({ data, school, currentRegionName }: { dat
       <details className="ice-trend-note"><summary>출처와 비교 기준</summary><p>{data.quality.note}</p><p>교원 수는 휴직 포함, 강사 제외입니다. 그래프 세로축은 값 범위에 맞춰 확대되어 있습니다.</p><a href={data.source.url} target="_blank" rel="noreferrer">{data.source.name}</a></details>
     </section>;
   return <>
-    <details className="ice-trends" open={!!school || undefined}>
-      <summary>{span} 추세·증감률 <span>{place}</span></summary>
+    <div className="ice-trends">
+      <h2 className="ice-trends-title">{span} 추세·증감률</h2>
+      <p className="ice-trends-place">{place}</p>
       {!expanded && content}
-    </details>
+    </div>
     <dialog ref={dialogRef} className="ice-trend-dialog" aria-labelledby={dialogTitle} onCancel={event=>{event.preventDefault();setExpanded(false);}} onKeyDown={event=>{
       event.stopPropagation();
       if (event.key !== "Tab") return;

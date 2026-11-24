@@ -2,17 +2,11 @@
 import { useMapQuery } from "@/lib/state/urlState";
 import type { SeriesFile } from "@/lib/indicators/types";
 import { ACTIVE_PROFILE } from "@/lib/profiles";
-import { INDICATOR_IDS } from "@/lib/indicators/registry";
+import { INDICATOR_IDS, indicatorById } from "@/lib/indicators/registry";
+import { QUICK_TOPICS } from "@/lib/indicators/groups";
 import IndicatorMenu from "./IndicatorMenu";
 
-const CHOICES = [
-  ["학생 분포", "students_total"],
-  ["교육여건", "students_per_class"],
-  ["작은학교", "small_schools"],
-  ["특수교육", "special-education"],
-  ["지역 변화", "students_change_5y"],
-] as const;
-const availableChoices = CHOICES.filter(([, id]) => INDICATOR_IDS.includes(id) || (id === "special-education" && ACTIVE_PROFILE.capabilities.educationIssues));
+const availableChoices = QUICK_TOPICS.filter(([, id]) => INDICATOR_IDS.includes(id) || (id === "special-education" && ACTIVE_PROFILE.capabilities.educationIssues));
 
 export default function MapTopicMenu({
   series, onExploreIssues,
@@ -21,12 +15,15 @@ export default function MapTopicMenu({
   onExploreIssues?: () => void;
 }) {
   const query = useMapQuery();
+  const group = indicatorById(query.indicatorId)?.group;
   const active =
     query.issueId === "special-education"
       ? query.issueId
-      : !query.issueId && availableChoices.some(([, id]) => id === query.indicatorId)
-        ? query.indicatorId
-        : "";
+      : query.issueId
+        ? ""
+        : availableChoices.find(([, id]) => id === query.indicatorId)?.[1]
+          ?? (ACTIVE_PROFILE.id === "incheon" ? availableChoices.find(([, id]) => indicatorById(id)?.group === group)?.[1] : undefined)
+          ?? "";
   const select = (id: string) =>
     id === "special-education" ? query.setIssue(id) : query.setIndicator(id);
   return (
@@ -46,7 +43,7 @@ export default function MapTopicMenu({
           </option>
         ))}
       </select>
-      <nav aria-label="교육현황 빠른 선택" className="hidden gap-1 xl:flex">
+      <nav aria-label="교육현황 빠른 선택" className="ice-topic-chips hidden gap-1 xl:flex">
         {availableChoices.map(([label, id]) => (
           <button
             key={id}

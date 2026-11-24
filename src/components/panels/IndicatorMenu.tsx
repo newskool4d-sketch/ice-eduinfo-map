@@ -109,6 +109,18 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     }
     firstRadio?.focus();
 
+    // The popover's top differs by breakpoint (fixed below xl, absolute under the
+    // button at xl+), so a single CSS max-height cut its end off on short screens.
+    // Fit it to the space actually left below its top edge.
+    function fitHeight() {
+      if (!popover) return;
+      const top = popover.getBoundingClientRect().top;
+      popover.style.maxHeight = `${Math.max(160, window.innerHeight - top - 12)}px`;
+    }
+    fitHeight();
+    window.addEventListener("resize", fitHeight);
+    window.addEventListener("scroll", fitHeight, { passive: true });
+
     function onKeyDown(event: KeyboardEvent) {
       // Fix round 1 (review finding #1): preventDefault() so DeckMap's
       // document-level Escape-to-deselect listener (registered in the
@@ -131,6 +143,8 @@ export default function IndicatorMenu({ series = {} }: IndicatorMenuProps) {
     document.addEventListener("keydown", onKeyDown, { capture: true });
     document.addEventListener("mousedown", onPointerDown, { capture: true });
     return () => {
+      window.removeEventListener("resize", fitHeight);
+      window.removeEventListener("scroll", fitHeight);
       document.removeEventListener("keydown", onKeyDown, { capture: true });
       document.removeEventListener("mousedown", onPointerDown, {
         capture: true,

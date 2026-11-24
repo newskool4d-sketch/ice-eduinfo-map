@@ -81,7 +81,8 @@ describe("profile selection and isolation", () => {
     }
 
     const { mapQueryParsers, MAP_VIEWS } = await import("../../src/lib/state/urlState");
-    expect(MAP_VIEWS).toEqual(["schools", "statistics"]);
+    expect(MAP_VIEWS).toEqual(["schools", "statistics", "trends"]);
+    expect(mapQueryParsers.view.parse("trends")).toBe("trends");
     expect(mapQueryParsers.indicator.parse("closed_schools")).toBeNull();
     expect(mapQueryParsers.view.parse("issues")).toBeNull();
     expect(mapQueryParsers.region.parse("28125")).toBe("28125");

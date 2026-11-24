@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
   // `next build && next start` production output either way, so this only
   // affects `next dev` (what `npm run e2e`'s webServer and local dev use).
   devIndicators: false,
+  // src/proxy.ts rejects non-canonical building-tile URLs and has to see the query
+  // exactly as sent; the default normalization hides nxtP…-prefixed keys from it.
+  skipProxyUrlNormalize: true,
+  poweredByHeader: false,
   // Task 6, Section D.2 — public/data/**（regions.geojson, indicators/*.json
   // 등）는 npm run data:build 로만 바뀌는 정적 파일이라 브라우저/CDN이 짧게
   // 재검증 없이 쓰고, 그 뒤로는 백그라운드 재검증 중 이전 응답을 써도 되는
@@ -65,6 +69,17 @@ const nextConfig: NextConfig = {
         ],
       },
       { source: "/data/education-issues.json", headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }] },
+      // Baseline headers. Referrer-Policy must stay no stricter than the browser
+      // default: VWorld checks the Referer of each basemap tile against the key's
+      // registered domain. CSP and frame-ancestors are not set yet (left for review).
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+        ],
+      },
     ];
   },
 };

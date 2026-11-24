@@ -90,6 +90,16 @@ describe("city scene", () => {
     const layer = makeBuildingLayer({mobile:true,issueActive:false,retry:0,onStatus:vi.fn()});
     expect(layer.props).toMatchObject({ minZoom:16,maxZoom:16,visibleMinZoom:16,maxRequests:2,maxCacheSize:32,maxCacheByteSize:24*1024*1024,pickable:false });
   });
+  it("keeps the light colours and lightens buildings in the Incheon dark mode", () => {
+    const colours = (dark?: boolean) => {
+      const layer = makeBuildingLayer({ mobile: false, issueActive: false, retry: 0, onStatus: vi.fn(), dark });
+      const render = layer.props.renderSubLayers as unknown as (props: unknown) => { props: { getFillColor: number[]; getLineColor: number[] } }[];
+      const [volume] = render({ id: "t", data: { type: "FeatureCollection", features: [] }, tile: { boundingBox: [[0, 0], [1, 1]] } });
+      return { fill: volume.props.getFillColor, line: volume.props.getLineColor, triggers: layer.props.updateTriggers };
+    };
+    expect(colours()).toMatchObject({ fill: [135, 145, 153, 46], line: [105, 115, 125, 75] });
+    expect(colours(true)).toMatchObject({ fill: [168, 196, 212, 52], line: [150, 184, 200, 95], triggers: { getLineColor: true } });
+  });
 });
 
 
