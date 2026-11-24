@@ -87,3 +87,12 @@ test("the toolbar figures follow the selected district, including the 2026-07-01
   await expect(status.locator("dd")).toHaveCount(4);
   await expect(status.locator("dd").filter({ hasText: "—" })).toHaveCount(0);
 });
+
+test("the legend headline names the selected district", async ({ page }) => {
+  await page.goto("/?scene=flat&region=28185");
+  await ready(page);
+  await expect(page.locator(".ice-legend-total")).toHaveText("연수구 51,679명");
+  await page.goto("/?scene=flat");
+  await ready(page);
+  await expect(page.locator(".ice-legend-total")).toHaveText(/^인천 전체 /);
+});

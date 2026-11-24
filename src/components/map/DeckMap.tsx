@@ -1445,6 +1445,7 @@ export default function DeckMap({
         attribution={incheon && basemapOn ? BASEMAP_ATTRIBUTION : undefined}
         density={densityVisible}
         schoolSelected={!!highlightedSchoolId}
+        regionCode={selectedCode}
         mobile={mobile}
         clustered={schoolGroups.clusters.length > 0}
         targetsSeparate={indicatorId === "small_schools"}

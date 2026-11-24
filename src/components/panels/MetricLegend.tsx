@@ -15,6 +15,8 @@ interface MetricLegendProps {
   clustered?: boolean;
   targetsSeparate?: boolean;
   attribution?: string;
+  /** Incheon: the selected region, so the headline figure is that region's. */
+  regionCode?: string | null;
 }
 
 export default function MetricLegend({
@@ -27,10 +29,11 @@ export default function MetricLegend({
   clustered = false,
   targetsSeparate = false,
   attribution,
+  regionCode,
 }: MetricLegendProps) {
   if (ACTIVE_PROFILE.id === "incheon") return <IncheonMetricLegend
     metric={metric} density={density} densityUnavailable={densityUnavailable}
-    schoolSelected={schoolSelected} mobile={mobile} clustered={clustered} targetsSeparate={targetsSeparate} attribution={attribution}>{children}</IncheonMetricLegend>;
+    schoolSelected={schoolSelected} regionCode={regionCode} mobile={mobile} clustered={clustered} targetsSeparate={targetsSeparate} attribution={attribution}>{children}</IncheonMetricLegend>;
   const legend = density
     ? METRIC_RAMP.map((color, i) => ({
         color,
@@ -96,7 +99,7 @@ export default function MetricLegend({
   );
 }
 
-function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelected, clustered, targetsSeparate, attribution, children }: MetricLegendProps) {
+function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelected, regionCode, clustered, targetsSeparate, attribution, children }: MetricLegendProps) {
   const numeric = !density && metric.kind !== "category" && !metric.regionOverlay;
   const labelOf = (label: string) => numeric && metric.unit && label.endsWith(metric.unit)
     ? label.slice(0, -metric.unit.length) : label;
@@ -104,7 +107,7 @@ function IncheonMetricLegend({ metric, density, densityUnavailable, schoolSelect
     className={`ice-metric-legend ice-map-legend ${schoolSelected ? "ice-map-legend-raised" : ""}`}>
     <div className="ice-legend-heading">
       <h2 data-testid="legend-indicator-label">{metric.title}</h2>
-      <p className="ice-legend-total">{metric.summary}</p>
+      <p className="ice-legend-total">{metric.summaryOf?.(regionCode ?? null) ?? metric.summary}</p>
       {numeric && <span>단위: {metric.unit}</span>}
     </div>
     {/* Collapsed by default so the map stays visible; the strip previews the colours. */}

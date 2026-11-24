@@ -94,6 +94,14 @@ describe("education city metrics", () => {
       );
     }
   });
+  it("names the selected region in the summary, and the province without one", () => {
+    const model = buildMapMetric(bundle, "students_total", null, facts);
+    const code = bundle.regions.features[0].properties.code;
+    const name = bundle.regions.features[0].properties.name;
+    const value = bundle.indicators.students_total.rows.find((row) => row.regionCode === code && row.level === undefined)!.value!;
+    expect(model.summaryOf?.(null)).toBe(model.summary);
+    expect(model.summaryOf?.(code)).toBe(`${name} ${value.toLocaleString("ko-KR")}명`);
+  });
   it("separates zero, missing and a zero denominator", () => {
     const model = buildMapMetric(bundle, "students_per_class", null, facts);
     const sample = bundle.schools.schools[0];
