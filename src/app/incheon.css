@@ -77,6 +77,14 @@
 .ice-app input[type="search"] { height:50px; border-radius:10px; font-size:var(--ice-body); }
 .ice-app input[type="search"]:focus { outline:2px solid var(--color-accent); outline-offset:2px; }
 .ice-app button:focus-visible,.ice-app select:focus-visible,.ice-app summary:focus-visible { outline:2px solid var(--color-accent); outline-offset:3px; }
+/* Field boundaries (WCAG 1.4.11): --color-line measured 1.17-1.32:1 (light) and 1.56-1.83:1 (dark) against
+   the surface around a field. Dividers keep --color-line; only the boxes people type or pick in get this. */
+.ice-app { --ice-field-border:#6f8797; }
+:root[data-ice-color="dark"] .ice-app { --ice-field-border:#6f8c9e; }
+.ice-app input[type="search"],.ice-app select,.ice-app .basemap-control select { border-color:var(--ice-field-border); }
+/* The map region is focusable (arrow keys cycle 군·구) but its inset ring sat under the canvas. Draw the
+   indicator above it: accent line plus a surface-coloured inner line, so it shows on any basemap. */
+.ice-app #school-map:focus-visible::after { content:""; position:absolute; inset:0; z-index:20; border:2px solid var(--color-accent); box-shadow:inset 0 0 0 2px var(--color-surface); pointer-events:none; }
 .ice-app button { cursor:pointer; }
 .ice-check-marker::before { content:"✓"; }
 .ice-app .ice-metric-legend { max-width:min(370px,calc(100% - 92px)); border-color:var(--color-line); border-radius:16px; box-shadow:0 14px 38px #00152624; }
@@ -104,7 +112,7 @@
 .ice-app .ice-trend-scopes button[aria-pressed="true"] { background: var(--color-accent-soft); color: var(--color-accent-text); font-weight: 700; }
 .ice-app .ice-trend-scopes button:disabled { opacity: .45; cursor: not-allowed; }
 .ice-app .ice-trend-field { display: grid; gap: 5px; min-width: 0; margin: 8px 0; font-size: var(--ice-small); }
-.ice-app .ice-trend-field select { min-width: 0; width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-surface); color: var(--color-ink); font-size: var(--ice-body); }
+.ice-app .ice-trend-field select { min-width: 0; width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--ice-field-border); border-radius: 8px; background: var(--color-surface); color: var(--color-ink); font-size: var(--ice-body); }
 .ice-app .ice-trend-table { margin-top: 10px; overflow-x: auto; }
 .ice-app .ice-trend-table table { width: 100%; min-width: 350px; border-collapse: collapse; font-size: var(--ice-body); font-variant-numeric: tabular-nums; }
 .ice-app .ice-trend-table th, .ice-app .ice-trend-table td { padding: 12px 8px; border-bottom: 1px solid var(--color-line); text-align: right; white-space: nowrap; }

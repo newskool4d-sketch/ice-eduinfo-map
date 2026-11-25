@@ -976,6 +976,10 @@ export default function DeckMap({
   ]);
 
   const basemapOn = basemapTiles !== null;
+  // Incheon: a white dot outline vanishes on a light map (백지도·일반지도, or no basemap in the
+  // light theme), and most dots there carry the pale end of the metric ramp. Measured 2026-11-25:
+  // 539 of 562 dots under 3:1 against white. The cluster navy keeps every dot's edge visible.
+  const lightMap = incheon && (basemapTiles ? basemapTiles === "white" || basemapTiles === "base" : !dark);
   const basemapLayers = useMemo(() => {
     if (!VWORLD_KEY || !basemapTiles) return [];
     const options = {
@@ -1102,7 +1106,7 @@ export default function DeckMap({
           const c = metricModel.color(s);
           return issueModel && selectedCode && s.regionCode !== selectedCode && s.regionCode !== compareCode ? [c[0],c[1],c[2],65] : c;
         },
-        getLineColor: (s) => s.id === highlightedSchoolId ? dark ? [90,220,240,255] : [28,35,49,255] : emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0 ? [222,110,39,255] : [255,255,255,255],
+        getLineColor: (s) => s.id === highlightedSchoolId ? dark ? [90,220,240,255] : [28,35,49,255] : emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0 ? [222,110,39,255] : lightMap ? [38,66,84,255] : [255,255,255,255],
         getLineWidth: (s) => s.id === highlightedSchoolId || (emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0) ? 3 : 1.5,
         getRadius:
           schoolChart === "auto" &&
@@ -1122,7 +1126,7 @@ export default function DeckMap({
         updateTriggers: {
           getFillColor: [metricModel, selectedCode, compareCode, issueModel],
           getRadius: [metricModel, schoolChart, densityVisible, incheon, indicatorId, highlightedSchoolId],
-          getLineColor: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts, dark],
+          getLineColor: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts, dark, lightMap],
           getLineWidth: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts],
         },
       }),
@@ -1205,7 +1209,7 @@ export default function DeckMap({
     }
     return layerList;
   }, [
-    basemapLayers, basemapOn,
+    basemapLayers, basemapOn, lightMap,
     dark, incheon,
     metricModel,
     compareCode, emphasizeZero, schoolFacts,
