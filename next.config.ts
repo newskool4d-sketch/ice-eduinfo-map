@@ -1,5 +1,35 @@
 import type { NextConfig } from "next";
 
+/**
+ * Content-Security-Policy for every response. Measured on a production build on
+ * 2026-11-25 (docs/planning/incheon-v1/29 §10): no violation on the map, trends,
+ * buildings, satellite and about views, and e2e/fixtures.ts fails any test that
+ * causes one.
+ * - script-src keeps 'unsafe-inline': Next.js inlines its bootstrap and RSC payload,
+ *   and layout.tsx inlines the pre-paint display script. A nonce would turn every
+ *   static page into a per-request render. `next dev` also needs eval.
+ * - api.vworld.kr is the only other origin: basemap tiles, fetched by deck.gl.
+ * - data: is needed for the map widgets' icon masks; blob: is left for deck.gl's
+ *   image and worker paths.
+ * - frame-ancestors 'none' (with X-Frame-Options for older browsers): the map is
+ *   not meant to be embedded in another site (user decision, 2026-11-25).
+ */
+export function contentSecurityPolicy(dev: boolean): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${dev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://api.vworld.kr",
+    "connect-src 'self' data: blob: https://api.vworld.kr",
+    "font-src 'self' data:",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
 const nextConfig: NextConfig = {
   // Task 0 scaffolds an explicit, minimal file set (see brief item 6).
   // Without this, `next dev`/`next build` regenerate AGENTS.md/CLAUDE.md
@@ -71,13 +101,15 @@ const nextConfig: NextConfig = {
       { source: "/data/education-issues.json", headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }] },
       // Baseline headers. Referrer-Policy must stay no stricter than the browser
       // default: VWorld checks the Referer of each basemap tile against the key's
-      // registered domain. CSP and frame-ancestors are not set yet (left for review).
+      // registered domain.
       {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+          { key: "Content-Security-Policy", value: contentSecurityPolicy(process.env.NODE_ENV !== "production") },
+          { key: "X-Frame-Options", value: "DENY" },
         ],
       },
     ];

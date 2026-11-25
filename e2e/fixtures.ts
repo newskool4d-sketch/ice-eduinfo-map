@@ -24,12 +24,20 @@ export const test = base.extend<object>({
     await page.route("**/api/buildings/**", route => route.fulfill({ json: {
       type: "FeatureCollection", features: [], metadata: { complete: true, fetchedAt: "2026-09-22T00:00:00Z", source: "test" },
     } }));
+    // Content-Security-Policy (next.config.ts): a violation fails the test that caused
+    // it, so a new outside origin or an inline handler cannot ship unnoticed. Chrome
+    // reports every violation as a console error naming the directive.
+    const cspViolations: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error" && /Content Security Policy/i.test(message.text())) cspViolations.push(message.text().slice(0, 300));
+    });
     // Playwright's own fixture-callback convention — this `use` is the
     // fixture-teardown callback (Playwright's `TestFixture` param), not a
     // React hook; eslint-plugin-react-hooks flags it purely because of the
     // name.
     // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(page);
+    expect(cspViolations, "Content-Security-Policy violations").toEqual([]);
   },
 });
 
