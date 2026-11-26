@@ -80,7 +80,6 @@ export default function IncheonHeader({ bundle }: { bundle: DataBundle | null })
   return <div className="ice-header">
     <header className="ice-masthead">
       <div className="ice-brand"><Image src="/brand/ice-symbol.jpg" width={30} height={45} alt="인천광역시교육청 심벌" unoptimized /><div><span className="ice-eyebrow">INCHEON EDUCATION ATLAS</span><h1>인천 교육지도</h1></div></div>
-      <Image className="ice-vision" src="/brand/ice-vision.png" width={320} height={33} alt="읽걷쓰AI로 학생성공시대 완성" unoptimized />
       <section className="ice-disclosure" aria-label="지도 제작 및 배포 안내">
         <div className="ice-disclosure-copy"><span className="ice-disclosure-badge">비공식 안내</span><p>이 지도는 인천광역시교육청에서 공식 배포한 지도가 아닙니다.</p></div>
         <p className="ice-disclosure-author"><span>제작</span> 인천광역시교육청 교육전문직원 홍주형</p>
