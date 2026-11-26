@@ -68,6 +68,7 @@ import { makeRegionLabelLayer } from "@/components/map/layers/labelLayer";
 import {
   hasCoordinates,
   makeSchoolLabelsLayer,
+  type PositionedSchool,
 } from "@/components/map/layers/schoolLayers";
 import { makeSchoolTooltip, makeTooltip, tooltipStyle } from "@/components/map/tooltip";
 import MapOverlay, { type MapOverlayItem } from "@/components/map/MapOverlay";
@@ -980,6 +981,10 @@ export default function DeckMap({
   // light theme), and most dots there carry the pale end of the metric ramp. Measured 2026-11-25:
   // 539 of 562 dots under 3:1 against white. The cluster navy keeps every dot's edge visible.
   const lightMap = incheon && (basemapTiles ? basemapTiles === "white" || basemapTiles === "base" : !dark);
+  // Incheon satellite map: the photo mixes bright roofs and dark ground under one dot, so neither a
+  // white nor a navy outline alone keeps 3:1 (measured 2026-11-26: 9-42% of edge samples under 3:1).
+  // A dark band drawn just outside the white outline gives every edge a ring that stands out.
+  const satelliteMap = incheon && basemapTiles === "satellite";
   const basemapLayers = useMemo(() => {
     if (!VWORLD_KEY || !basemapTiles) return [];
     const options = {
@@ -1033,6 +1038,41 @@ export default function DeckMap({
   }
   const layers = useMemo<LayersList>(() => {
     const transitionDuration = 0;
+    const schoolsLayer = makeFlatSchoolsLayer(
+      metricModel.specialEducation
+        ? visibleSchools.filter((s) => s.level !== "special")
+        : visibleSchools,
+      highlightedSchoolId,
+      handleSchoolClick,
+    ).clone({
+      getFillColor: (s) => {
+        const c = metricModel.color(s);
+        return issueModel && selectedCode && s.regionCode !== selectedCode && s.regionCode !== compareCode ? [c[0],c[1],c[2],65] : c;
+      },
+      getLineColor: (s) => s.id === highlightedSchoolId ? dark ? [90,220,240,255] : [28,35,49,255] : emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0 ? [222,110,39,255] : lightMap ? [38,66,84,255] : [255,255,255,255],
+      getLineWidth: (s) => s.id === highlightedSchoolId || (emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0) ? 3 : 1.5,
+      getRadius:
+        schoolChart === "auto" &&
+        !densityVisible &&
+        (metricModel.kind === "density" || metricModel.proportional)
+          ? (s) =>
+              Math.max(
+                5,
+                18 *
+                  Math.sqrt(
+                    (metricModel.value(s) ?? 0) /
+                      Math.max(1, metricModel.maximum),
+                  ),
+              )
+          : (s) => incheon && (s.id === highlightedSchoolId || (indicatorId === "small_schools" && (metricModel.value(s) ?? 0) > 0)) ? 7 : 5,
+      radiusMaxPixels: 18,
+      updateTriggers: {
+        getFillColor: [metricModel, selectedCode, compareCode, issueModel],
+        getRadius: [metricModel, schoolChart, densityVisible, incheon, indicatorId, highlightedSchoolId],
+        getLineColor: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts, dark, lightMap],
+        getLineWidth: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts],
+      },
+    });
     const layerList: LayersList = [
       ...basemapLayers,
       makeFlatRegionsLayer(
@@ -1095,41 +1135,22 @@ export default function DeckMap({
           })
         : null,
       ...(schoolGroups.clusters.length ? makeSchoolClusterLayers(schoolGroups.clusters, handleClusterClick, dark, textSize === "large") : []),
-      makeFlatSchoolsLayer(
-        metricModel.specialEducation
-          ? visibleSchools.filter((s) => s.level !== "special")
-          : visibleSchools,
-        highlightedSchoolId,
-        handleSchoolClick,
-      ).clone({
-        getFillColor: (s) => {
-          const c = metricModel.color(s);
-          return issueModel && selectedCode && s.regionCode !== selectedCode && s.regionCode !== compareCode ? [c[0],c[1],c[2],65] : c;
-        },
-        getLineColor: (s) => s.id === highlightedSchoolId ? dark ? [90,220,240,255] : [28,35,49,255] : emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0 ? [222,110,39,255] : lightMap ? [38,66,84,255] : [255,255,255,255],
-        getLineWidth: (s) => s.id === highlightedSchoolId || (emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0) ? 3 : 1.5,
-        getRadius:
-          schoolChart === "auto" &&
-          !densityVisible &&
-          (metricModel.kind === "density" || metricModel.proportional)
-            ? (s) =>
-                Math.max(
-                  5,
-                  18 *
-                    Math.sqrt(
-                      (metricModel.value(s) ?? 0) /
-                        Math.max(1, metricModel.maximum),
-                    ),
-                )
-            : (s) => incheon && (s.id === highlightedSchoolId || (indicatorId === "small_schools" && (metricModel.value(s) ?? 0) > 0)) ? 7 : 5,
-        radiusMaxPixels: 18,
+      satelliteMap ? schoolsLayer.clone({
+        id: "school-halos",
+        pickable: false,
+        filled: false,
+        // Same centre and radius as the dot; the wider stroke shows 2px of dark band outside the
+        // white outline (the dot drawn on top covers the rest). 1.5px anti-aliased to about one
+        // dark pixel. Dimmed with the dot in issue mode.
+        getLineColor: (s: PositionedSchool) => issueModel && selectedCode && s.regionCode !== selectedCode && s.regionCode !== compareCode ? [14,26,36,65] : [14,26,36,255],
+        getLineWidth: (s: PositionedSchool) => (s.id === highlightedSchoolId || (emphasizeZero && issueModel?.metric === "decline-small" && schoolFacts?.schools[s.id]?.entrants === 0) ? 3 : 1.5) + 4,
         updateTriggers: {
-          getFillColor: [metricModel, selectedCode, compareCode, issueModel],
           getRadius: [metricModel, schoolChart, densityVisible, incheon, indicatorId, highlightedSchoolId],
-          getLineColor: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts, dark, lightMap],
+          getLineColor: [selectedCode, compareCode, issueModel],
           getLineWidth: [highlightedSchoolId, emphasizeZero, issueModel, schoolFacts],
         },
-      }),
+      }) : null,
+      schoolsLayer,
       metricModel.specialEducation
         ? makeSpecialSchoolLayer(
             positionedSchools,
@@ -1209,7 +1230,7 @@ export default function DeckMap({
     }
     return layerList;
   }, [
-    basemapLayers, basemapOn, lightMap,
+    basemapLayers, basemapOn, lightMap, satelliteMap,
     dark, incheon,
     metricModel,
     compareCode, emphasizeZero, schoolFacts,
